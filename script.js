@@ -5,7 +5,7 @@ let numeroPublicacion = 0;
 
 // Algunas ediciones no tienen portada en Cover Art Archive.
 const portadaAlternativa = "data:image/svg+xml," + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="500" height="500" fill="#e2e8f0"/><text x="250" y="250" text-anchor="middle" fill="#334155" font-size="28">Portada no disponible</text></svg>'
+    '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="500" height="500" fill="#eeeeee"/><text x="250" y="250" text-anchor="middle" fill="#444444" font-size="28">Portada no disponible</text></svg>'
 );
 
 function asignarPortada(imagen, url, titulo) {
@@ -77,14 +77,15 @@ document.getElementById("formularioBusqueda").addEventListener("submit", async f
     }
 });
 
-function agregarInteracciones(publicacion) {
-    let cantidadLikes = 0;
+function agregarInteracciones(publicacion, datos) {
     const botonLike = document.createElement("button");
     botonLike.type = "button";
-    botonLike.textContent = "♡ Me gusta (0)";
+    botonLike.textContent = "♡ Me gusta (" + datos.likes + ")";
     botonLike.addEventListener("click", function () {
-        cantidadLikes++;
-        botonLike.textContent = "♡ Me gusta (" + cantidadLikes + ")";
+        if (!exigirPerfil()) return;
+        datos.likes++;
+        botonLike.textContent = "♡ Me gusta (" + datos.likes + ")";
+        guardarEstado();
     });
 
     const botonComentar = document.createElement("button");
@@ -102,6 +103,7 @@ function agregarInteracciones(publicacion) {
     inputComentario.type = "text";
     inputComentario.placeholder = "Escribe un comentario";
     inputComentario.setAttribute("aria-label", "Escribe un comentario");
+    inputComentario.maxLength = 1000;
     inputComentario.required = true;
     const botonEnviarComentario = document.createElement("button");
     botonEnviarComentario.type = "submit";
@@ -109,7 +111,12 @@ function agregarInteracciones(publicacion) {
     const listaComentarios = document.createElement("div");
     listaComentarios.className = "lista-comentarios";
     listaComentarios.setAttribute("aria-live", "polite");
-
+    function mostrarComentario(comentario) {
+        const comentarioNuevo = document.createElement("p");
+        comentarioNuevo.textContent = comentario.autor + ": " + comentario.texto;
+        listaComentarios.appendChild(comentarioNuevo);
+    }
+    datos.comentarios.forEach(mostrarComentario);
     botonComentar.addEventListener("click", function () {
         zonaComentarios.hidden = !zonaComentarios.hidden;
         botonComentar.setAttribute("aria-expanded", String(!zonaComentarios.hidden));
@@ -117,11 +124,13 @@ function agregarInteracciones(publicacion) {
     });
     formularioComentario.addEventListener("submit", function (evento) {
         evento.preventDefault();
+        if (!exigirPerfil()) return;
         const textoComentario = inputComentario.value.trim();
         if (!textoComentario) return;
-        const comentarioNuevo = document.createElement("p");
-        comentarioNuevo.textContent = "Iñigo: " + textoComentario;
-        listaComentarios.appendChild(comentarioNuevo);
+        const comentario = { autor: estadoLocal.perfil, texto: textoComentario };
+        datos.comentarios.push(comentario);
+        mostrarComentario(comentario);
+        guardarEstado();
         inputComentario.value = "";
         inputComentario.focus();
     });
@@ -133,7 +142,30 @@ function agregarInteracciones(publicacion) {
     publicacion.append(acciones, zonaComentarios);
 }
 
+function mostrarPublicacion(datos) {
+    const publicacion = document.createElement("article");
+    const portadaPublicacion = document.createElement("img");
+    portadaPublicacion.width = 250;
+    portadaPublicacion.height = 250;
+    asignarPortada(portadaPublicacion, datos.album.portada, datos.album.titulo);
+    const tituloPublicacion = document.createElement("h3");
+    tituloPublicacion.textContent = datos.album.titulo;
+    const artistaPublicacion = document.createElement("p");
+    artistaPublicacion.textContent = "Artista: " + datos.album.artista;
+    const usuarioPublicacion = document.createElement("p");
+    usuarioPublicacion.className = "autor-publicacion";
+    usuarioPublicacion.textContent = "Publicado por " + datos.autor;
+    const textoPublicacion = document.createElement("p");
+    textoPublicacion.className = "opinion";
+    textoPublicacion.textContent = datos.texto;
+    publicacion.append(usuarioPublicacion, portadaPublicacion, tituloPublicacion, artistaPublicacion, textoPublicacion);
+    agregarInteracciones(publicacion, datos);
+    document.getElementById("feed").prepend(publicacion);
+    document.getElementById("feedVacio").hidden = true;
+}
+
 document.getElementById("botonPublicar").addEventListener("click", function () {
+    if (!exigirPerfil()) return;
     const opinion = document.getElementById("comentarioPublicacion");
     const comentario = opinion.value.trim();
     const estado = document.getElementById("estadoPublicacion");
@@ -146,26 +178,95 @@ document.getElementById("botonPublicar").addEventListener("click", function () {
         opinion.focus();
         return;
     }
-    const publicacion = document.createElement("article");
-    const portadaPublicacion = document.createElement("img");
-    portadaPublicacion.width = 250;
-    portadaPublicacion.height = 250;
-    asignarPortada(portadaPublicacion, albumSeleccionado.portada, albumSeleccionado.titulo);
-    const tituloPublicacion = document.createElement("h3");
-    tituloPublicacion.textContent = albumSeleccionado.titulo;
-    const artistaPublicacion = document.createElement("p");
-    artistaPublicacion.textContent = "Artista: " + albumSeleccionado.artista;
-    const usuarioPublicacion = document.createElement("p");
-    usuarioPublicacion.textContent = "Publicado por Iñigo";
-    const textoPublicacion = document.createElement("p");
-    textoPublicacion.className = "opinion";
-    textoPublicacion.textContent = comentario;
-    publicacion.append(portadaPublicacion, tituloPublicacion, artistaPublicacion, usuarioPublicacion, textoPublicacion);
-    agregarInteracciones(publicacion);
-    document.getElementById("feed").appendChild(publicacion);
+    const publicacion = {
+        autor: estadoLocal.perfil,
+        album: { ...albumSeleccionado },
+        texto: comentario,
+        likes: 0,
+        comentarios: []
+    };
+    estadoLocal.publicaciones.push(publicacion);
+    mostrarPublicacion(publicacion);
+    guardarEstado();
     opinion.value = "";
     estado.textContent = "Publicación agregada.";
 });
 
-// La recomendación original conserva su contenido y ahora también es interactiva.
-document.querySelectorAll("#feed article").forEach(agregarInteracciones);
+// Estos datos son una prueba local, no un sistema de autenticación.
+const claveAlmacenamiento = "redmusica.local.v1";
+let estadoLocal = { perfil: null, publicaciones: [] };
+
+function nombreValido(nombre) {
+    return typeof nombre === "string" && nombre.trim().length >= 2 && nombre.length <= 30;
+}
+
+function publicacionValida(datos) {
+    return datos && nombreValido(datos.autor) && typeof datos.texto === "string"
+        && datos.album && typeof datos.album.titulo === "string"
+        && typeof datos.album.artista === "string" && typeof datos.album.portada === "string"
+        && /^https:\/\/coverartarchive\.org\/release-group\/[a-f0-9-]+\/front-500$/.test(datos.album.portada)
+        && Number.isSafeInteger(datos.likes) && datos.likes >= 0
+        && Array.isArray(datos.comentarios) && datos.comentarios.every(function (comentario) {
+            return comentario && nombreValido(comentario.autor) && typeof comentario.texto === "string";
+        });
+}
+
+function guardarEstado() {
+    try {
+        localStorage.setItem(claveAlmacenamiento, JSON.stringify(estadoLocal));
+        document.getElementById("estadoGuardado").textContent = "";
+    } catch (error) {
+        document.getElementById("estadoGuardado").textContent = "No se pudo guardar en este navegador. Los cambios de esta sesión se perderán al recargar.";
+    }
+}
+
+function mostrarPerfil() {
+    const tienePerfil = estadoLocal.perfil !== null;
+    document.getElementById("formularioPerfil").hidden = tienePerfil;
+    document.getElementById("sesionPerfil").hidden = !tienePerfil;
+    document.getElementById("nombrePerfil").textContent = tienePerfil ? "Publicas como " + estadoLocal.perfil : "";
+}
+
+function exigirPerfil() {
+    if (estadoLocal.perfil !== null) return true;
+    document.getElementById("estadoPerfil").textContent = "Crea un perfil local con tu nombre para participar.";
+    document.getElementById("nombreUsuario").focus();
+    return false;
+}
+
+document.getElementById("formularioPerfil").addEventListener("submit", function (evento) {
+    evento.preventDefault();
+    const nombre = document.getElementById("nombreUsuario").value.trim();
+    if (!nombreValido(nombre)) {
+        document.getElementById("estadoPerfil").textContent = "Escribe un nombre de entre 2 y 30 caracteres.";
+        return;
+    }
+    estadoLocal.perfil = nombre;
+    guardarEstado();
+    mostrarPerfil();
+    document.getElementById("estadoPerfil").textContent = "Tu perfil local está listo. Ya puedes publicar.";
+});
+
+document.getElementById("cerrarSesion").addEventListener("click", function () {
+    estadoLocal.perfil = null;
+    guardarEstado();
+    mostrarPerfil();
+    document.getElementById("nombreUsuario").value = "";
+    document.getElementById("estadoPerfil").textContent = "Saliste del perfil. Las publicaciones siguen guardadas en este navegador.";
+});
+
+try {
+    const guardado = localStorage.getItem(claveAlmacenamiento);
+    if (guardado !== null) {
+        const datos = JSON.parse(guardado);
+        if (!datos || !(datos.perfil === null || nombreValido(datos.perfil))
+            || !Array.isArray(datos.publicaciones) || !datos.publicaciones.every(publicacionValida)) {
+            throw new Error("Datos locales no válidos");
+        }
+        estadoLocal = datos;
+    }
+} catch (error) {
+    document.getElementById("estadoGuardado").textContent = "No se pudieron recuperar los datos locales. Puedes crear un perfil para esta sesión.";
+}
+mostrarPerfil();
+estadoLocal.publicaciones.forEach(mostrarPublicacion);

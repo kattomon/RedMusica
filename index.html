@@ -4,14 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260926-1">
+    <link rel="stylesheet" href="style.css?v=20260926-2">
 </head>
 <body>
 <main>
     <h1>RedMusica</h1>
     <p>Un lugar para compartir lo que escuchamos.</p>
     <hr>
-    <h2>Inicio</h2>
+    <section id="cuenta" aria-labelledby="tituloCuenta">
+        <h2 id="tituloCuenta">Tu perfil</h2>
+        <p>Por ahora, tu perfil y tus publicaciones se guardan solo en este navegador. No hay contraseña ni cuentas compartidas entre dispositivos.</p>
+        <form id="formularioPerfil">
+            <label for="nombreUsuario">Tu nombre</label>
+            <div class="fila-controles">
+                <input id="nombreUsuario" type="text" minlength="2" maxlength="30" autocomplete="nickname" placeholder="¿Cómo te llamas?" required>
+                <button type="submit">Crear perfil local</button>
+            </div>
+        </form>
+        <div id="sesionPerfil" hidden>
+            <p id="nombrePerfil"></p>
+            <button id="cerrarSesion" type="button">Salir del perfil</button>
+        </div>
+        <p id="estadoPerfil" role="status"></p>
+        <p id="estadoGuardado" role="status"></p>
+    </section>
+    <h2>Comparte un álbum</h2>
     <h2>Buscar álbum</h2>
     <form id="formularioBusqueda">
         <label for="buscarAlbum">Nombre del álbum</label>
@@ -32,15 +49,9 @@
     </section>
     <p id="estadoPublicacion" role="status"></p>
     <h2>Publicaciones</h2>
-    <div id="feed">
-        <article>
-            <h3>Álbum recomendado: California</h3>
-            <p>Artista: Mr. Bungle</p>
-            <p>Publicado por Iñigo</p>
-            <p>Disco ultra recomendado si quieres escuchar algo "diferente" por decirlo así, de principio a fin.</p>
-        </article>
-    </div>
+    <p id="feedVacio">Todavía no hay publicaciones. Comparte el primer álbum.</p>
+    <div id="feed"></div>
 </main>
-<script src="script.js?v=20260926-1" defer></script>
+<script src="script.js?v=20260926-2" defer></script>
 </body>
 </html>
