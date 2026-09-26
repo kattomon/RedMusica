@@ -37,3 +37,9 @@ input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border
 #cuenta { border-bottom: 1px solid #dddddd; padding-bottom: 16px; }
 #cuenta > p, #feedVacio { color: #555555; }
 .autor-publicacion { font-weight: 600; margin-top: 0; }
+
+#formularioAcceso, #formularioNuevaClave { max-width: 440px; }
+#formularioAcceso input, #formularioAcceso select, #formularioNuevaClave input { display: block; width: 100%; margin-bottom: 12px; }
+select { font: inherit; font-size: 16px; min-height: 44px; padding: 8px; }
+#formularioAcceso button, article form button { margin: 4px 4px 4px 0; }
+article form textarea { display: block; width: 100%; min-height: 100px; margin-top: 12px; }

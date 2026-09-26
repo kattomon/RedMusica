@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260926-2">
+    <link rel="stylesheet" href="style.css?v=20260926-3">
 </head>
 <body>
 <main>
@@ -44,7 +44,7 @@
         <h3 id="tituloAlbum"></h3>
         <p id="artistaAlbum"></p>
         <label for="comentarioPublicacion">Tu opinión</label>
-        <textarea id="comentarioPublicacion" placeholder="¿Qué opinas de este álbum?"></textarea>
+        <textarea id="comentarioPublicacion" maxlength="5000" placeholder="¿Qué opinas de este álbum?"></textarea>
         <button id="botonPublicar" type="button">Publicar</button>
     </section>
     <p id="estadoPublicacion" role="status"></p>
@@ -52,6 +52,7 @@
     <p id="feedVacio">Todavía no hay publicaciones. Comparte el primer álbum.</p>
     <div id="feed"></div>
 </main>
-<script src="script.js?v=20260926-2" defer></script>
+<script src="config.js?v=20260926-3"></script>
+<script src="script.js?v=20260926-3" defer></script>
 </body>
 </html>
