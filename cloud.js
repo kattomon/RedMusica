@@ -28,6 +28,13 @@
         </form>
         <div id="sesionPerfil" hidden><p id="nombrePerfil"></p><button id="cerrarSesion" type="button">Cerrar sesión</button></div>
         <p id="estadoPerfil" role="status"></p>`;
+    if (config.emailConfirmationEnabled === false) {
+        const aviso = document.createElement("p");
+        aviso.className = "aviso-cuenta";
+        aviso.textContent = "Prueba inicial: el correo todavía no se verifica y no hay recuperación de contraseña. Guarda tu contraseña; no uses la de otros servicios.";
+        document.getElementById("tituloCuenta").after(aviso);
+    }
+    document.getElementById("recuperarClave").hidden = config.passwordRecoveryEnabled === false;
     const feed = document.getElementById("feed");
     feed.textContent = "";
     const estadoFeed = document.createElement("p");
@@ -46,7 +53,7 @@
     let revisionFeed = 0;
     let desplazamiento = 0;
     const porPagina = 20;
-    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,body,created_at,profiles(username),likes(count)";
+    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,body,created_at,profiles:profiles!posts_user_id_fkey(username),likes(count)";
     const destinoCorreo = location.origin + location.pathname;
     const estadoPerfil = document.getElementById("estadoPerfil");
 
@@ -141,6 +148,7 @@
         });
     });
     document.getElementById("recuperarClave").addEventListener("click", function (evento) {
+        if (config.passwordRecoveryEnabled === false) return;
         const correo = document.getElementById("correoUsuario");
         if (!correo.reportValidity()) return;
         accion(evento.currentTarget, estadoPerfil, async function () {
@@ -267,7 +275,7 @@
             masComentarios.disabled = true;
             try {
                 const desde = reiniciar ? 0 : comentariosCargados;
-                const comentarios = resultado(await db.from("comments").select("id,body,created_at,profiles(username)").eq("post_id", post.id).order("created_at", { ascending: false }).order("id", { ascending: false }).range(desde, desde + 49));
+                const comentarios = resultado(await db.from("comments").select("id,body,created_at,profiles:profiles!comments_user_id_fkey(username)").eq("post_id", post.id).order("created_at", { ascending: false }).order("id", { ascending: false }).range(desde, desde + 49));
                 if (reiniciar) lista.textContent = "";
                 comentarios.forEach(function (comentario) {
                     const p = document.createElement("p");

@@ -76,4 +76,3 @@ document.getElementById("formularioBusqueda").addEventListener("submit", async f
         boton.disabled = false;
     }
 });
-

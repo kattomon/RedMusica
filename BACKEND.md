@@ -1,8 +1,14 @@
-# Activar las cuentas y el feed compartido
+# Cuentas y feed compartido
 
-El sitio conserva el modo local mientras `config.js` tenga valores vacíos. Ese modo no crea cuentas reales. Los datos de `redmusica.local.v1` se conservan en el navegador y no se suben automáticamente.
+Estado: Supabase RedMusica (svnmwttoawpoavohfrya), región São Paulo, configurado el 26 de septiembre de 2026. La migración remota redmusica_initial_schema está aplicada y config.js activa el feed compartido.
 
-## Configuración del proyecto
+Por decisión del propietario, esta primera prueba permite correo y contraseña SIN confirmar el correo. La recuperación por correo está desactivada en la interfaz. Ningún correo debe considerarse verificado a efectos de identidad. No se guardan contraseñas en las tablas públicas.
+
+Cuando haya SMTP, activar Confirm email en Supabase y cambiar emailConfirmationEnabled/passwordRecoveryEnabled a true en config.js. Comprobar envío y recepción reales antes de anunciar esas funciones.
+
+Los datos antiguos de redmusica.local.v1 se conservan en el navegador y no se suben automáticamente. Dejando vacíos los valores de conexión en config.js puede recuperarse el prototipo local.
+
+## Configuración para un proyecto nuevo o para habilitar verificación por correo
 
 1. Conectar Supabase y elegir/crear un proyecto dedicado a RedMusica. No se necesita mover GitHub Pages.
 2. En un proyecto nuevo, ejecutar `supabase/schema.sql` una vez en SQL Editor. La migración crea perfiles, publicaciones, likes y comentarios, sus índices, restricciones y políticas RLS dentro de una transacción. No desactivar RLS.
@@ -37,3 +43,7 @@ npm test
 `tests/database.cjs` ejecuta PostgreSQL mediante PGlite y prueba RLS con dos usuarios, lectura pública, escrituras autenticadas, autores inmutables, likes y nombres únicos y borrado en cascada.
 
 `tests/browser.cjs` ejecuta el SDK real con respuestas API simuladas: prueba dos sesiones, registro, feed, likes, comentarios, edición/borrado, persistencia de sesión y fallos de red en Chromium/WebKit móvil. Estas pruebas **no verifican un Supabase desplegado ni el envío real de correos**; completar el paso 7 antes de activar.
+
+## Validación del proyecto activo
+
+Se probaron dos cuentas temporales reales contra Supabase: registro, inicio de sesión, búsqueda MusicBrainz, publicación compartida, comentario entre cuentas, like único, rechazo por API de edición/borrado ajenos y de cambios de autor, edición/borrado propios, recarga y cierre de sesión. Se usaron Chromium y WebKit con tamaño de iPhone. Las cuentas y publicaciones temporales se eliminaron después. Sin avisos del Security Advisor. La entrega de correos no está habilitada ni probada.

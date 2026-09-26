@@ -66,16 +66,22 @@ create policy comments_create on public.comments for insert to authenticated wit
 create policy comments_delete on public.comments for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- The browser cannot create/change another person's profile or author identity.
-create function public.handle_new_user() returns trigger
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+
+create function private.handle_new_user() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
+  if auth.uid() is not null and auth.uid() <> new.id then
+    raise exception 'Profile owner mismatch';
+  end if;
   insert into public.profiles (id, username)
   values (new.id, btrim(new.raw_user_meta_data ->> 'username'));
   return new;
 end;
 $$;
-revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on function private.handle_new_user() from public, anon, authenticated;
 create trigger on_auth_user_created after insert on auth.users
-for each row execute function public.handle_new_user();
+for each row execute function private.handle_new_user();
 
 commit;
