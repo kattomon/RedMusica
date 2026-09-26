@@ -68,7 +68,7 @@ function mostrarPublicacion(datos) {
     const portadaPublicacion = document.createElement("img");
     portadaPublicacion.width = 250;
     portadaPublicacion.height = 250;
-    asignarPortada(portadaPublicacion, datos.album.portada, datos.album.titulo);
+    asignarPortada(portadaPublicacion, datos.album.portada, datos.album.titulo, datos.album.artista);
     const tituloPublicacion = document.createElement("h3");
     tituloPublicacion.textContent = datos.album.titulo;
     const artistaPublicacion = document.createElement("p");

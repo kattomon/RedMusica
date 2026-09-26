@@ -20,6 +20,7 @@ const server = http.createServer((req, res) => {
             page.on('pageerror', error => errors.push(error.message));
             await page.route('**/config.js?*', route => route.fulfill({ contentType: 'text/javascript', body: 'window.REDMUSICA_CONFIG={};' }));
             await page.route('https://coverartarchive.org/**', route => route.fulfill({ status: 404, body: '' }));
+            await page.route('https://itunes.apple.com/**', route => route.fulfill({ contentType: 'text/javascript', body: new URL(route.request().url()).searchParams.get('callback')+'({"results":[]})' }));
             let fail = false;
             await page.route('https://musicbrainz.org/**', route => {
                 const url = new URL(route.request().url());

@@ -3,6 +3,15 @@
 body { margin: 0; background: #f7f7f7; color: #222222; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; }
 main { max-width: 960px; margin: 0 auto; padding: 24px; }
 h1 { color: #333333; }
+a { color: #333333; text-underline-offset: 3px; }
+a:focus-visible { outline: 3px solid #777777; outline-offset: 3px; }
+#navegacion { display: flex; gap: 20px; flex-wrap: wrap; margin: 16px 0; }
+#navegacion a { display: inline-flex; align-items: center; min-height: 44px; }
+#perfilPublico { padding: 20px; background: white; border: 1px solid #dddddd; border-radius: 6px; }
+#perfilPublico h2 { margin-top: 0; }
+#enlacePerfil { width: 100%; }
+.fuente-portada { display: block; margin: 8px 0; }
+.fuente-portada img { display: block; width: 120px; height: 40px; max-width: 100%; }
 h2 { margin-top: 28px; }
 h3, p { overflow-wrap: anywhere; }
 label { display: block; margin-bottom: 8px; font-weight: 600; }

@@ -2,6 +2,23 @@
 (function () {
     const config = window.REDMUSICA_CONFIG;
     const db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+    const perfilSolicitado = new URLSearchParams(location.search).get("perfil");
+    const viendoPerfil = perfilSolicitado !== null;
+    const idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || "");
+    document.getElementById("navegacion").hidden = false;
+    document.getElementById("perfilPublico").hidden = !viendoPerfil;
+    document.getElementById("crearPublicacion").hidden = viendoPerfil;
+    if (viendoPerfil) {
+        document.getElementById("tituloFeed").textContent = "Publicaciones de este perfil";
+        document.getElementById("feedVacio").textContent = "Este usuario todavía no ha publicado.";
+        document.title = "Perfil · RedMusica";
+    }
+    function enlaceUsuario(id, nombre) {
+        const enlace = document.createElement("a");
+        enlace.href = "?perfil=" + encodeURIComponent(id);
+        enlace.textContent = "@" + nombre;
+        return enlace;
+    }
     const cuenta = document.getElementById("cuenta");
     cuenta.innerHTML = `
         <h2 id="tituloCuenta">Tu cuenta</h2>
@@ -87,6 +104,10 @@
         document.getElementById("sesionPerfil").hidden = !usuario;
         document.getElementById("formularioNuevaClave").hidden = !recuperando || !usuario;
         document.getElementById("nombrePerfil").textContent = perfil ? "Publicas como @" + perfil.username : "Cargando tu perfil…";
+        const miPerfil = document.getElementById("miPerfil");
+        miPerfil.hidden = !usuario || !perfil;
+        if (usuario) miPerfil.href = "?perfil=" + encodeURIComponent(usuario.id);
+        else miPerfil.removeAttribute("href");
     }
     async function sincronizarSesion(session, evento) {
         if (session && usuario && session.user.id === usuario.id && perfil && evento !== "PASSWORD_RECOVERY") return;
@@ -181,10 +202,34 @@
         estadoFeed.textContent = "Cargando publicaciones…";
         const inicio = reiniciar ? 0 : desplazamiento;
         try {
-            const datos = resultado(await db.from("posts").select(seleccionPosts).order("created_at", { ascending: false }).order("id", { ascending: false }).range(inicio, inicio + porPagina - 1));
+            if (viendoPerfil) {
+                const publico = idPerfilValido ? resultado(await db.from("profiles").select("username,created_at").eq("id", perfilSolicitado).maybeSingle()) : null;
+                if (revision !== revisionFeed) return;
+                if (!publico) {
+                    document.getElementById("tituloPerfilPublico").textContent = "Perfil no encontrado";
+                    document.getElementById("fechaPerfilPublico").textContent = "";
+                    document.getElementById("resumenPerfilPublico").textContent = "Comprueba el enlace o vuelve a Inicio.";
+                    document.getElementById("compartirPerfil").hidden = true;
+                    document.getElementById("feedVacio").hidden = true;
+                    feed.textContent = "";
+                    mas.hidden = true;
+                    estadoFeed.textContent = "";
+                    return;
+                }
+                document.title = "@" + publico.username + " · RedMusica";
+                document.getElementById("tituloPerfilPublico").textContent = "@" + publico.username;
+                document.getElementById("fechaPerfilPublico").textContent = "En RedMusica desde " + new Date(publico.created_at).toLocaleDateString("es", { month: "long", year: "numeric" });
+                document.getElementById("enlacePerfil").value = location.origin + location.pathname + "?perfil=" + encodeURIComponent(perfilSolicitado);
+                document.getElementById("compartirPerfil").hidden = false;
+            }
+            let consulta = db.from("posts").select(seleccionPosts, viendoPerfil ? { count: "exact" } : {});
+            if (viendoPerfil) consulta = consulta.eq("user_id", perfilSolicitado);
+            const respuesta = await consulta.order("created_at", { ascending: false }).order("id", { ascending: false }).range(inicio, inicio + porPagina - 1);
+            const datos = resultado(respuesta);
             let propios = [];
             if (usuario && datos.length) propios = resultado(await db.from("likes").select("post_id").eq("user_id", usuario.id).in("post_id", datos.map(p => p.id)));
             if (revision !== revisionFeed) return;
+            if (viendoPerfil) document.getElementById("resumenPerfilPublico").textContent = respuesta.count + (respuesta.count === 1 ? " publicación" : " publicaciones");
             if (reiniciar) feed.textContent = "";
             datos.forEach(function (post) { feed.appendChild(crearPublicacion(post, propios.some(like => like.post_id === post.id))); });
             desplazamiento = inicio + datos.length;
@@ -205,11 +250,12 @@
         articulo.dataset.postId = post.id;
         const autor = document.createElement("p");
         autor.className = "autor-publicacion";
-        autor.textContent = "Publicado por @" + post.profiles.username;
+        autor.append("Publicado por ", enlaceUsuario(post.user_id, post.profiles.username));
         const portada = document.createElement("img");
+        portada.loading = "lazy";
         portada.width = 250;
         portada.height = 250;
-        asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title);
+        asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
         const titulo = document.createElement("h3");
         titulo.textContent = post.album_title;
         const artista = document.createElement("p");
@@ -275,11 +321,11 @@
             masComentarios.disabled = true;
             try {
                 const desde = reiniciar ? 0 : comentariosCargados;
-                const comentarios = resultado(await db.from("comments").select("id,body,created_at,profiles:profiles!comments_user_id_fkey(username)").eq("post_id", post.id).order("created_at", { ascending: false }).order("id", { ascending: false }).range(desde, desde + 49));
+                const comentarios = resultado(await db.from("comments").select("id,user_id,body,created_at,profiles:profiles!comments_user_id_fkey(username)").eq("post_id", post.id).order("created_at", { ascending: false }).order("id", { ascending: false }).range(desde, desde + 49));
                 if (reiniciar) lista.textContent = "";
                 comentarios.forEach(function (comentario) {
                     const p = document.createElement("p");
-                    p.textContent = "@" + comentario.profiles.username + ": " + comentario.body;
+                    p.append(enlaceUsuario(comentario.user_id, comentario.profiles.username), ": " + comentario.body);
                     lista.appendChild(p);
                 });
                 comentariosCargados = desde + comentarios.length;

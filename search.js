@@ -3,20 +3,6 @@ const estadoBusqueda = document.getElementById("estadoBusqueda");
 let albumSeleccionado = null;
 let numeroPublicacion = 0;
 
-// Algunas ediciones no tienen portada en Cover Art Archive.
-const portadaAlternativa = "data:image/svg+xml," + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="500" height="500" fill="#eeeeee"/><text x="250" y="250" text-anchor="middle" fill="#444444" font-size="28">Portada no disponible</text></svg>'
-);
-
-function asignarPortada(imagen, url, titulo) {
-    imagen.alt = "Portada de " + titulo;
-    imagen.onerror = function () {
-        imagen.onerror = null;
-        imagen.src = portadaAlternativa;
-    };
-    imagen.src = url;
-}
-
 const masResultados = document.getElementById("masResultados");
 let consultaActual = "";
 let siguienteResultado = 0;
@@ -82,7 +68,7 @@ async function buscarResultados() {
             const portada = document.createElement("img");
             portada.className = "portada-resultado";
             portada.loading = "lazy";
-            asignarPortada(portada, urlPortada, titulo);
+            asignarPortada(portada, urlPortada, titulo, artista);
             const nombre = document.createElement("h3");
             nombre.textContent = titulo;
             const nombreArtista = document.createElement("p");
@@ -98,7 +84,7 @@ async function buscarResultados() {
             botonElegir.addEventListener("click", function () {
                 document.getElementById("tituloAlbum").textContent = titulo;
                 document.getElementById("artistaAlbum").textContent = artista;
-                asignarPortada(document.getElementById("portadaAlbum"), urlPortada, titulo);
+                asignarPortada(document.getElementById("portadaAlbum"), urlPortada, titulo, artista);
                 albumSeleccionado = { id: resultado.id, titulo: titulo, artista: artista, portada: urlPortada };
                 document.getElementById("resultadoAlbum").hidden = false;
                 document.getElementById("comentarioPublicacion").focus();
