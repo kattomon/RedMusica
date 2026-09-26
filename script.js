@@ -122,5 +122,8 @@ botonPublicar.addEventListener("click", function(){
     publicacion.appendChild(usuarioPublicacion);
     publicacion.appendChild(textoPublicacion);
 
-        feed.appendChild(publicacion);
+    feed.appendChild(publicacion);
+    
+    console.log("Publicación agregada");
+    console.log(feed);
 });
