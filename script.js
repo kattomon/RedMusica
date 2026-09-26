@@ -1,5 +1,7 @@
 const boton = document.getElementById("botonBuscar");
 
+let albumSeleccionado = null;
+
 boton.addEventListener("click", async function()  {
     
     const album = document.getElementById("buscarAlbum").value;
@@ -57,16 +59,12 @@ boton.addEventListener("click", async function()  {
         document.getElementById("artistaAlbum").textContent = artista;
 
         document.getElementById("portadaAlbum").src = urlPortada
-    });
 
-    const botonPublicar = document.getElementById("botonPublicar");
-
-    botonPublicar.addEventListener("click", function(){
-
-        const comentario =
-              document.getElementById("comentarPublicacion").value;
-
-              console.log(comentario);
+        albumSeleccionado = {
+            titulo: titulo,
+            artista: artista,
+            portada: urlPortada 
+        };
     });
 
     tarjeta.appendChild(portada);
@@ -77,4 +75,16 @@ boton.addEventListener("click", async function()  {
     contenedor.appendChild(tarjeta);
 
 });
+
+});
+
+const botonPublicar = document.getElementById("botonPublicar");
+
+botonPublicar.addEventListener("click", function(){
+
+    const comentario =
+         document.getElementById("comentarioPublicacion").value;
+
+    console.log(comentario);
+
 });
