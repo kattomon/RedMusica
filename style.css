@@ -1,0 +1,48 @@
+.tarjeta-album {
+    background-color: #1e1e1e;
+
+    width: 180px;
+
+    padding: 15px;
+
+    border-radius: 12px;
+}
+
+.portada-resultado {
+    width: 100%;
+
+    aspect-ratio: 1 / 1;
+
+    object-fit: cover;
+
+    border-radius: 8px;
+}
+
+.boton-elegir {
+    width: 100%;
+
+    padding: 10px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+}
+
+
+
+
+
+
+
+
+#resultadosBusqueda {
+    display: flex;
+
+    gap:  15px;
+
+    flex-wrap: wrap;
+
+    margin-top: 20px;
+}

@@ -33,9 +33,13 @@ boton.addEventListener("click", async function()  {
 
     const tarjeta = document.createElement("div");
 
+    tarjeta.classList.add("tarjeta-album");
+
     const portada = document.createElement("img");
+
     portada.src = urlPortada;
-    portada.width = 120;
+
+    portada.classList.add("portada-resultado");
 
     const nombre = document.createElement("h3");
     nombre.textContent = titulo;
@@ -44,14 +48,13 @@ boton.addEventListener("click", async function()  {
     nombreArtista.textContent = artista;
 
     const botonElegir = document.createElement("button");
-
     botonElegir.textContent = "Elegir";
-
+    botonElegir.classList.add("boton-elegir");
     botonElegir.addEventListener("click", function()    {
 
         document.getElementById("tituloAlbum").textContent = titulo;
 
-        document.getElementById("tituloAlbum").textContent = artista;
+        document.getElementById("artistaAlbum").textContent = artista;
 
         document.getElementById("portadaAlbum").src = urlPortada
     });
@@ -60,7 +63,7 @@ boton.addEventListener("click", async function()  {
     tarjeta.appendChild(nombre);
     tarjeta.appendChild(nombreArtista);
     tarjeta.appendChild(botonElegir);
-    
+
     contenedor.appendChild(tarjeta);
 
 });
