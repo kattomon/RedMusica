@@ -85,6 +85,42 @@ botonPublicar.addEventListener("click", function(){
     const comentario =
          document.getElementById("comentarioPublicacion").value;
 
-    console.log(comentario);
+    if (albumSeleccionado === null){
+        alert("Primero debes elegir un álbum.");
+        return;
+    }
 
+    if (comentario.trim() === "") {
+        alert("Escribe algo sobre el álbum.");
+        return;
+    }
+
+    const feed = document.getElementById("feed");
+
+    const publicacion = document.createElement("article");
+
+    const portadaPublicacion = document.createElement("img");
+    portadaPublicacion.src = albumSeleccionado.portada;
+    portadaPublicacion.width = 250;
+
+    const tituloPublicacion = document.createElement("h3");
+    tituloPublicacion.textContent = albumSeleccionado.titulo;
+
+    const artistaPublicacion = document.createElement("p");
+    artistaPublicacion.textContent =
+            "Artista: " + albumSeleccionado.artista;
+
+    const usuarioPublicacion = document.createElement("h3");
+    usuarioPublicacion.textContent = "Publicado por Iñigo";
+
+    const textoPublicacion = document.createElement("p");
+    textoPublicacion.textContent = comentario;
+
+    publicacion.appendChild(portadaPublicacion);
+    publicacion.appendChild(tituloPublicacion);
+    publicacion.appendChild(artistaPublicacion);
+    publicacion.appendChild(usuarioPublicacion);
+    publicacion.appendChild(textoPublicacion);
+
+        feed.appendChild(publicacion);
 });
