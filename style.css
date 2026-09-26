@@ -14,6 +14,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border-radius: 4px; background: white; color: #222222; }
 .fila-controles { display: flex; gap: 10px; }
 .fila-controles input { flex: 1; width: 100%; }
+.campos-busqueda { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.campos-busqueda input { width: 100%; }
+#masResultados { margin-top: 16px; }
+.detalle-lanzamiento { font-size: 14px; }
 #resultadosBusqueda { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-top: 20px; }
 .tarjeta-album { min-width: 0; background: #1e1e1e; color: #fafafa; padding: 15px; border-radius: 6px; display: flex; flex-direction: column; }
 .portada-resultado { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 4px; }
@@ -29,6 +33,7 @@ input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border
     main { padding: 16px; }
     #resultadoAlbum, article { padding: 16px; }
     .fila-controles { flex-direction: column; }
+    .campos-busqueda { grid-template-columns: 1fr; }
     .fila-controles button, #botonPublicar { width: 100%; }
     #resultadosBusqueda { grid-template-columns: 1fr; }
     .portada-resultado { max-width: 250px; align-self: center; }

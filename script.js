@@ -10,13 +10,13 @@
         });
     }
     try {
-        await cargarScript("search.js?v=20260926-4");
+        await cargarScript("search.js?v=20260926-5");
         const config = window.REDMUSICA_CONFIG;
         if (config && config.supabaseUrl && config.supabasePublishableKey) {
             await cargarScript("vendor/supabase-2.117.2.js");
-            await cargarScript("cloud.js?v=20260926-4");
+            await cargarScript("cloud.js?v=20260926-5");
         } else {
-            await cargarScript("local.js?v=20260926-4");
+            await cargarScript("local.js?v=20260926-5");
         }
     } catch (error) {
         document.getElementById("estadoPerfil").textContent = "No se pudo cargar la aplicación. Recarga la página para intentarlo de nuevo.";

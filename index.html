@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260926-4">
+    <link rel="stylesheet" href="style.css?v=20260926-5">
 </head>
 <body>
 <main>
@@ -29,16 +29,20 @@
         <p id="estadoGuardado" role="status"></p>
     </section>
     <h2>Comparte un álbum</h2>
-    <h2>Buscar álbum</h2>
+    <h2>Buscar música</h2>
     <form id="formularioBusqueda">
-        <label for="buscarAlbum">Nombre del álbum</label>
-        <div class="fila-controles">
-            <input type="search" id="buscarAlbum" placeholder="Escribe el nombre de un álbum" required>
-            <button id="botonBuscar" type="submit">Buscar</button>
+        <p id="ayudaBusqueda">Busca por artista, por álbum o combina ambos. También encontrarás EPs y sencillos.</p>
+        <div class="campos-busqueda">
+            <div><label for="buscarArtista">Artista</label>
+            <input type="search" id="buscarArtista" placeholder="Ej.: Los Jaivas" maxlength="200" aria-describedby="ayudaBusqueda"></div>
+            <div><label for="buscarAlbum">Álbum o lanzamiento</label>
+            <input type="search" id="buscarAlbum" placeholder="Ej.: Alturas de Machu Picchu" maxlength="200" aria-describedby="ayudaBusqueda"></div>
         </div>
+        <button id="botonBuscar" type="submit">Buscar</button>
     </form>
     <p id="estadoBusqueda" role="status"></p>
     <div id="resultadosBusqueda"></div>
+    <button id="masResultados" type="button" hidden>Ver más resultados</button>
     <section id="resultadoAlbum" aria-label="Álbum elegido" hidden>
         <img id="portadaAlbum" width="250" height="250" alt="Portada del álbum elegido">
         <h3 id="tituloAlbum"></h3>
@@ -52,7 +56,7 @@
     <p id="feedVacio">Todavía no hay publicaciones. Comparte el primer álbum.</p>
     <div id="feed"></div>
 </main>
-<script src="config.js?v=20260926-4"></script>
-<script src="script.js?v=20260926-4" defer></script>
+<script src="config.js?v=20260926-5"></script>
+<script src="script.js?v=20260926-5" defer></script>
 </body>
 </html>

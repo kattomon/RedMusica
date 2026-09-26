@@ -2,7 +2,7 @@
   "name": "redmusica",
   "private": true,
   "scripts": {
-    "test": "node tests/database.cjs && node tests/browser.cjs"
+    "test": "node tests/database.cjs && node tests/browser.cjs && node tests/search.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
