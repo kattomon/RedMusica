@@ -1,0 +1,66 @@
+.tarjeta-album {
+    background-color: #1e1e1e;
+
+    width: 180px;
+
+    padding: 15px;
+
+    border-radius: 12px;
+}
+
+.portada-resultado {
+    width: 100%;
+
+    aspect-ratio: 1 / 1;
+
+    object-fit: cover;
+
+    border-radius: 8px;
+}
+
+.boton-elegir {
+    width: 100%;
+
+    padding: 10px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+}
+
+#comentarioPublcacion {
+    width: 100%;
+    min-height: 100px;
+    box-sizing: border-box;
+
+    margin-top: 15px;
+    margin-bottom: 12px;
+
+    padding: 12px;
+
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+
+    font-family: inherit;
+    font-size: 15px;
+
+    resize: vertical;
+}
+
+
+
+
+
+
+
+#resultadosBusqueda {
+    display: flex;
+
+    gap:  15px;
+
+    flex-wrap: wrap;
+
+    margin-top: 20px;
+}

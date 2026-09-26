@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>RedMusica</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>RedMusica</h1>
+    <p>Un lugar para compartir lo que escuchamos.</p>
+
+    <hr>
+
+    <h2>Inicio</h2>
+    
+    <h2> Buscar Álbum</h2>
+
+    <input type="text" id="buscarAlbum"  placeholder="Escribe el nombre de un álbum">
+
+    <button id="botonBuscar">Buscar</button>
+
+    <div id="resultadosBusqueda"></div>
+
+    <div id="resultadoAlbum">
+
+        <img id="portadaAlbum" width="250">
+
+        <h3 id="tituloAlbum"></h3>
+
+        <p id="artistaAlbum"></p>
+
+        <textarea
+            id="comentarioPublicacion"
+            placeholder="¿Qué opinas de este álbum"
+        ></textarea>
+
+        <button id="botonPublicar">Publicar</button>
+    
+    </div> 
+
+    <article>
+        <h3>Álbum recomendado: California</h3>
+        <p>Artista: Mr. Bungle</p>
+        <p>Publicado por Iñigo</p>
+        <p>Disco ultra recomendado si quieres escuchar algo "diferente" por decirlo así, de principio a fin.</p>
+
+        <button>Me gusta</button>
+        <button>Comentar</button>
+    </article>
+<script src="script.js"></script>
+</body>
+</html>
