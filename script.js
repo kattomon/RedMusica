@@ -116,11 +116,78 @@ botonPublicar.addEventListener("click", function(){
     const textoPublicacion = document.createElement("p");
     textoPublicacion.textContent = comentario;
 
+    let cantidadLikes = 0;
+
+    const botonLike = document.createElement("button");
+    botonLike.textContent = "♡ Me gusta (0)";
+
+    botonLike.addEventListener("click", function(){
+
+        cantidadLikes++;
+
+        botonLike.textContent =
+            "♡ Me gusta (" + cantidadLikes +")";
+
+
+    const botonComentar = document.createElement("button");
+    botonComentar.textContent = "Comentar";
+
+    const zonaComentarios = document.createElement("div");
+
+    const inputComentario = document.createElement("input");
+    inputComentario.type = "text";
+    inputComentario.placeholder = "Escribe un comentario";
+
+    const botonEnviarComentario = document.createElement("button");
+    botonEnviarComentario.textContent = "Enviar";
+
+    const listaComentarios = document.createElement("div");
+    zonaComentarios.style.display = "none";
+
+    botonComentar.addEventListener("click", function() {
+
+        if(zonaComentarios.style.display === "none") {
+            
+            zonaComentarios.style.display = "block";
+
+        } else {
+
+            zonaComentarios.style.display = "none";
+            
+        }
+    })
+    });
+
+    botonEnviarComentario.addEventListener("click", function(){
+
+        const textoComentario = inputComentario.value;
+
+        if (textoComentario.trim() === "") {
+            return;
+        }
+
+        const comentarioNuevo = document.createElement("p");
+
+        comentarioNuevo.textContent =
+            "Iñigo: " + textoComentario;
+
+            listaComentarios.appendChild("ComentarioNuevo");
+
+            inputComentario.value = "";
+    });
+
+    zonaComentarios.appendChild(inputComentario);
+    zonaComentarios.appendChild(botonEnviarComentario);
+    zonaComentarios.appendChild(listaComentarios);
+
     publicacion.appendChild(portadaPublicacion);
     publicacion.appendChild(tituloPublicacion);
     publicacion.appendChild(artistaPublicacion);
     publicacion.appendChild(usuarioPublicacion);
     publicacion.appendChild(textoPublicacion);
+    publicacion.appendChild(botonLike);
+    publicacion.appendChild(botonComentar);
+    publicacion.appendChild(zona);
 
     feed.appendChild(publicacion);
     
