@@ -2,56 +2,45 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260926-1">
 </head>
 <body>
+<main>
     <h1>RedMusica</h1>
     <p>Un lugar para compartir lo que escuchamos.</p>
-
     <hr>
-
     <h2>Inicio</h2>
-    
-    <h2> Buscar Álbum</h2>
-
-    <input type="text" id="buscarAlbum"  placeholder="Escribe el nombre de un álbum">
-
-    <button id="botonBuscar">Buscar</button>
-
+    <h2>Buscar álbum</h2>
+    <form id="formularioBusqueda">
+        <label for="buscarAlbum">Nombre del álbum</label>
+        <div class="fila-controles">
+            <input type="search" id="buscarAlbum" placeholder="Escribe el nombre de un álbum" required>
+            <button id="botonBuscar" type="submit">Buscar</button>
+        </div>
+    </form>
+    <p id="estadoBusqueda" role="status"></p>
     <div id="resultadosBusqueda"></div>
-
-    <div id="resultadoAlbum">
-
-        <img id="portadaAlbum" width="250">
-
+    <section id="resultadoAlbum" aria-label="Álbum elegido" hidden>
+        <img id="portadaAlbum" width="250" height="250" alt="Portada del álbum elegido">
         <h3 id="tituloAlbum"></h3>
-
         <p id="artistaAlbum"></p>
-
-        <textarea
-            id="comentarioPublicacion"
-            placeholder="¿Qué opinas de este álbum"
-        ></textarea>
-
-        <button id="botonPublicar">Publicar</button>
-    
-    </div> 
-
+        <label for="comentarioPublicacion">Tu opinión</label>
+        <textarea id="comentarioPublicacion" placeholder="¿Qué opinas de este álbum?"></textarea>
+        <button id="botonPublicar" type="button">Publicar</button>
+    </section>
+    <p id="estadoPublicacion" role="status"></p>
     <h2>Publicaciones</h2>
-
-    <div id="feed"></div>
-
-    <article>
-        <h3>Álbum recomendado: California</h3>
-        <p>Artista: Mr. Bungle</p>
-        <p>Publicado por Iñigo</p>
-        <p>Disco ultra recomendado si quieres escuchar algo "diferente" por decirlo así, de principio a fin.</p>
-
-        <button>Me gusta</button>
-        <button>Comentar</button>
-    </article>
-<script src="script.js?v=2"></script>
+    <div id="feed">
+        <article>
+            <h3>Álbum recomendado: California</h3>
+            <p>Artista: Mr. Bungle</p>
+            <p>Publicado por Iñigo</p>
+            <p>Disco ultra recomendado si quieres escuchar algo "diferente" por decirlo así, de principio a fin.</p>
+        </article>
+    </div>
+</main>
+<script src="script.js?v=20260926-1" defer></script>
 </body>
 </html>
