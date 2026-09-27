@@ -24,7 +24,8 @@
     document.getElementById('peliculasNav').setAttribute('aria-current',viendoPeliculas?'page':'false');
     document.getElementById('amigosNav').hidden = !viendoAmigos;
     document.getElementById('seccionAmigos').hidden = !viendoAmigos;
-    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas?'page':'false');
+    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoAmigos?'page':'false');
+    if(viendoAmigos)document.title='Amigos · RedMusica';
     if (viendoPerfil) {
         document.getElementById("tituloFeed").textContent = "Publicaciones de este perfil";
         document.getElementById("feedVacio").textContent = "Este usuario todavía no ha publicado.";
@@ -107,8 +108,8 @@
     }
     const cuenta = document.getElementById("cuenta");
     cuenta.innerHTML = `
-        <h2 id="tituloCuenta">Tu cuenta</h2>
-        <p>Crea una cuenta para compartir álbumes y conversar con otras personas.</p>
+        <h2 id="tituloCuenta">Únete a RedMusica</h2>
+        <p>Inicia sesión o crea una cuenta para compartir álbumes y conversar con otras personas.</p>
         <form id="formularioAcceso">
             <label for="modoAcceso">¿Qué quieres hacer?</label>
             <select id="modoAcceso"><option value="login">Iniciar sesión</option><option value="signup">Crear cuenta</option></select>
@@ -173,6 +174,21 @@
     const destinoCorreo = location.origin + location.pathname;
     const estadoPerfil = document.getElementById("estadoPerfil");
 
+    function actualizarVisibilidadCuenta(){
+        const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoAmigos;
+        const recuperacion=Boolean(usuario&&recuperando&&inicio);
+        cuenta.hidden=!(inicio&&(!usuario||recuperacion));
+        const sesion=document.getElementById('sesionPerfil');
+        const miPropioPerfil=Boolean(usuario&&viendoPerfil&&perfilSolicitado===usuario.id);
+        if(miPropioPerfil&&sesion.parentElement!==document.getElementById('perfilPublico'))document.getElementById('perfilPublico').append(sesion);
+        else if(!miPropioPerfil&&sesion.parentElement!==cuenta)cuenta.append(sesion);
+        sesion.hidden=!usuario||recuperacion;
+        document.getElementById('nombrePerfil').hidden=miPropioPerfil;
+        if(recuperacion)document.getElementById('tituloCuenta').textContent='Restablece tu contraseña';
+        else document.getElementById('tituloCuenta').textContent='Únete a RedMusica';
+    }
+    actualizarVisibilidadCuenta();
+
     function crearBoton(texto) {
         const boton = document.createElement("button");
         boton.type = "button";
@@ -209,9 +225,9 @@
         document.getElementById('amigosNav').hidden = !usuario;
         document.getElementById('dockAmigos').hidden = !usuario;
         document.getElementById('abrirDockAmigos').hidden = !usuario;
+        actualizarVisibilidadCuenta();
         if(viendoAmigos){
             ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
-            document.getElementById('cuenta').hidden=Boolean(usuario);
         }
         const nombre = document.getElementById('nombrePerfil');
         nombre.textContent = perfil ? 'Publicas como @' + perfil.username + ' ' : 'Cargando tu perfil…';
@@ -555,7 +571,7 @@
             rows.forEach(row=>{
                 const id=row.user_a===usuario.id?row.user_b:row.user_a,person=profiles.get(id);if(!person)return;
                 const card=document.createElement('article');card.className='tarjeta-amigo';
-                const link=enlaceUsuario(id,person.username);card.append(link,rangoPerfil(person.role));
+                const identity=document.createElement('div');identity.className='amigo-identidad';identity.append(fotoPerfil(id,person),enlaceUsuario(id,person.username),rangoPerfil(person.role));card.append(identity);
                 const online=document.createElement('span');online.className='estado-presencia-amigo';online.dataset.userId=id;online.textContent=presenciaEnLinea.has(id)?'En línea':'Desconectado';card.append(online);
                 const state=document.createElement('span');state.className='estado-amistad';state.textContent=row.status==='accepted'?'Amigos':row.status==='declined'?'Solicitud rechazada':row.requested_by===usuario.id?'Solicitud enviada':'Te envió una solicitud';card.append(state);
                 const actions=document.createElement('div');actions.className='acciones';
@@ -589,8 +605,9 @@
                 const id=row.user_a===usuario.id?row.user_b:row.user_a,person=byId.get(id);if(!person)return;
                 const item=document.createElement('div');item.className='amigo-dock';item.dataset.userId=id;
                 item.append(fotoPerfil(id,person));
-                const link=enlaceUsuario(id,person.username);item.append(link);
-                const presence=document.createElement('span');presence.className='estado-presencia-amigo';presence.dataset.userId=id;presence.textContent=presenciaEnLinea.has(id)?'En línea':'Desconectado';presence.classList.toggle('en-linea',presenciaEnLinea.has(id));item.append(presence);
+                const identity=document.createElement('div');identity.className='amigo-identidad';
+                const nameRow=document.createElement('div');nameRow.className='amigo-nombre';nameRow.append(enlaceUsuario(id,person.username),rangoPerfil(person.role));identity.append(nameRow);
+                const presence=document.createElement('span');presence.className='estado-presencia-amigo';presence.dataset.userId=id;presence.textContent=presenciaEnLinea.has(id)?'En línea':'Desconectado';presence.classList.toggle('en-linea',presenciaEnLinea.has(id));identity.append(presence);item.append(identity);
                 const button=crearBoton('Chat');button.className='boton-chat-amigo';button.setAttribute('aria-label','Abrir chat con @'+person.username);button.addEventListener('click',()=>abrirChatPrivado({id,username:person.username}));item.append(button);box.append(item);
             });
             if(!rows.length){const empty=document.createElement('p');empty.className='estado-vacio-amigos';empty.textContent='Tus amigos aparecerán aquí.';box.append(empty);}
@@ -752,7 +769,7 @@
         document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
         document.getElementById('seccionAmigos').hidden = !viendoAmigos;
         document.getElementById('amigosNav').setAttribute('aria-current',viendoAmigos?'page':'false');
-        document.getElementById('cuenta').hidden = viendoAmigos && Boolean(usuario);
+        actualizarVisibilidadCuenta();
         document.getElementById('chatComunitario').hidden = viendoAmigos;
         ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos;});
         document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
@@ -761,7 +778,7 @@
         document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoAmigos ? 'page' : 'false');
         document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : 'Publicaciones';
         document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : 'Todavía no hay publicaciones. Comparte el primer álbum.';
-        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : 'RedMusica';
+        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : 'RedMusica';
         if (!viendoPerfil) {
             document.getElementById('fotoPerfilPublico').replaceChildren();
             document.getElementById('rangoPerfilPublico').replaceChildren();
@@ -769,7 +786,7 @@
             document.getElementById('resumenPerfilPublico').textContent = '';
         document.getElementById('compartirPerfil').hidden = true;
             ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos;});
-            document.getElementById('cuenta').hidden=viendoAmigos&&Boolean(usuario);
+            actualizarVisibilidadCuenta();
             document.getElementById('presenciaPerfil').dataset.userId='';
             document.getElementById('amistadPerfil').hidden=true;
             document.getElementById('rechazarAmistad').hidden=true;

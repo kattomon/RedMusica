@@ -158,6 +158,54 @@ input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border
 }
 @media (max-width: 480px) { #ventanaChatAmigo { width: calc(100vw - 24px); height: min(420px, calc(100dvh - 24px)); } }
 
+/* Compact friend rows, with presence below the name instead of beside it. */
+.amigo-dock { display: grid; grid-template-columns: 36px minmax(0,1fr) auto; align-items: center; gap: 8px; }
+.amigo-dock .amigo-identidad { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.amigo-dock .amigo-nombre { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; }
+.amigo-dock .amigo-nombre .enlace-usuario { display: block; flex: 0 1 auto; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.amigo-dock .amigo-nombre .enlace-usuario::after { display: none; }
+.amigo-dock .rango-perfil { flex: 0 0 auto; padding: 1px 6px; font-size: 10px; }
+.amigo-dock .estado-presencia-amigo { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 1.2; white-space: nowrap; }
+.amigo-dock .estado-presencia-amigo::before { content: ""; width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #8993a0; }
+.amigo-dock .estado-presencia-amigo.en-linea::before { background: #3d9b59; }
+.tarjeta-amigo { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px 16px; }
+.tarjeta-amigo .amigo-identidad { grid-column: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.tarjeta-amigo .amigo-identidad .enlace-usuario { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tarjeta-amigo .amigo-identidad .enlace-usuario::after { display: none; }
+.tarjeta-amigo .estado-presencia-amigo { grid-column: 2; white-space: nowrap; }
+.tarjeta-amigo .estado-amistad { grid-column: 1 / -1; margin: 0 0 0 54px; }
+.tarjeta-amigo .acciones { grid-column: 1 / -1; }
+
+/* A restrained 2009 social-network look: clear blue navigation and paper-white panels. */
+body { background: #e9edf3; }
+h1, h2, h3 { color: #273f68; }
+a { color: #365899; }
+button { background: #4267a9; }
+button:hover { background: #31518a; }
+hr { border: 0; border-top: 1px solid #c5ceda; margin: 22px 0; }
+#navegacion { align-items: center; gap: 4px; padding: 6px 8px; border: 1px solid #29487d; border-radius: 3px; background: #3b5998; }
+#navegacion a { padding: 6px 10px; border-bottom: 2px solid transparent; color: #fff; text-decoration: none; }
+#navegacion a:hover { background: #314d83; }
+#navegacion a[aria-current="page"] { border-bottom-color: #fff; font-weight: 700; }
+#navegacion button { background: #e7edf7; color: #263f69; }
+#navegacion button:hover { background: #fff; }
+#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas, #seccionAmigos, #chatComunitario, #notificaciones { padding: 18px; border: 1px solid #ccd5e0; border-radius: 3px; background: #fff; }
+#cuenta { max-width: 760px; border-bottom: 1px solid #ccd5e0; }
+#cuenta h2, #crearPublicacion h2, #crearMeme h2, #seccionPeliculas h2, #seccionAmigos h2, #chatComunitario h2 { margin-top: 0; }
+#perfilPublico { border: 1px solid #ccd5e0; border-top: 5px solid #3b5998; border-radius: 3px; }
+#feed > article { border-color: #ccd5e0; border-radius: 3px; box-shadow: 0 1px 2px #1d35551a; }
+#resultadosPeliculas .tarjeta-pelicula { border-color: #d2dae4; border-radius: 3px; }
+#dockAmigos { border-color: #c6d1df; border-radius: 4px; }
+#dockAmigos header { background: #eef3fa; }
+#ventanaChatAmigo { border-color: #b9c8da; border-radius: 4px; }
+#ventanaChatAmigo header { background: #eef3fa; }
+#perfilPublico > #sesionPerfil { margin-top: 20px; padding-top: 16px; border-top: 1px solid #d7dde5; }
+@media (max-width: 520px) {
+    #navegacion { gap: 2px; padding: 5px; }
+    #navegacion a { padding: 6px 7px; }
+    #cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas, #seccionAmigos, #chatComunitario { padding: 13px; }
+}
+
 #formularioAcceso, #formularioNuevaClave { max-width: 440px; }
 #formularioAcceso input, #formularioAcceso select, #formularioNuevaClave input { display: block; width: 100%; margin-bottom: 12px; }
 select { font: inherit; font-size: 16px; min-height: 44px; padding: 8px; }
