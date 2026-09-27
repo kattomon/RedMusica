@@ -7,7 +7,12 @@
     let viendoPerfil = perfilSolicitado !== null;
     let viendoMemes = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'memes';
     let viendoPeliculas = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'peliculas';
+    let viendoAmigos = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'amigos';
     let idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || "");
+    let presenceChannel = null;
+    let presenceOwner = null;
+    const presenciaEnLinea = new Set();
+    let revisionAmigos = 0;
     document.getElementById("navegacion").hidden = false;
     document.getElementById("perfilPublico").hidden = !viendoPerfil;
     document.getElementById("crearPublicacion").hidden = viendoPerfil || viendoMemes || viendoPeliculas;
@@ -15,6 +20,8 @@
     document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
     document.getElementById('memesNav').setAttribute('aria-current',viendoMemes?'page':'false');
     document.getElementById('peliculasNav').setAttribute('aria-current',viendoPeliculas?'page':'false');
+    document.getElementById('amigosNav').hidden = !viendoAmigos;
+    document.getElementById('seccionAmigos').hidden = !viendoAmigos;
     document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas?'page':'false');
     if (viendoPerfil) {
         document.getElementById("tituloFeed").textContent = "Publicaciones de este perfil";
@@ -48,7 +55,48 @@
         const enlace = document.createElement("a");
         enlace.href = "?perfil=" + encodeURIComponent(id);
         enlace.textContent = "@" + nombre;
+        enlace.className = 'enlace-usuario';
+        enlace.dataset.userId = id;
+        enlace.dataset.online = String(presenciaEnLinea.has(id));
+        enlace.setAttribute('aria-label','@'+nombre+', '+(presenciaEnLinea.has(id)?'en línea':'desconectado'));
         return enlace;
+    }
+    function actualizarIndicadoresPresencia(){
+        document.querySelectorAll('.enlace-usuario[data-user-id]').forEach(link=>{
+            const online=presenciaEnLinea.has(link.dataset.userId);
+            link.dataset.online=String(online);
+            link.setAttribute('aria-label',link.textContent+', '+(online?'en línea':'desconectado'));
+        });
+        document.querySelectorAll('.estado-presencia-amigo[data-user-id]').forEach(status=>{
+            const online=presenciaEnLinea.has(status.dataset.userId);
+            status.textContent=online?'En línea':'Desconectado';
+            status.classList.toggle('en-linea',online);
+        });
+        const status=document.getElementById('presenciaPerfil');
+        if(status?.dataset.userId){const online=presenciaEnLinea.has(status.dataset.userId);status.textContent=online?'● En línea':'○ Desconectado';status.classList.toggle('en-linea',online);status.classList.toggle('desconectado',!online);}
+    }
+    function detenerPresencia(){
+        presenciaEnLinea.clear();
+        if(presenceChannel){db.removeChannel(presenceChannel);presenceChannel=null;presenceOwner=null;}
+        actualizarIndicadoresPresencia();
+    }
+    function iniciarPresencia(){
+        if(!usuario){detenerPresencia();return;}
+        if(presenceChannel&&presenceOwner!==usuario.id)detenerPresencia();
+        if(presenceChannel)return;
+        const currentId=usuario.id;
+        const channel=db.channel('redmusica-online',{config:{presence:{key:currentId}}});
+        presenceChannel=channel;presenceOwner=currentId;
+        channel.on('presence',{event:'sync'},()=>{
+            if(presenceChannel!==channel)return;
+            presenciaEnLinea.clear();
+            Object.keys(channel.presenceState()).forEach(id=>presenciaEnLinea.add(id));
+            actualizarIndicadoresPresencia();
+        }).subscribe(async status=>{
+            if(status==='SUBSCRIBED'&&presenceChannel===channel&&usuario?.id===currentId){
+                try{await channel.track({user_id:currentId,online_at:new Date().toISOString()});}catch{}
+            }
+        });
     }
     const cuenta = document.getElementById("cuenta");
     cuenta.innerHTML = `
@@ -99,6 +147,7 @@
     refrescar.id = "actualizarFeed";
     feed.before(refrescar, estadoFeed);
     const mas = crearBoton("Ver más publicaciones");
+    mas.id='verMas';
     mas.hidden = true;
     feed.after(mas);
     let usuario = null;
@@ -149,6 +198,11 @@
         document.getElementById("formularioNuevaClave").hidden = !recuperando || !usuario;
         document.getElementById("abrirNotificaciones").hidden = !usuario;
         document.getElementById("notificaciones").hidden = !usuario || !notificacionesAbiertas;
+        document.getElementById('amigosNav').hidden = !usuario;
+        if(viendoAmigos){
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
+            document.getElementById('cuenta').hidden=Boolean(usuario);
+        }
         const nombre = document.getElementById('nombrePerfil');
         nombre.textContent = perfil ? 'Publicas como @' + perfil.username + ' ' : 'Cargando tu perfil…';
         document.getElementById('miFoto').replaceChildren();
@@ -170,6 +224,7 @@
         if (evento === "PASSWORD_RECOVERY") recuperando = true;
         if (!usuario) recuperando = false;
         actualizarAcceso();
+        if(usuario)iniciarPresencia();else detenerPresencia();
         try {
             if (usuario) {
                 const datos = resultado(await db.from("profiles").select("username,role,bio,avatar_updated_at").eq("id", usuario.id).single());
@@ -179,6 +234,7 @@
             if (revision !== revisionSesion) return;
             actualizarAcceso();
             await cargarFeed(true);
+            await actualizarConteoSolicitudesAmistad();
             revisionNotificaciones++;offsetNotificaciones=0;actualizarContadorNotificaciones();
         } catch (error) {
             if (revision === revisionSesion) estadoPerfil.textContent = "No se pudo cargar tu perfil. Recarga la página para volver a intentarlo.";
@@ -422,8 +478,108 @@
         const total=await db.from('follows').select('user_id',{count:'exact',head:true}).eq('followed_id',objetivoSeguir);
         document.getElementById('conteoSeguidores').textContent=(total.count||0)+(total.count===1?' seguidor':' seguidores');
     }
+    function parDeAmistad(otherId){return [usuario.id,otherId].sort();}
+    async function obtenerAmistad(otherId){
+        const [a,b]=parDeAmistad(otherId);
+        return resultado(await db.from('friendships').select('user_a,user_b,requested_by,status,created_at').eq('user_a',a).eq('user_b',b).maybeSingle());
+    }
+    function pintarEstadoAmistad(row){
+        const button=document.getElementById('amistadPerfil'),reject=document.getElementById('rechazarAmistad');
+        if(!usuario||!objetivoSeguir||usuario.id===objetivoSeguir){button.hidden=true;reject.hidden=true;return;}
+        button.hidden=false;reject.hidden=true;
+        if(!row){button.textContent='Agregar amigo';button.dataset.accionAmistad='send';}
+        else if(row.status==='accepted'){button.textContent='Eliminar amigo';button.dataset.accionAmistad='remove';}
+        else if(row.status==='pending'&&row.requested_by===usuario.id){button.textContent='Cancelar solicitud';button.dataset.accionAmistad='cancel';}
+        else if(row.status==='pending'){button.textContent='Aceptar solicitud';button.dataset.accionAmistad='accept';reject.hidden=false;}
+        else{button.textContent='Enviar nueva solicitud';button.dataset.accionAmistad='send';}
+    }
+    async function cargarEstadoAmistadPerfil(){
+        const status=document.getElementById('estadoAmistadPerfil');status.textContent='';
+        if(!usuario||!objetivoSeguir||usuario.id===objetivoSeguir){pintarEstadoAmistad(null);return;}
+        try{pintarEstadoAmistad(await obtenerAmistad(objetivoSeguir));}
+        catch{status.textContent='No se pudo revisar la amistad. Inténtalo de nuevo.';}
+    }
+    async function cambiarAmistad(targetId,action){
+        const [a,b]=parDeAmistad(targetId);
+        const query=db.from('friendships').delete().eq('user_a',a).eq('user_b',b);
+        if(action==='send'){
+            const existing=await obtenerAmistad(targetId);
+            if(existing?.status==='declined')resultado(await query);
+            resultado(await db.from('friendships').insert({user_a:a,user_b:b,requested_by:usuario.id}));
+        }else if(action==='accept'||action==='decline'){
+            resultado(await db.from('friendships').update({status:action==='accept'?'accepted':'declined'}).eq('user_a',a).eq('user_b',b).eq('status','pending'));
+        }else resultado(await query);
+        if(viendoPerfil)await cargarEstadoAmistadPerfil();
+        if(viendoAmigos)await cargarAmigos();
+        await actualizarConteoSolicitudesAmistad();
+    }
+    document.getElementById('amistadPerfil').addEventListener('click',async()=>{
+        if(!exigirCuenta()||!objetivoSeguir)return;
+        const button=document.getElementById('amistadPerfil'),action=button.dataset.accionAmistad;
+        button.disabled=true;document.getElementById('estadoAmistadPerfil').textContent='';
+        try{await cambiarAmistad(objetivoSeguir,action);document.getElementById('estadoAmistadPerfil').textContent=action==='send'?'Solicitud enviada.':action==='accept'?'Ahora son amigos.':action==='cancel'?'Solicitud cancelada.':action==='remove'?'Amistad eliminada.':'';}
+        catch{document.getElementById('estadoAmistadPerfil').textContent='No se pudo actualizar la amistad. Inténtalo de nuevo.';}
+        finally{button.disabled=false;}
+    });
+    document.getElementById('rechazarAmistad').addEventListener('click',async()=>{
+        if(!usuario||!objetivoSeguir)return;
+        const button=document.getElementById('rechazarAmistad');button.disabled=true;
+        try{await cambiarAmistad(objetivoSeguir,'decline');document.getElementById('estadoAmistadPerfil').textContent='Solicitud rechazada.';}
+        catch{document.getElementById('estadoAmistadPerfil').textContent='No se pudo rechazar la solicitud. Inténtalo de nuevo.';}
+        finally{button.disabled=false;}
+    });
+    async function cargarAmigos(){
+        if(!usuario||!viendoAmigos)return;
+        const revision=++revisionAmigos;const box=document.getElementById('listaAmigos'),status=document.getElementById('estadoAmigos');
+        status.textContent='Cargando amigos y solicitudes…';
+        try{
+            const rows=resultado(await db.from('friendships').select('user_a,user_b,requested_by,status,created_at').or('user_a.eq.'+usuario.id+',user_b.eq.'+usuario.id).order('created_at',{ascending:false}).limit(100));
+            if(revision!==revisionAmigos)return;
+            const ids=[...new Set(rows.map(row=>row.user_a===usuario.id?row.user_b:row.user_a))];
+            const people=ids.length?resultado(await db.from('profiles').select('id,username,role').in('id',ids)):[];
+            const profiles=new Map(people.map(item=>[item.id,item]));
+            box.replaceChildren();
+            const incoming=rows.filter(row=>row.status==='pending'&&row.requested_by!==usuario.id);
+            const heading=document.createElement('h3');heading.textContent='Solicitudes recibidas ('+incoming.length+')';box.append(heading);
+            rows.forEach(row=>{
+                const id=row.user_a===usuario.id?row.user_b:row.user_a,person=profiles.get(id);if(!person)return;
+                const card=document.createElement('article');card.className='tarjeta-amigo';
+                const link=enlaceUsuario(id,person.username);card.append(link,rangoPerfil(person.role));
+                const online=document.createElement('span');online.className='estado-presencia-amigo';online.dataset.userId=id;online.textContent=presenciaEnLinea.has(id)?'En línea':'Desconectado';card.append(online);
+                const state=document.createElement('span');state.className='estado-amistad';state.textContent=row.status==='accepted'?'Amigos':row.status==='declined'?'Solicitud rechazada':row.requested_by===usuario.id?'Solicitud enviada':'Te envió una solicitud';card.append(state);
+                const actions=document.createElement('div');actions.className='acciones';
+            if(row.status==='pending'&&row.requested_by!==usuario.id){const accept=crearBoton('Aceptar');accept.addEventListener('click',()=>hacerAccion(row,'accept'));const decline=crearBoton('Rechazar');decline.addEventListener('click',()=>hacerAccion(row,'decline'));actions.append(accept,decline);}
+                else if(row.status==='accepted'){const remove=crearBoton('Eliminar amigo');remove.addEventListener('click',()=>hacerAccion(row,'remove'));actions.append(remove);}
+                else if(row.status==='declined'){const dismiss=crearBoton('Quitar');dismiss.addEventListener('click',()=>hacerAccion(row,'remove'));actions.append(dismiss);}
+                else if(row.requested_by===usuario.id){const cancel=crearBoton('Cancelar solicitud');cancel.addEventListener('click',()=>hacerAccion(row,'cancel'));actions.append(cancel);}
+                card.append(actions);box.append(card);
+            });
+            if(!rows.length){const empty=document.createElement('p');empty.textContent='Todavía no tienes amigos ni solicitudes. Visita un perfil para agregar a alguien.';box.append(empty);}
+            status.textContent='';
+        }catch{if(revision===revisionAmigos)status.textContent='No se pudieron cargar tus amistades. Inténtalo de nuevo.';}
+        async function hacerAccion(row,action){
+            const other=row.user_a===usuario.id?row.user_b:row.user_a;
+            try{await cambiarAmistad(other,action);}catch{status.textContent='No se pudo actualizar la solicitud. Inténtalo de nuevo.';}
+        }
+    }
+    document.getElementById('actualizarAmigos').addEventListener('click',cargarAmigos);
+    setInterval(()=>{if(viendoAmigos&&!document.hidden)cargarAmigos();},60000);
+    async function actualizarConteoSolicitudesAmistad(){
+        if(!usuario)return;
+        try{
+            const rows=resultado(await db.from('friendships').select('requested_by,status').eq('status','pending').or('user_a.eq.'+usuario.id+',user_b.eq.'+usuario.id).limit(100));
+            const count=rows.filter(row=>row.requested_by!==usuario.id).length;
+            document.getElementById('amigosNav').textContent=count?'Amigos ('+count+')':'Amigos';
+        }catch{}
+    }
+    setInterval(()=>{if(usuario&&!document.hidden)actualizarConteoSolicitudesAmistad();},120000);
 
     async function cargarFeed(reiniciar) {
+        if(viendoAmigos){
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','cuenta','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
+            if(usuario)cargarAmigos();else document.getElementById('estadoAmigos').textContent='Inicia sesión para ver tus amigos y solicitudes.';
+            return;
+        }
         const revision = ++revisionFeed;
         refrescar.disabled = true;
         mas.disabled = true;
@@ -438,6 +594,7 @@
                     document.getElementById('rangoPerfilPublico').replaceChildren();
                     document.getElementById('bioPerfilPublico').textContent = '';
                     objetivoSeguir=null;document.getElementById("seguirPerfil").hidden=true;document.getElementById("conteoSeguidores").textContent="";
+                    document.getElementById('presenciaPerfil').dataset.userId='';document.getElementById('amistadPerfil').hidden=true;document.getElementById('rechazarAmistad').hidden=true;
                     document.getElementById("tituloPerfilPublico").textContent = "Perfil no encontrado";
                     document.getElementById("fechaPerfilPublico").textContent = "";
                     document.getElementById("resumenPerfilPublico").textContent = "Comprueba el enlace o vuelve a Inicio.";
@@ -452,6 +609,7 @@
                 document.getElementById('rangoPerfilPublico').replaceChildren(rangoPerfil(publico.role));
                 document.getElementById('bioPerfilPublico').textContent = publico.bio || 'Todavía no hay una presentación.';
                 document.title = "@" + publico.username + " · RedMusica";
+                document.getElementById('presenciaPerfil').dataset.userId=perfilSolicitado;actualizarIndicadoresPresencia();
                 objetivoSeguir=perfilSolicitado;const followButton=document.getElementById('seguirPerfil');
                 followButton.hidden=!usuario||usuario.id===perfilSolicitado;
                 if(usuario&&usuario.id!==perfilSolicitado){
@@ -461,6 +619,7 @@
                 const followers=await db.from('follows').select('user_id',{count:'exact',head:true}).eq('followed_id',perfilSolicitado);
                 const following=await db.from('follows').select('followed_id',{count:'exact',head:true}).eq('user_id',perfilSolicitado);
                 document.getElementById('conteoSeguidores').textContent=(followers.count||0)+' seguidores · '+(following.count||0)+' siguiendo';
+                await cargarEstadoAmistadPerfil();
                 document.getElementById("tituloPerfilPublico").textContent = "@" + publico.username;
                 document.getElementById("fechaPerfilPublico").textContent = "En RedMusica desde " + new Date(publico.created_at).toLocaleDateString("es", { month: "long", year: "numeric" });
                 document.getElementById("enlacePerfil").value = location.origin + location.pathname + "?perfil=" + encodeURIComponent(perfilSolicitado);
@@ -496,15 +655,21 @@
         viendoPerfil = perfilSolicitado !== null;
         viendoMemes = !viendoPerfil && params.get('seccion') === 'memes';
         viendoPeliculas = !viendoPerfil && params.get('seccion') === 'peliculas';
+        viendoAmigos = !viendoPerfil && params.get('seccion') === 'amigos';
         idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || '');
         document.getElementById('perfilPublico').hidden = !viendoPerfil;
         document.getElementById('crearPublicacion').hidden = viendoPerfil || viendoMemes || viendoPeliculas;
         document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
         document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
+        document.getElementById('seccionAmigos').hidden = !viendoAmigos;
+        document.getElementById('amigosNav').setAttribute('aria-current',viendoAmigos?'page':'false');
+        document.getElementById('cuenta').hidden = viendoAmigos && Boolean(usuario);
+        document.getElementById('chatComunitario').hidden = viendoAmigos;
+        ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos;});
         document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
         document.getElementById('memesNav').setAttribute('aria-current', viendoMemes ? 'page' : 'false');
         document.getElementById('peliculasNav').setAttribute('aria-current', viendoPeliculas ? 'page' : 'false');
-        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas ? 'page' : 'false');
+        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoAmigos ? 'page' : 'false');
         document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : 'Publicaciones';
         document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : 'Todavía no hay publicaciones. Comparte el primer álbum.';
         document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : 'RedMusica';
@@ -513,7 +678,12 @@
             document.getElementById('rangoPerfilPublico').replaceChildren();
             document.getElementById('tituloPerfilPublico').textContent = 'Cargando perfil…';
             document.getElementById('resumenPerfilPublico').textContent = '';
-            document.getElementById('compartirPerfil').hidden = true;
+        document.getElementById('compartirPerfil').hidden = true;
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos;});
+            document.getElementById('cuenta').hidden=viendoAmigos&&Boolean(usuario);
+            document.getElementById('presenciaPerfil').dataset.userId='';
+            document.getElementById('amistadPerfil').hidden=true;
+            document.getElementById('rechazarAmistad').hidden=true;
         }
         cargarFeed(true);
     }
@@ -539,7 +709,7 @@
         autor.append(fotoPerfil(post.user_id, post.profiles), enlaceUsuario(post.user_id, post.profiles.username), rangoPerfil(post.profiles.role));
         const esMeme = post.post_type === 'meme';
         const esPelicula = post.post_type === 'film';
-        const portada = document.createElement("img");
+        let portada = document.createElement("img");
         portada.loading = "lazy";
         portada.width = esPelicula ? 300 : 250;
         portada.height = esPelicula ? 450 : 250;
@@ -550,7 +720,7 @@
             portada.className='poster-pelicula';portada.alt='Afiche de '+post.film_title;
             const posterUrl=imagenAfiche(post.film_poster,600);
             if(posterUrl){portada.src=posterUrl;portada.onerror=()=>{portada.replaceWith(crearAficheAlternativo(post.film_title,post.film_year));};}
-            else portada.replaceWith(crearAficheAlternativo(post.film_title,post.film_year));
+            else portada=crearAficheAlternativo(post.film_title,post.film_year);
         } else asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
         const titulo = document.createElement("h3");
         titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : esPelicula ? post.film_title : post.album_title;
@@ -774,8 +944,15 @@
         const missing=movies.filter(movie=>!movie.poster);
         if(missing.length){
             try{
+                const wikipedia=await buscarAfichesWikipedia(missing);
+                for(const movie of missing){const image=wikipedia.get(normalizarTitulo(movie.title));if(image)movie.poster=image;}
+            }catch{}
+        }
+        const stillMissing=movies.filter(movie=>!movie.poster);
+        if(stillMissing.length){
+            try{
                 const artwork=await buscarAficheItunes(query);
-                for(const movie of missing){
+                for(const movie of stillMissing){
                     const match=artwork.find(item=>normalizarTitulo(item.trackName)===normalizarTitulo(movie.title)
                         &&(!movie.year||!item.releaseDate||Math.abs(Number(item.releaseDate.slice(0,4))-movie.year)<=1));
                     if(match)movie.poster=imagenAfiche(match.artworkUrl600||match.artworkUrl512||match.artworkUrl100,600)||null;
@@ -786,6 +963,28 @@
         return movies;
     }
     function normalizarTitulo(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').replace(/[^a-z0-9]+/g,' ').trim();}
+    async function buscarAfichesWikipedia(movies){
+        const titles=movies.map(movie=>movie.title).filter(Boolean).slice(0,8);
+        if(!titles.length)return new Map();
+        const images=new Map();
+        for(const language of ['es','en']){
+            const url=new URL('https://'+language+'.wikipedia.org/w/api.php');
+            url.searchParams.set('action','query');url.searchParams.set('titles',titles.join('|'));url.searchParams.set('prop','pageimages');url.searchParams.set('piprop','thumbnail');url.searchParams.set('pithumbsize','600');url.searchParams.set('format','json');url.searchParams.set('origin','*');
+            const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),5000);
+            try{
+                const response=await fetch(url,{headers:{Accept:'application/json'},signal:controller.signal});
+                if(!response.ok)continue;
+                const data=await response.json();
+                for(const page of Object.values(data.query?.pages||{})){
+                    const image=page.thumbnail;
+                    if(!image?.source||image.width<140||image.height<200||image.width/image.height>=0.9)continue;
+                    const key=normalizarTitulo(page.title),match=titles.find(title=>normalizarTitulo(title)===key);
+                    if(match&&!images.has(normalizarTitulo(match)))images.set(normalizarTitulo(match),image.source);
+                }
+            }catch{}
+        }
+        return images;
+    }
     let contadorJsonpAfiche=0;
     function buscarAficheItunes(query){
         return new Promise(resolve=>{

@@ -6,6 +6,18 @@ create table public.follows (
  primary key(user_id,followed_id), check(user_id<>followed_id)
 );
 create index follows_followed_idx on public.follows(followed_id,created_at desc);
+create table public.friendships (
+ user_a uuid not null references public.profiles(id) on delete cascade,
+ user_b uuid not null references public.profiles(id) on delete cascade,
+ requested_by uuid not null references public.profiles(id) on delete cascade,
+ status text not null default 'pending' check(status in ('pending','accepted','declined')),
+ created_at timestamptz not null default now(),
+ primary key(user_a,user_b),
+ check(user_a<user_b),
+ check(requested_by in (user_a,user_b))
+);
+create index friendships_user_b_recent_idx on public.friendships(user_b,created_at desc);
+create index friendships_requester_recent_idx on public.friendships(requested_by,created_at desc);
 create table public.notifications (
  id uuid primary key default gen_random_uuid(),
  recipient_id uuid not null references public.profiles(id) on delete cascade,
@@ -28,12 +40,17 @@ create index notifications_comment_idx on public.notifications(comment_id);
 create unique index notifications_like_dedupe on public.notifications(recipient_id,actor_id,post_id) where kind='like';
 create unique index notifications_follow_dedupe on public.notifications(recipient_id,actor_id) where kind='follow';
 alter table public.follows enable row level security;
+alter table public.friendships enable row level security;
 alter table public.notifications enable row level security;
-revoke all on public.follows,public.notifications from anon,authenticated;
-grant all on public.follows,public.notifications to service_role;
+revoke all on public.follows,public.friendships,public.notifications from anon,authenticated;
+grant all on public.follows,public.friendships,public.notifications to service_role;
 grant select on public.follows to anon,authenticated;
 grant insert(followed_id) on public.follows to authenticated;
 grant delete on public.follows to authenticated;
+grant select on public.friendships to authenticated;
+grant insert(user_a,user_b,requested_by) on public.friendships to authenticated;
+grant update(status) on public.friendships to authenticated;
+grant delete on public.friendships to authenticated;
 grant select on public.notifications to authenticated;
 grant update(read_at) on public.notifications to authenticated;
 create policy follows_read on public.follows for select to anon,authenticated using(true);
@@ -41,6 +58,18 @@ create policy follows_self_insert on public.follows for insert to authenticated 
  user_id=(select auth.uid()) and exists(select 1 from public.profiles where id=user_id and not suspended)
  and exists(select 1 from public.profiles where id=followed_id and not suspended));
 create policy follows_self_delete on public.follows for delete to authenticated using(user_id=(select auth.uid()));
+create policy friendships_participant_read on public.friendships for select to authenticated using((select auth.uid()) in (user_a,user_b));
+create policy friendships_send_request on public.friendships for insert to authenticated with check(
+ requested_by=(select auth.uid()) and status='pending'
+ and exists(select 1 from public.profiles p where p.id=requested_by and not p.suspended)
+ and exists(select 1 from public.profiles p where p.id=case when requested_by=user_a then user_b else user_a end and not p.suspended));
+create policy friendships_respond on public.friendships for update to authenticated
+ using(status='pending' and requested_by<>(select auth.uid()) and (select auth.uid()) in (user_a,user_b))
+ with check(status in ('accepted','declined') and requested_by<>(select auth.uid()) and (select auth.uid()) in (user_a,user_b));
+create policy friendships_remove on public.friendships for delete to authenticated using(
+ ((select auth.uid())=requested_by and status in ('pending','declined'))
+ or ((select auth.uid()) in (user_a,user_b) and status='accepted')
+ or ((select auth.uid()) in (user_a,user_b) and status='declined'));
 create policy notifications_read_self on public.notifications for select to authenticated using(recipient_id=(select auth.uid()));
 create policy notifications_mark_read_self on public.notifications for update to authenticated using(recipient_id=(select auth.uid())) with check(recipient_id=(select auth.uid()));
 

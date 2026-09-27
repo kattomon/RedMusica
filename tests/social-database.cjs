@@ -9,6 +9,13 @@ const {PGlite}=require(process.env.PGLITE_MODULE||'@electric-sql/pglite');const 
  await as(a);await db.query('insert into public.likes(post_id) values($1)',[post]);await db.query('insert into public.comments(post_id,body) values($1,\'Autocomentario\')',[post]);
  assert.equal((await db.query('select count(*)::int n from public.notifications where recipient_id=$1',[a])).rows[0].n,0,'no self notifications');
  await as(b);await db.query('insert into public.likes(post_id) values($1)',[post]);await db.query('insert into public.likes(post_id) values($1) on conflict do nothing',[post]);await db.query('insert into public.comments(post_id,body) values($1,\'Buen disco\')',[post]);await db.query('insert into public.follows(followed_id) values($1)',[a]);
+ const [low,high]=[a,b].sort();await db.query('insert into public.friendships(user_a,user_b,requested_by) values($1,$2,$3)',[low,high,b]);
+ await assert.rejects(db.query('insert into public.friendships(user_a,user_b,requested_by) values($1,$2,$3)',[low,high,c]),'cannot forge request owner');
+ await as(a);let friendship=(await db.query('select status,requested_by from public.friendships where user_a=$1 and user_b=$2',[low,high])).rows[0];assert.equal(friendship.status,'pending');assert.equal(friendship.requested_by,b);
+ await db.query("update public.friendships set status='accepted' where user_a=$1 and user_b=$2",[low,high]);
+ await as(c);assert.equal((await db.query('select * from public.friendships where user_a=$1 and user_b=$2',[low,high])).rows.length,0,'friendship private to participants');
+ assert.equal((await db.query("update public.friendships set status='declined' where user_a=$1 and user_b=$2 returning user_a",[low,high])).rows.length,0,'unrelated user cannot change status');
+ await as(b);await db.query('delete from public.friendships where user_a=$1 and user_b=$2',[low,high]);
  await db.exec('reset role;set role service_role');
  let n=(await db.query('select kind,read_at,post_id,comment_id from public.notifications where recipient_id=$1 order by kind',[a])).rows;assert.deepEqual(n.map(x=>x.kind),['comment','follow','like']);
  assert.equal((await db.query('select count(*)::int n from public.notifications where recipient_id=$1',[b])).rows[0].n,0);

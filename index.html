@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-19">
+    <link rel="stylesheet" href="style.css?v=20260927-20">
 </head>
 <body>
 <main>
     <h1>RedMusica</h1>
     <p>Un lugar para compartir lo que escuchamos.</p>
     <nav id="navegacion" aria-label="Navegación principal" hidden>
-        <a id="inicioNav" href="./">Inicio</a><a id="peliculasNav" href="?seccion=peliculas">Películas</a><a id="memesNav" href="?seccion=memes">Memes</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
+        <a id="inicioNav" href="./">Inicio</a><a id="peliculasNav" href="?seccion=peliculas">Películas</a><a id="memesNav" href="?seccion=memes">Memes</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
     </nav>
     <section id="notificaciones" aria-labelledby="tituloNotificaciones" hidden>
         <h2 id="tituloNotificaciones">Notificaciones</h2><p id="estadoNotificaciones" role="status"></p>
@@ -25,11 +25,21 @@
         <p id="bioPerfilPublico"></p>
         <p id="fechaPerfilPublico"></p>
         <p id="resumenPerfilPublico" role="status"></p>
+        <p id="presenciaPerfil" class="indicador-presencia" data-user-id=""></p>
         <p id="conteoSeguidores"></p><button id="seguirPerfil" type="button" hidden></button>
+        <button id="amistadPerfil" type="button" hidden></button><button id="rechazarAmistad" type="button" hidden>Rechazar solicitud</button>
+        <p id="estadoAmistadPerfil" role="status"></p>
         <div id="compartirPerfil" hidden>
             <label for="enlacePerfil">Enlace a este perfil</label>
             <input id="enlacePerfil" type="url" readonly>
         </div>
+    </section>
+    <section id="seccionAmigos" aria-labelledby="tituloAmigos" hidden>
+        <h2 id="tituloAmigos">Amigos y solicitudes</h2>
+        <p>Conecta con otras personas y mira quién está en línea.</p>
+        <button id="actualizarAmigos" type="button">Actualizar</button>
+        <p id="estadoAmigos" role="status"></p>
+        <div id="listaAmigos" aria-live="polite"></div>
     </section>
     <hr>
     <section id="cuenta" aria-labelledby="tituloCuenta">
@@ -112,7 +122,7 @@
             </form>
             <p id="estadoResenaPelicula" role="status"></p>
         </section>
-        <p class="atribucion-catalogo">Información del catálogo: <a href="https://www.wikidata.org/" target="_blank" rel="noopener">Wikidata</a> y <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>.</p>
+        <p class="atribucion-catalogo">Catálogo e imágenes: <a href="https://www.wikidata.org/" target="_blank" rel="noopener">Wikidata</a>, <a href="https://www.wikipedia.org/" target="_blank" rel="noopener">Wikipedia</a>, <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a> y <a href="https://www.apple.com/itunes/" target="_blank" rel="noopener">Apple</a>.</p>
     </section>
     <h2 id="tituloFeed">Publicaciones</h2>
     <p id="feedVacio">Todavía no hay publicaciones. Comparte el primer álbum.</p>
@@ -135,6 +145,6 @@
 </section>
 <script src="radio-panel.js?v=20260927-18" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20260927-18" defer></script>
+<script src="script.js?v=20260927-20" defer></script>
 </body>
 </html>

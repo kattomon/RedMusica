@@ -42,6 +42,15 @@
 .tarjeta-pelicula .poster-resultado-pelicula, .marco-afiche-resultado .poster-pelicula { display: block; width: 100%; height: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px; background: #eee; }
 #posterSeleccionPelicula { width: min(240px, 100%); aspect-ratio: 2 / 3; margin: 12px 0; }
 #posterSeleccionPelicula .poster-pelicula, .publicacion-pelicula .poster-pelicula { display: block; width: 100%; height: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px; background: #eee; }
+.publicacion-pelicula { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 3px 12px; align-items: start; padding: 12px; }
+.publicacion-pelicula > .autor-publicacion, .publicacion-pelicula > .acciones, .publicacion-pelicula > [role="status"], .publicacion-pelicula > .zona-comentarios, .publicacion-pelicula > form { grid-column: 1 / -1; }
+.publicacion-pelicula > .poster-pelicula { grid-column: 1; grid-row: 2 / span 5; display: block; width: 92px; height: 138px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px; background: #eee; }
+.publicacion-pelicula > h3 { grid-column: 2; grid-row: 2; margin: 0 0 3px; }
+.publicacion-pelicula > h3 + p { grid-column: 2; grid-row: 3; margin: 0; }
+.publicacion-pelicula > .nota-pelicula { grid-column: 2; grid-row: 4; margin: 0; }
+.publicacion-pelicula > .fuente-pelicula { grid-column: 2; grid-row: 5; }
+.publicacion-pelicula > .opinion { grid-column: 2; grid-row: 6; margin: 0; }
+.publicacion-pelicula > .acciones { padding-top: 8px; }
 .poster-pelicula-alternativo { display: flex !important; flex-direction: column; justify-content: space-between; gap: 16px; overflow: hidden; padding: 18px; color: #f7f4ed; background: linear-gradient(155deg, #444 0%, #202020 55%, #785d3f 100%); text-align: left; }
 .poster-pelicula-alternativo span { font-size: 11px; letter-spacing: .12em; opacity: .8; }
 .poster-pelicula-alternativo strong { font-family: Georgia, serif; font-size: clamp(17px, 4vw, 27px); line-height: 1.15; }
@@ -49,7 +58,7 @@
 .fuente-pelicula, .atribucion-catalogo { font-size: 14px; }
 #notaPelicula { display: block; width: 100%; margin-bottom: 12px; }
 #opinionPelicula { display: block; width: 100%; min-height: 120px; margin-bottom: 12px; resize: vertical; }
-@media(max-width:520px) { .tarjeta-pelicula { grid-template-columns: minmax(0,1fr); } .tarjeta-pelicula h3, .tarjeta-pelicula p, .tarjeta-pelicula a, .tarjeta-pelicula button, .tarjeta-pelicula .marco-afiche-resultado { grid-column: 1; } .tarjeta-pelicula .marco-afiche-resultado { grid-row: auto; width: min(220px,100%); } #navegacion { gap: 12px; } }
+@media(max-width:520px) { .tarjeta-pelicula { grid-template-columns: minmax(0,1fr); } .tarjeta-pelicula h3, .tarjeta-pelicula p, .tarjeta-pelicula a, .tarjeta-pelicula button, .tarjeta-pelicula .marco-afiche-resultado { grid-column: 1; } .tarjeta-pelicula .marco-afiche-resultado { grid-row: auto; width: min(220px,100%); } #navegacion { gap: 12px; } .publicacion-pelicula { grid-template-columns: 72px minmax(0,1fr); gap: 3px 10px; padding: 10px; } .publicacion-pelicula > .poster-pelicula { width: 72px; height: 108px; } }
 [hidden] { display: none !important; }
 body { margin: 0; background: #f7f7f7; color: #222222; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; }
 main { max-width: 960px; margin: 0 auto; padding: 24px; }
@@ -103,6 +112,14 @@ input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border
 #cuenta { border-bottom: 1px solid #dddddd; padding-bottom: 16px; }
 #cuenta > p, #feedVacio { color: #555555; }
 .autor-publicacion { font-weight: 600; margin-top: 0; }
+.enlace-usuario::after { content: "●"; display: inline-block; margin-left: 5px; font-size: 10px; color: #777; vertical-align: 2px; }
+.enlace-usuario[data-online="true"]::after { color: #278547; }
+.indicador-presencia { font-size: 14px; color: #666; }
+.indicador-presencia.en-linea { color: #278547; }
+.tarjeta-amigo { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 0; border-bottom: 1px solid #ddd; }
+.tarjeta-amigo .estado-amistad { margin-right: auto; color: #666; font-size: 14px; }
+.estado-presencia-amigo { font-size: 13px; color: #666; }
+.estado-presencia-amigo.en-linea { color: #278547; }
 
 #formularioAcceso, #formularioNuevaClave { max-width: 440px; }
 #formularioAcceso input, #formularioAcceso select, #formularioNuevaClave input { display: block; width: 100%; margin-bottom: 12px; }

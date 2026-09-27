@@ -13,7 +13,7 @@ const server=http.createServer((req,res)=>{
   const browser=await engine.launch();
   const ana={id:'11111111-1111-4111-8111-111111111111',email:'ana@example.test',aud:'authenticated',role:'authenticated'};
   const luis={id:'22222222-2222-4222-8222-222222222222',email:'luis@example.test',aud:'authenticated',role:'authenticated'};
-  let posts=[],likes=[],comments=[],follows=[],notifications=[],chatMessages=[],failPosts=false;
+  let posts=[],likes=[],comments=[],follows=[],friendships=[],notifications=[],chatMessages=[],failPosts=false;
   const names={[ana.id]:'Ana',[luis.id]:'Luis'};
   const profiles={[ana.id]:{username:'Ana',role:'owner',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'},[luis.id]:{username:'Luis',role:'member',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'}};let uploads=0,imageUploads=0;const contexts=[];
   function token(user){return Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';}
@@ -23,7 +23,9 @@ const server=http.createServer((req,res)=>{
    await ctx.route('https://musicbrainz.org/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({'release-groups':[{id:'33333333-3333-4333-8333-333333333333',title:'Álbum de prueba','artist-credit':[{name:'Artista de prueba'}]}]})}));
    await ctx.route('https://coverartarchive.org/**',r=>r.fulfill({status:404,body:''}));
    await ctx.route('https://itunes.apple.com/**',r=>{const url=new URL(r.request().url()),callback=url.searchParams.get('callback');const results=url.searchParams.get('term')?.toLowerCase().includes('película de prueba')?[{trackName:'La película de prueba',releaseDate:'2020-01-01',artworkUrl100:'https://is1-ssl.mzstatic.com/image/thumb/test/100x100bb.jpg'}]:[];return r.fulfill({contentType:'text/javascript',body:callback+'('+JSON.stringify({results})+')'});});
-   await ctx.route('https://is*.mzstatic.com/**',r=>r.fulfill({contentType:'image/jpeg',body:Buffer.from('ffd8ffe0','hex')}));
+   await ctx.route('https://is*.mzstatic.com/**',r=>r.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII=','base64')}));
+   await ctx.route('https://es.wikipedia.org/w/api.php?*',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({query:{pages:{}}})}));
+   await ctx.route('https://en.wikipedia.org/w/api.php?*',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({query:{pages:{}}})}));
    await ctx.route('https://www.wikidata.org/w/api.php?*',r=>{
     const url=new URL(r.request().url()),action=url.searchParams.get('action');let body={};
     if(action==='wbsearchentities')body={search:[{id:'Q12345',label:'La película de prueba',description:'película chilena'}]};
@@ -57,7 +59,14 @@ const server=http.createServer((req,res)=>{
       else if(method==='POST'){const f={user_id:current.id,followed_id:body.followed_id};if(!follows.some(x=>x.user_id===f.user_id&&x.followed_id===f.followed_id)){follows.push(f);const u=profiles[f.followed_id];notifications.push({id:'n'+(notifications.length+1),recipient_id:f.followed_id,actor_id:current.id,kind:'follow',post_id:null,comment_id:null,actor:profiles[current.id],post:null,created_at:new Date().toISOString(),read_at:null});}status=201;data=null;}
       else if(method==='DELETE'){const doomed=follows.filter(f=>f.user_id===current.id&&f.followed_id===target);follows=follows.filter(f=>!doomed.includes(f));notifications=notifications.filter(n=>!(n.kind==='follow'&&n.recipient_id===target&&n.actor_id===current.id));status=204;data=null;}
     }
-    else if(url.pathname==='/rest/v1/profiles'){const id=url.searchParams.get('id').slice(3);if(method==='PATCH'){assert.equal(id,current.id);Object.assign(profiles[id],body);data=[profiles[id]];}else data=profiles[id]||null;}
+    else if(url.pathname==='/rest/v1/friendships'){
+      const a=url.searchParams.get('user_a')?.replace(/^eq\./,''),b=url.searchParams.get('user_b')?.replace(/^eq\./,''),statusFilter=url.searchParams.get('status')?.replace(/^eq\./,'');
+      if(method==='GET'){const or=url.searchParams.get('or')||'';const rows=friendships.filter(f=>(!a||f.user_a===a)&&(!b||f.user_b===b)&&(!statusFilter||f.status===statusFilter)&&(!or||or.includes(f.user_a)||or.includes(f.user_b)));headers['Content-Range']='0-'+Math.max(0,rows.length-1)+'/'+rows.length;data=rows;}
+      else if(method==='POST'){if(!current)throw Error('Unauthenticated friendship insert');const row={...body,status:'pending',created_at:new Date().toISOString()};assert.equal(row.requested_by,current.id);if(!friendships.some(f=>f.user_a===row.user_a&&f.user_b===row.user_b))friendships.push(row);else{status=409;data={code:'23505',message:'duplicate friendship'};}if(status!==409){status=201;data=url.searchParams.has('select')?row:null;}}
+      else if(method==='PATCH'){for(const f of friendships)if((!a||f.user_a===a)&&(!b||f.user_b===b)&&(!statusFilter||f.status===statusFilter))Object.assign(f,body);data=[];}
+      else if(method==='DELETE'){friendships=friendships.filter(f=>!((!a||f.user_a===a)&&(!b||f.user_b===b)));status=204;data=null;}
+    }
+    else if(url.pathname==='/rest/v1/profiles'){const filter=url.searchParams.get('id')||'',ids=filter.startsWith('in.(')?filter.slice(4,-1).split(','):filter.startsWith('eq.')?[filter.slice(3)]:Object.keys(profiles);if(method==='PATCH'){assert.equal(ids[0],current.id);Object.assign(profiles[ids[0]],body);data=[profiles[ids[0]]];}else data=ids.map(id=>({id,...profiles[id]})).filter(p=>p.username);}
     else if(url.pathname.startsWith('/storage/v1/object/public/')){return route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII=','base64')});}
     else if(url.pathname.startsWith('/storage/v1/object/')){if(method==='POST'){if(url.pathname.includes('/post-images/')){imageUploads++;assert(url.pathname.includes('/'+ana.id+'/'));assert.match(req.headers()['x-upsert'],/false/);}else{uploads++;assert(url.pathname.endsWith(ana.id+'/avatar.jpg'));}}if(method==='DELETE'&&url.pathname.includes('/post-images/'))data={};else data={};}
     else if(url.pathname==='/rest/v1/chat_messages'){
@@ -120,6 +129,7 @@ const server=http.createServer((req,res)=>{
   await a.locator('#notaPelicula').selectOption('4.5');await a.locator('#opinionPelicula').fill('Una reseña de prueba');await a.getByRole('button',{name:'Publicar reseña'}).click();
   await a.locator('#estadoBusquedaPeliculas').getByText('Reseña publicada.',{exact:true}).waitFor();assert.equal(posts.at(-1).post_type,'film');assert.equal(posts.at(-1).film_rating,4.5);assert.match(posts.at(-1).film_poster,/600x900bb\.jpg/);await a.locator('.publicacion-pelicula .poster-pelicula').waitFor();
   await a.waitForFunction(()=>document.querySelectorAll('#feed article').length===1);assert.match(await a.locator('#feed article').innerText(),/La película de prueba/);
+  await a.locator('#buscarPelicula').fill('Una película sin afiche');await a.locator('#buscarPeliculas').click();await a.getByRole('button',{name:'Escribir reseña'}).waitFor();await a.getByRole('button',{name:'Escribir reseña'}).click();await a.locator('#opinionPelicula').fill('Reseña sin imagen de catálogo');await a.getByRole('button',{name:'Publicar reseña'}).click();await a.locator('#estadoBusquedaPeliculas').getByText('Reseña publicada.',{exact:true}).waitFor();await a.locator('#'+posts.at(-1).id+' .poster-pelicula-alternativo').waitFor();assert.equal(posts.at(-1).film_poster,null);assert.equal(await a.locator('#'+posts.at(-1).id+' .poster-pelicula-alternativo').evaluate(el=>getComputedStyle(el).width),await a.evaluate(()=>matchMedia('(max-width:520px)').matches?'72px':'92px'));
   await a.locator('#inicioNav').click();await a.waitForFunction(()=>document.querySelector('#feed').innerText.includes('Álbum de prueba'));assert.equal(await a.locator('#feed article').count(),1);
   await a.locator('#editarPerfil summary').click();
   await a.locator('#bioPerfil').fill('Escucho discos de Chile.');await a.getByRole('button',{name:'Guardar presentación'}).click();await a.getByText('Perfil actualizado.',{exact:true}).waitFor();
@@ -134,7 +144,11 @@ const server=http.createServer((req,res)=>{
   await a.getByRole('button',{name:/Notificaciones/}).click();await a.getByText('@Luis marcó Me gusta en tu publicación · Álbum de prueba').waitFor();await a.getByText('@Luis comentó en tu publicación · Álbum de prueba').waitFor();
   await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent.includes('(2)'));await a.getByRole('button',{name:'Marcar todas como leídas'}).click();await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent==='Notificaciones');
   await b.goto('http://127.0.0.1:4174/index.html?perfil='+ana.id);await b.getByRole('button',{name:'Seguir',exact:true}).waitFor();await b.getByRole('button',{name:'Seguir',exact:true}).click();await b.getByRole('button',{name:'Dejar de seguir',exact:true}).waitFor();
-  await a.getByRole('button',{name:'Notificaciones',exact:true}).click();await a.getByRole('button',{name:'Notificaciones',exact:true}).click();await a.getByText('@Luis empezó a seguirte').waitFor();await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent.includes('(1)'));
+  await b.getByRole('button',{name:'Agregar amigo',exact:true}).click();await b.getByRole('button',{name:'Cancelar solicitud',exact:true}).waitFor();assert.equal(friendships.length,1);
+  await a.goto('http://127.0.0.1:4174/?seccion=amigos');await a.getByRole('heading',{name:'Amigos y solicitudes'}).waitFor();await a.getByRole('button',{name:'Aceptar',exact:true}).click();await a.locator('.tarjeta-amigo .estado-amistad').getByText('Amigos',{exact:true}).waitFor();assert.equal(friendships[0].status,'accepted');
+  await b.goto('http://127.0.0.1:4174/?seccion=amigos');await b.locator('.tarjeta-amigo').getByText('@Ana',{exact:true}).waitFor();await b.locator('.tarjeta-amigo .estado-amistad').getByText('Amigos',{exact:true}).waitFor();await b.locator('.tarjeta-amigo .estado-presencia-amigo').waitFor();await b.locator('.enlace-usuario').first().waitFor();
+  await a.goto('http://127.0.0.1:4174/');await b.goto('http://127.0.0.1:4174/');
+  await a.getByRole('button',{name:/Notificaciones/}).click();await a.getByText('@Luis empezó a seguirte').waitFor();await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent.includes('(1)'));
   await a.getByRole('button',{name:'Comentar',exact:true}).click();await a.getByText('@Luis: Hola Ana',{exact:true}).waitFor();
   await a.getByRole('button',{name:'Editar',exact:true}).click();await a.getByRole('textbox',{name:'Editar opinión'}).fill('Opinión editada');await a.getByRole('button',{name:'Guardar cambios'}).click();await a.getByText('Publicación actualizada.',{exact:true}).waitFor();
   await b.locator('#actualizarFeed').click();await b.locator('.opinion').filter({hasText:'Opinión editada'}).waitFor();
