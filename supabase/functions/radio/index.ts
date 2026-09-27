@@ -40,6 +40,8 @@ Deno.serve(async req => {
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer /i,'');
   const { data:{ user }, error } = await db.auth.getUser(token);
   if (error || !user) return reply({ error:'Inicia sesión para buscar y pedir canciones.' },401);
+  const account = await db.from('profiles').select('suspended').eq('id',user.id).single();
+  if(account.error || account.data.suspended) return reply({error:'Tu cuenta está suspendida.'},403);
   if (input.action==='search') {
    const query = typeof input.query==='string' ? input.query.trim().replace(/\s+/g,' ') : '';
    if (query.length<2 || query.length>160) return reply({ error:'Escribe el artista y/o la canción (2 a 160 caracteres).' },400);

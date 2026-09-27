@@ -50,6 +50,8 @@ const server=http.createServer((req,res)=>{
       if(method==='POST'){comments.push({...body,id:'comment-'+comments.length,user_id:current.id,profiles:{username:names[current.id]},created_at:new Date().toISOString()});status=201;data=null;}
       else data=comments.filter(c=>c.post_id===url.searchParams.get('post_id').slice(3));
     }
+    else if(url.pathname==='/functions/v1/admin'){data={role:'member'};}
+    else if(url.pathname==='/rest/v1/site_settings'){data={title:'RedMusica',description:'Comparte música',accept_posts:true};}
     else throw Error('Unexpected request '+method+' '+url);
     await route.fulfill({status,headers,body:data===null?'':JSON.stringify(data)});
    });

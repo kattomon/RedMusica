@@ -62,3 +62,17 @@ Aplicar `supabase/radio.sql` una vez (migración remota `redmusica_youtube_radio
 Las búsquedas tienen caché de 24 horas: los fallos de caché reservan hasta 10 consultas por usuario y 90 compartidas por día (zona America/Los_Angeles, acorde al reinicio diario de YouTube). Los pedidos tienen límite de 30 por usuario y 300 globales por día. Estos límites se pueden ajustar revisando la cuota real del proyecto; no se ha activado facturación. La rotación sin pedidos usa canciones pedidas durante los últimos 7 días y comienza vacía. Los datos antiguos se limpian al consultar estado; la rotación no conserva indefinidamente las canciones antiguas.
 
 Verificación: `tests/radio-database.cjs` prueba acceso, cuotas, duplicados, horarios y rotación; `tests/radio-browser.cjs` prueba UI con API/player simulados en Chromium y WebKit/iPhone. Una prueba real adicional verificó YouTube buscando Candelabro Refugio, un pedido, rechazo del duplicado y lectura anónima de la misma cola; se eliminó su usuario y pedido temporal. La reproducción audiovisual real depende de disponibilidad regional y restricciones de YouTube, y no se comprueba mediante el reproductor simulado.
+
+## Administración y cabina de radio
+
+Aplicar `supabase/admin.sql` después de `schema.sql` y `radio.sql`, y desplegar las funciones `admin` y `radio`. `admin` valida el token con `auth.getUser()` y obtiene el actor de esa respuesta; nunca confía en un ID ni en un rango enviado desde el navegador. Ambas funciones verifican la cuenta activa. La RPC `site_manage` solo permite ejecución al servidor y consulta el rango actual en cada operación.
+
+- **member**: publicar, participar y cancelar sus pedidos pendientes.
+- **admin**: ocultar/restaurar publicaciones y comentarios, suspender/reactivar miembros y gestionar la cola musical.
+- **owner**: lo anterior, otorgar/retirar admin, gestionar otros administradores y cambiar título, descripción y apertura de publicaciones.
+
+Nadie puede asignar `owner` desde el cliente ni modificar una cuenta owner. La asignación inicial se realiza desde la base de datos, después de confirmar la identidad. Los metadatos de registro no otorgan permisos. Las acciones quedan registradas en `admin_audit`, accesible únicamente mediante administración. La suspensión bloquea publicaciones, reacciones, comentarios, búsquedas y pedidos; no borra contenido ni cierra la sesión. La moderación oculta contenido de forma reversible.
+
+La cabina permite poner una canción ahora o siguiente, quitarla, saltar para todos y pausar/reanudar la sala. Los clientes reciben el cambio en hasta 15 segundos mientras la radio está abierta. Reanudar vuelve a iniciar la selección pendiente. Los pedidos cancelados no vuelven a la rotación. La cabina es control de selección de YouTube: no incluye emisión de micrófono, mezcla de audio ni elimina restricciones de reproducción de YouTube.
+
+Pruebas: `tests/admin-database.cjs` verifica RLS, ausencia de escalada de privilegios, protección del owner, revocación, moderación, suspensión, ajustes y cola. `tests/admin-browser.cjs` verifica el panel, acciones, cierre de sesión y diseño móvil con Chromium/WebKit. Los navegadores usan respuestas simuladas; la base usa PGlite. El despliegue también se comprueba con solicitudes sin token y con token inválido.

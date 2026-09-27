@@ -1,3 +1,7 @@
 [functions.radio]
 # Public state; search/request validate the user JWT with auth.getUser in the handler.
 verify_jwt = false
+
+[functions.admin]
+# Every action verifies auth.getUser, then reads fresh database permissions.
+verify_jwt = false

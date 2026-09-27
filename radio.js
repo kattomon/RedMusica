@@ -9,11 +9,17 @@
  let busy = false, authRevision = 0, continuePlaying = false, panelActive = true;
  const omitted = new Set(), blockedVideos = new Set();
  let playingSong = null, playerFailure = false;
+ let roomRevision = null, roomPaused = false;
+ async function manage(action,data){
+  const {data:auth}=await db.auth.getSession();if(!auth.session)throw Error('Inicia sesión.');
+  const response=await fetch(config.supabaseUrl+'/functions/v1/admin',{method:'POST',headers:{'Content-Type':'application/json',apikey:config.supabasePublishableKey,Authorization:'Bearer '+auth.session.access_token},body:JSON.stringify({action,data}),signal:AbortSignal.timeout(15000)});
+  const result=await response.json();if(!response.ok)throw Error(result.error);return result;
+ }
  function playable() {
   return queue.find(s => !omitted.has(s.id) && !blockedVideos.has(s.video_id) && Date.parse(s.ends_at)>Date.now()+offset);
  }
  function advance() {
-  if (!panelActive || document.hidden || !ready || playerFailure) return;
+  if (!panelActive || document.hidden || !ready || playerFailure || roomPaused) return;
   const song=playable();
   if(song) load(song,continuePlaying);
   else {
@@ -47,10 +53,21 @@
  function current() { const now=Date.now()+offset;return queue.find(s=>Date.parse(s.starts_at)<=now && Date.parse(s.ends_at)>now); }
  function render(data) {
   queue=data.queue;offset=Date.parse(data.now)-Date.now();
+  const changed=roomRevision!==null && data.revision!==undefined && data.revision!==roomRevision;
+  roomRevision=data.revision??roomRevision;roomPaused=Boolean(data.paused);
+  if(changed){loaded=null;omitted.clear();continuePlaying=joined;}
   const active=current();
   $('radioActual').textContent=active ? decode(active.title)+' · '+(active.username ? 'Pedido por @'+active.username : 'Rotación de la comunidad') : 'La sala espera la próxima canción.';
   $('radioCola').replaceChildren(...queue.map(s=>text('li',decode(s.title)+' — '+(s.username ? '@'+s.username : 'Rotación')+(s.id===active?.id ? ' · En la sala ahora' : ' · '+new Date(s.starts_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})))));
+  queue.forEach((s,index)=>{
+   if(session?.user?.id===s.user_id && Date.parse(s.starts_at)>Date.now()+offset){
+    const cancel=text('button','Cancelar mi pedido');cancel.type='button';
+    cancel.addEventListener('click',async()=>{cancel.disabled=true;try{await manage('cancel_request',{id:s.id});await refresh();}catch(e){$('radioEstado').textContent=e.message;cancel.disabled=false;}});
+    $('radioCola').children[index].append(' ',cancel);
+   }
+  });
   $('radioColaEstado').textContent=queue.length ? 'La cola se actualiza automáticamente.' : 'Todavía no hay canciones. Haz el primer pedido.';
+  if(roomPaused){loaded=null;if(ready)player.stopVideo();$('radioActual').textContent='Radio pausada por administración.';$('radioPlayback').textContent='La sala se reanudará cuando administración vuelva a activarla.';return;}
   if (joined && !loaded) advance();
  }
  function load(song, autoplay) {
@@ -81,12 +98,18 @@
    return;
   }
   if(playingSong) blockedVideos.add(playingSong.video_id);
+  if(playingSong){$('radioOtraVersion').hidden=false;$('radioOtraVersion').dataset.query=decode(playingSong.title);}
   $('radioPlayback').textContent='YouTube no permite reproducir este video aquí. Saltado para ti; probando la siguiente canción.';
   next();
  }
  $('radioSaltar').addEventListener('click',()=>{playerFailure=false;next();});
+ $('radioOtraVersion').addEventListener('click',()=>{
+  $('radioArtista').value='';$('radioCancion').value=$('radioOtraVersion').dataset.query.slice(0,80);$('radioCancion').focus();
+  $('radioEstado').textContent='Ajusta el nombre si hace falta y pulsa Buscar en YouTube para elegir otra versión.';
+ });
  $('radioEscuchar').addEventListener('click',()=>{
   joined=true;$('radioReproductor').hidden=false;
+  if(roomPaused){$('radioPlayback').textContent='La radio está pausada por administración.';return;}
   if (ready) { playerFailure=false;const s=playable();if(s) load(s,true);else advance();return; }
   $('radioEscuchar').disabled=true;
   window.onYouTubeIframeAPIReady=()=>{

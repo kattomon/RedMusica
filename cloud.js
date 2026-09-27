@@ -2,6 +2,7 @@
 (function () {
     const config = window.REDMUSICA_CONFIG;
     const db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+    window.redmusicaClient = db;
     const perfilSolicitado = new URLSearchParams(location.search).get("perfil");
     const viendoPerfil = perfilSolicitado !== null;
     const idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || "");

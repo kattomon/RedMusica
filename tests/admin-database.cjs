@@ -1,0 +1,48 @@
+const {PGlite}=require(process.env.PGLITE_MODULE||'@electric-sql/pglite');
+const fs=require('node:fs'),assert=require('node:assert/strict');
+(async()=>{
+ const db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,raw_user_meta_data jsonb);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema auth,public to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated;`);
+ for(const file of ['schema','radio','admin'])await db.exec(fs.readFileSync('supabase/'+file+'.sql','utf8').replace(/^\uFEFF/,''));
+ const owner='11111111-1111-4111-8111-111111111111',member='22222222-2222-4222-8222-222222222222',admin='33333333-3333-4333-8333-333333333333';
+ for(const [id,name] of [[owner,'Owner'],[member,'Member'],[admin,'Admin']])await db.query('insert into auth.users values($1,$2)',[id,{username:name,role:'owner'}]);
+ assert.equal((await db.query('select role from public.profiles where id=$1',[member])).rows[0].role,'member');
+ await db.query("update public.profiles set role='owner' where id=$1",[owner]);
+ async function asUser(id){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');}
+ async function server(){await db.exec('reset role;set role service_role');}
+ const call=(id,action,data={})=>db.query('select public.site_manage($1,$2,$3) result',[id,action,data]);
+ await asUser(member);
+ await assert.rejects(call(owner,'role',{id:member,role:'admin'}));
+ await assert.rejects(db.query("update public.profiles set role='owner' where id=$1",[member]));
+ await assert.rejects(db.query('select * from public.admin_audit'));
+ const post=(await db.query("insert into public.posts(album_id,album_title,album_artist,body) values('44444444-4444-4444-8444-444444444444','Album','Artista','Opinión') returning id")).rows[0].id;
+ await server();await assert.rejects(call(member,'list',{kind:'users'}));
+ await call(owner,'role',{id:admin,role:'admin'});
+ await assert.rejects(call(admin,'role',{id:member,role:'admin'}));
+ await assert.rejects(call(owner,'role',{id:owner,role:'member'}));
+ await assert.rejects(call(admin,'suspend',{id:owner,suspended:true}));
+ await call(admin,'moderate',{kind:'posts',id:post,hidden:true});
+ await asUser(member);assert.equal((await db.query('select * from public.posts')).rows.length,0);
+ await assert.rejects(db.query('update public.posts set hidden=false where id=$1',[post]));
+ await server();await call(owner,'moderate',{kind:'posts',id:post,hidden:false});
+ await call(owner,'suspend',{id:member,suspended:true});
+ await assert.rejects(call(member,'me'));await asUser(member);
+ await assert.rejects(db.query("insert into public.comments(post_id,body) values($1,'spam')",[post]));
+ await server();await call(owner,'suspend',{id:member,suspended:false});
+ await call(owner,'settings',{title:'Radio prueba',description:'Hola',accept_posts:false});
+ await asUser(member);await assert.rejects(db.query("insert into public.posts(album_id,album_title,album_artist,body) values('44444444-4444-4444-8444-444444444444','Album','Artista','Opinión')"));
+ await server();
+ async function enqueue(id,video){return (await db.query('select public.radio_enqueue($1,$2,$3,$4,180) id',[id,video,'Canción','Canal'])).rows[0].id;}
+ const a=await enqueue(member,'abcdefghijk'),b=await enqueue(owner,'abcdefghij2');
+ await assert.rejects(call(member,'cancel_request',{id:b}));
+ await call(member,'cancel_request',{id:a});
+ assert.equal((await db.query('select cancelled from public.radio_queue where id=$1',[a])).rows[0].cancelled,true);
+ await call(owner,'play_now',{id:b});
+ let state=(await db.query('select public.radio_state() s')).rows[0].s;assert.equal(state.queue[0].id,b);assert.equal(state.revision,1);
+ await call(owner,'radio_toggle',{enabled:false});state=(await db.query('select public.radio_state() s')).rows[0].s;assert.equal(state.paused,true);
+ await assert.rejects(enqueue(member,'abcdefghij3'));
+ await call(owner,'radio_toggle',{enabled:true});state=(await db.query('select public.radio_state() s')).rows[0].s;assert.equal(state.paused,false);assert.equal(state.queue[0].id,b);
+ await call(owner,'remove',{id:b});state=(await db.query('select public.radio_state() s')).rows[0].s;assert.equal(state.queue.length,0,'Cancelled songs must not return in rotation');
+ await call(owner,'role',{id:admin,role:'member'});await assert.rejects(call(admin,'skip'));
+ assert.ok((await call(owner,'list',{kind:'audit'})).rows[0].result.items.length>0);
+ await db.close();console.log('PASS owner/admin: no privilege escalation, protected owner, moderation, suspension, revocation, settings, own cancellation, radio control, audit');
+})().catch(e=>{console.error(e);process.exit(1)});
