@@ -6,13 +6,16 @@
     let perfilSolicitado = new URLSearchParams(location.search).get("perfil");
     let viendoPerfil = perfilSolicitado !== null;
     let viendoMemes = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'memes';
+    let viendoPeliculas = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'peliculas';
     let idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || "");
     document.getElementById("navegacion").hidden = false;
     document.getElementById("perfilPublico").hidden = !viendoPerfil;
-    document.getElementById("crearPublicacion").hidden = viendoPerfil || viendoMemes;
+    document.getElementById("crearPublicacion").hidden = viendoPerfil || viendoMemes || viendoPeliculas;
     document.getElementById('crearMeme').hidden = !viendoMemes;
+    document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
     document.getElementById('memesNav').setAttribute('aria-current',viendoMemes?'page':'false');
-    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes?'page':'false');
+    document.getElementById('peliculasNav').setAttribute('aria-current',viendoPeliculas?'page':'false');
+    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas?'page':'false');
     if (viendoPerfil) {
         document.getElementById("tituloFeed").textContent = "Publicaciones de este perfil";
         document.getElementById("feedVacio").textContent = "Este usuario todavía no ha publicado.";
@@ -21,6 +24,10 @@
         document.getElementById('tituloFeed').textContent='Memes de la comunidad';
         document.getElementById('feedVacio').textContent='Todavía no hay memes. ¡Comparte el primero!';
         document.title='Memes · RedMusica';
+    } else if(viendoPeliculas) {
+        document.getElementById('tituloFeed').textContent='Reseñas de películas';
+        document.getElementById('feedVacio').textContent='Todavía no hay reseñas. ¡Comparte la primera!';
+        document.title='Películas · RedMusica';
     }
     function fotoPerfil(id, datos) {
         const caja = document.createElement('span'); caja.className = 'avatar';
@@ -96,6 +103,9 @@
     feed.after(mas);
     let usuario = null;
     let perfil = null;
+    let peliculaSeleccionada = null;
+    const cachePeliculas = new Map();
+    let revisionBusquedaPeliculas = 0;
     let perfilSeguido = false, objetivoSeguir = null, guardandoSeguir = false;
     let offsetNotificaciones = 0, cargandoNotificaciones = false, revisionNotificaciones = 0, notificacionesAbiertas = false;
     let recuperando = false;
@@ -103,7 +113,7 @@
     let revisionFeed = 0;
     let desplazamiento = 0;
     const porPagina = 20;
-    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,post_type,image_path,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
+    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,post_type,image_path,film_wikidata_id,film_title,film_director,film_year,film_poster,film_rating,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
     const destinoCorreo = location.origin + location.pathname;
     const estadoPerfil = document.getElementById("estadoPerfil");
 
@@ -146,6 +156,7 @@
         document.getElementById('bioPerfil').value = perfil?.bio || '';
         document.getElementById('quitarFoto').disabled = !perfil?.avatar_updated_at;
         document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
+        document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
         const miPerfil = document.getElementById("miPerfil");
         miPerfil.hidden = !usuario || !perfil;
         if (usuario) miPerfil.href = "?perfil=" + encodeURIComponent(usuario.id);
@@ -457,7 +468,7 @@
             }
             let consulta = db.from("posts").select(seleccionPosts, viendoPerfil ? { count: "exact" } : {});
             if (viendoPerfil) consulta = consulta.eq("user_id", perfilSolicitado);
-            else consulta = consulta.eq('post_type',viendoMemes?'meme':'album');
+            else consulta = consulta.eq('post_type',viendoMemes?'meme':viendoPeliculas?'film':'album');
             const respuesta = await consulta.order("created_at", { ascending: false }).order("id", { ascending: false }).range(inicio, inicio + porPagina - 1);
             const datos = resultado(respuesta);
             let propios = [];
@@ -484,15 +495,19 @@
         perfilSolicitado = params.get('perfil');
         viendoPerfil = perfilSolicitado !== null;
         viendoMemes = !viendoPerfil && params.get('seccion') === 'memes';
+        viendoPeliculas = !viendoPerfil && params.get('seccion') === 'peliculas';
         idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || '');
         document.getElementById('perfilPublico').hidden = !viendoPerfil;
-        document.getElementById('crearPublicacion').hidden = viendoPerfil || viendoMemes;
+        document.getElementById('crearPublicacion').hidden = viendoPerfil || viendoMemes || viendoPeliculas;
         document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
+        document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
+        document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
         document.getElementById('memesNav').setAttribute('aria-current', viendoMemes ? 'page' : 'false');
-        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes ? 'page' : 'false');
-        document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : 'Publicaciones';
-        document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : 'Todavía no hay publicaciones. Comparte el primer álbum.';
-        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : 'RedMusica';
+        document.getElementById('peliculasNav').setAttribute('aria-current', viendoPeliculas ? 'page' : 'false');
+        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas ? 'page' : 'false');
+        document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : 'Publicaciones';
+        document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : 'Todavía no hay publicaciones. Comparte el primer álbum.';
+        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : 'RedMusica';
         if (!viendoPerfil) {
             document.getElementById('fotoPerfilPublico').replaceChildren();
             document.getElementById('rangoPerfilPublico').replaceChildren();
@@ -523,18 +538,27 @@
         autor.className = "autor-publicacion";
         autor.append(fotoPerfil(post.user_id, post.profiles), enlaceUsuario(post.user_id, post.profiles.username), rangoPerfil(post.profiles.role));
         const esMeme = post.post_type === 'meme';
+        const esPelicula = post.post_type === 'film';
         const portada = document.createElement("img");
         portada.loading = "lazy";
-        portada.width = 250;
-        portada.height = 250;
+        portada.width = esPelicula ? 300 : 250;
+        portada.height = esPelicula ? 450 : 250;
         if (esMeme) {
             portada.className='imagen-meme'; portada.alt='Meme publicado por @'+post.profiles.username;
             portada.src=config.supabaseUrl+'/storage/v1/object/public/post-images/'+post.image_path.split('/').map(encodeURIComponent).join('/');
+        } else if (esPelicula) {
+            portada.className='poster-pelicula';portada.alt=post.film_poster?'Afiche de '+post.film_title:'';
+            portada.hidden=!post.film_poster;
+            if(post.film_poster)portada.src='https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(post.film_poster)+'?width=600';
+            portada.onerror=()=>{portada.hidden=true;};
         } else asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
         const titulo = document.createElement("h3");
-        titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : post.album_title;
+        titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : esPelicula ? post.film_title : post.album_title;
         const artista = document.createElement("p");
-        artista.hidden=esMeme; artista.textContent = post.album_artist || '';
+        artista.hidden=esMeme; artista.textContent = esPelicula ? [post.film_director,post.film_year].filter(Boolean).join(' · ') : post.album_artist || '';
+        const puntuacion=document.createElement('p');
+        puntuacion.className='nota-pelicula';puntuacion.hidden=!esPelicula;
+        puntuacion.textContent=esPelicula?'★'.repeat(Math.floor(post.film_rating))+(post.film_rating%1?'½':'')+' · '+Number(post.film_rating).toLocaleString('es-CL',{minimumFractionDigits:post.film_rating%1?1:0,maximumFractionDigits:1})+'/5':'';
         const texto = document.createElement("p");
         texto.className = "opinion";
         texto.textContent = post.body;
@@ -670,7 +694,9 @@
             acciones.append(editar, borrar);
             articulo.appendChild(editor);
         }
-        articulo.prepend(autor, portada, titulo, artista, texto, acciones, mensaje, zona);
+        articulo.classList.toggle('publicacion-pelicula',esPelicula);
+        if(esPelicula){const source=document.createElement('a');source.href='https://www.wikidata.org/wiki/'+encodeURIComponent(post.film_wikidata_id);source.target='_blank';source.rel='noopener';source.textContent='Ficha en Wikidata';source.className='fuente-pelicula';articulo.prepend(autor,portada,titulo,artista,puntuacion,source,texto,acciones,mensaje,zona);}
+        else articulo.prepend(autor, portada, titulo, artista, texto, acciones, mensaje, zona);
         return articulo;
     }
 
@@ -684,6 +710,119 @@
             resultado(await db.from("posts").insert({ album_id: albumSeleccionado.id, album_title: albumSeleccionado.titulo, album_artist: albumSeleccionado.artista, body: opinion.value.trim() }));
             opinion.value = "";
             estado.textContent = "Publicación compartida.";
+            await cargarFeed(true);
+        });
+    });
+
+    async function wikidata(params) {
+        const url = new URL('https://www.wikidata.org/w/api.php');
+        Object.entries({...params,format:'json',origin:'*'}).forEach(([key,value])=>url.searchParams.set(key,String(value)));
+        const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
+        let response;
+        try{response=await fetch(url,{headers:{Accept:'application/json'},signal:controller.signal});}
+        finally{clearTimeout(timeout);}
+        if(!response.ok)throw new Error('El catálogo de películas no respondió. Inténtalo de nuevo.');
+        const data=await response.json();
+        if(data.error)throw new Error('El catálogo de películas no pudo completar la búsqueda.');
+        return data;
+    }
+    function claimValue(entity,property) {
+        const claims=entity?.claims?.[property]||[];
+        return claims.map(item=>item.mainsnak?.datavalue?.value).filter(Boolean);
+    }
+    function nombreEntidad(entity) {
+        return entity?.labels?.es?.value||entity?.labels?.en?.value||'';
+    }
+    function añoPelicula(entity) {
+        const fecha=claimValue(entity,'P577')[0]?.time||claimValue(entity,'P571')[0]?.time||'';
+        const match=/^[+-](\d{4})-/.exec(fecha);
+        const year=match?Number(match[1]):null;
+        return year>=1888&&year<=2100?year:null;
+    }
+    async function buscarCatalogoPeliculas(query) {
+        const key=query.trim().toLocaleLowerCase('es');
+        const cached=cachePeliculas.get(key);
+        if(cached&&cached.expira>Date.now())return cached.movies;
+        const found=await wikidata({action:'wbsearchentities',search:query.trim(),language:'es',uselang:'es',type:'item',limit:12});
+        const searchItems=(found.search||[]).filter(item=>/^Q[1-9][0-9]*$/.test(item.id));
+        if(!searchItems.length)return [];
+        const data=await wikidata({action:'wbgetentities',ids:searchItems.map(item=>item.id).join('|'),props:'claims|labels|descriptions',languages:'es|en',languagefallback:'1'});
+        const movieIds=new Set(['Q11424','Q24869','Q506240']);
+        const possible=searchItems.map(item=>{
+            const entity=data.entities?.[item.id];
+            const kinds=claimValue(entity,'P31').map(kind=>kind.id);
+            const description=entity?.descriptions?.es?.value||entity?.descriptions?.en?.value||item.description||'';
+            const isFilm=kinds.some(kind=>movieIds.has(kind))||(/\b(movie|film|película|pelicula|largometraje|cortometraje)\b/i.test(description)&&!/director|actor|actriz/i.test(description));
+            if(!isFilm)return null;
+            const directorIds=claimValue(entity,'P57').map(person=>person.id).filter(Boolean);
+            const poster=claimValue(entity,'P18')[0]||null;
+            return {id:item.id,title:nombreEntidad(entity)||item.label||'',description,directorIds,poster,year:añoPelicula(entity)};
+        }).filter(movie=>movie&&movie.title);
+        if(!possible.length)return [];
+        const directorIds=[...new Set(possible.flatMap(movie=>movie.directorIds))];
+        let directors={};
+        if(directorIds.length){
+            const people=await wikidata({action:'wbgetentities',ids:directorIds.slice(0,20).join('|'),props:'labels',languages:'es|en',languagefallback:'1'});
+            directors=people.entities||{};
+        }
+        const movies=possible.slice(0,8).map(movie=>({
+            wikidata_id:movie.id,title:movie.title.slice(0,500),
+            director:movie.directorIds.map(id=>nombreEntidad(directors[id])).filter(Boolean).join(', ').slice(0,500)||null,
+            year:movie.year,poster:movie.poster&&movie.poster.length<=500?movie.poster:null,
+            description:movie.description.slice(0,300)
+        }));
+        cachePeliculas.set(key,{movies,expira:Date.now()+15*60*1000});
+        return movies;
+    }
+    const formularioBusquedaPeliculas=document.getElementById('formularioBusquedaPeliculas');
+    formularioBusquedaPeliculas.addEventListener('submit',async event=>{
+        event.preventDefault();
+        const button=document.getElementById('buscarPeliculas'),status=document.getElementById('estadoBusquedaPeliculas');
+        const query=document.getElementById('buscarPelicula').value.trim();
+        if(query.length<2){status.textContent='Escribe al menos dos letras del título.';return;}
+        const revision=++revisionBusquedaPeliculas;button.disabled=true;status.textContent='Buscando en el catálogo abierto…';
+        const results=document.getElementById('resultadosPeliculas');results.replaceChildren();results.hidden=false;
+        try{
+            const movies=await buscarCatalogoPeliculas(query);
+            if(revision!==revisionBusquedaPeliculas)return;
+            status.textContent=movies.length?'Elige la película que quieres reseñar.':'No encontramos películas con ese nombre. Prueba el título original.';
+            movies.forEach(movie=>{
+                const card=document.createElement('article');card.className='tarjeta-pelicula';
+                if(movie.poster){const image=document.createElement('img');image.className='poster-resultado-pelicula';image.loading='lazy';image.alt='';image.src='https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(movie.poster)+'?width=360';image.onerror=()=>image.remove();card.append(image);}
+                const title=document.createElement('h3');title.textContent=movie.title;
+                const meta=document.createElement('p');meta.textContent=[movie.director,movie.year,movie.description].filter(Boolean).join(' · ');
+                const source=document.createElement('a');source.href='https://www.wikidata.org/wiki/'+encodeURIComponent(movie.wikidata_id);source.target='_blank';source.rel='noopener';source.textContent='Ficha de Wikidata';
+                const choose=crearBoton('Escribir reseña');choose.addEventListener('click',()=>{
+                    peliculaSeleccionada=movie;document.getElementById('tituloResenaPelicula').textContent=movie.title;
+                    const poster=document.getElementById('posterPelicula');poster.hidden=!movie.poster;poster.alt=movie.poster?'Afiche de '+movie.title:'';
+                    if(movie.poster){poster.src='https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(movie.poster)+'?width=600';poster.onerror=()=>{poster.hidden=true;};}
+                    document.getElementById('datosPelicula').textContent=[movie.director,movie.year].filter(Boolean).join(' · ')||'Ficha de Wikidata';
+                    results.hidden=true;document.getElementById('reseñaPelicula').hidden=!usuario||!perfil;
+                    status.textContent=usuario&&perfil?'Añade tu puntuación y reseña.':'Inicia sesión para publicar una reseña.';
+                    if(usuario&&perfil)document.getElementById('notaPelicula').focus();
+                });
+                card.append(title,meta,source,choose);results.append(card);
+            });
+        }catch(error){if(revision===revisionBusquedaPeliculas)status.textContent=error.name==='AbortError'?'El catálogo está tardando demasiado. Inténtalo de nuevo.':error.message||'No se pudo consultar el catálogo. Inténtalo de nuevo.';}
+        finally{if(revision===revisionBusquedaPeliculas)button.disabled=false;}
+    });
+    document.getElementById('cambiarPelicula').addEventListener('click',()=>{
+        peliculaSeleccionada=null;document.getElementById('reseñaPelicula').hidden=true;document.getElementById('resultadosPeliculas').hidden=false;
+        document.getElementById('estadoBusquedaPeliculas').textContent='Elige otra película del catálogo.';document.getElementById('buscarPelicula').focus();
+    });
+    document.getElementById('formularioResenaPelicula').addEventListener('submit',event=>{
+        event.preventDefault();
+        const status=document.getElementById('estadoResenaPelicula');
+        if(!exigirCuenta()||!peliculaSeleccionada)return;
+        const body=document.getElementById('opinionPelicula').value.trim();
+        if(!body){status.textContent='Escribe tu reseña.';return;}
+        const button=document.getElementById('publicarResenaPelicula');
+        accion(button,status,async()=>{
+            const movie=peliculaSeleccionada;
+            resultado(await db.from('posts').insert({post_type:'film',film_wikidata_id:movie.wikidata_id,film_title:movie.title,film_director:movie.director,film_year:movie.year,film_poster:movie.poster,film_rating:Number(document.getElementById('notaPelicula').value),body}));
+            document.getElementById('formularioResenaPelicula').reset();peliculaSeleccionada=null;
+            document.getElementById('reseñaPelicula').hidden=true;document.getElementById('resultadosPeliculas').hidden=false;
+            document.getElementById('estadoBusquedaPeliculas').textContent='Reseña publicada.';status.textContent='';
             await cargarFeed(true);
         });
     });

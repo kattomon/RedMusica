@@ -95,7 +95,9 @@ Prueba local: `tests/social-database.cjs` comprueba RLS, eventos automáticos, q
 
 ## Memes y chat comunitario
 
-Aplicar `supabase/community.sql` después de las otras migraciones. Inicio lista solo publicaciones de álbumes; `?seccion=memes` abre la sección Memes con su formulario y feed independientes. Los perfiles siguen mostrando ambos tipos de publicación. El feed admite publicaciones de álbum y de imagen. Se aceptan JPG/JPEG (incluido `.jpeg`), PNG y WebP; las imágenes se reducen en el dispositivo a JPEG de hasta 1280 píxeles y 1 MB. El bucket público solo admite JPEG y Storage limita cada cuenta a 15 imágenes de 1 MB. La eliminación del meme intenta borrar también su archivo. El texto alternativo de la imagen identifica a su autor.
+Aplicar `supabase/community.sql` después de las otras migraciones. Inicio lista álbumes; `?seccion=memes` abre la sección de memes y `?seccion=peliculas` la de reseñas. Ambas tienen búsqueda/formulario y feed independientes, y los perfiles muestran todos los tipos de publicación. El catálogo de películas usa la API abierta de Wikidata y afiches de Wikimedia Commons; hay fichas sin imagen o metadatos. Las reseñas guardan puntuación de 0,5 a 5 estrellas. La migración incremental de producción está en `supabase/migrations/`.
+
+La sección de memes acepta JPG/JPEG (incluido `.jpeg`), PNG y WebP; las imágenes se reducen en el dispositivo a JPEG de hasta 1280 píxeles y 1 MB. El bucket público solo admite JPEG y Storage limita cada cuenta a 15 imágenes de 1 MB. La eliminación del meme intenta borrar también su archivo. El texto alternativo de la imagen identifica a su autor.
 
 El chat es una sala general compartida: leer es público, escribir requiere iniciar sesión con una cuenta activa y cada mensaje admite hasta 500 caracteres. Realtime actualiza los mensajes al instante cuando está disponible; si la conexión en tiempo real falla, la página consulta el chat cada 30 segundos mientras está visible. Se muestran hasta 50 mensajes recientes y la base conserva como máximo 500 en total. No hay mensajes privados ni historial permanente.
 

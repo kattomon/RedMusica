@@ -23,6 +23,18 @@ const server=http.createServer((req,res)=>{
    await ctx.route('https://musicbrainz.org/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({'release-groups':[{id:'33333333-3333-4333-8333-333333333333',title:'Álbum de prueba','artist-credit':[{name:'Artista de prueba'}]}]})}));
    await ctx.route('https://coverartarchive.org/**',r=>r.fulfill({status:404,body:''}));
    await ctx.route('https://itunes.apple.com/**',r=>r.fulfill({contentType:'text/javascript',body:new URL(r.request().url()).searchParams.get('callback')+'({"results":[]})'}));
+   await ctx.route('https://www.wikidata.org/w/api.php?*',r=>{
+    const url=new URL(r.request().url()),action=url.searchParams.get('action');let body={};
+    if(action==='wbsearchentities')body={search:[{id:'Q12345',label:'La película de prueba',description:'película chilena'}]};
+    else{
+     body={entities:{}};
+     for(const id of url.searchParams.get('ids').split('|')){
+      if(id==='Q12345')body.entities[id]={id,labels:{es:{value:'La película de prueba'}},descriptions:{es:{value:'película chilena'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q11424'}}}}],P57:[{mainsnak:{datavalue:{value:{id:'Q67890'}}}}],P18:[{mainsnak:{datavalue:{value:'Afiche de prueba.jpg'}}}],P577:[{mainsnak:{datavalue:{value:{time:'+2020-01-01T00:00:00Z'}}}}]}};
+      else body.entities[id]={id,labels:{es:{value:'Directora de prueba'}}};
+     }
+    }
+    return r.fulfill({contentType:'application/json',body:JSON.stringify(body)});
+   });
    await ctx.route('https://redmusica-test.supabase.co/**',async route=>{
     const req=route.request(),url=new URL(req.url()),method=req.method();const body=url.pathname.startsWith('/storage/')?null:req.postDataJSON();
     const headers={'Content-Type':'application/json','Access-Control-Expose-Headers':'Content-Range'};
@@ -98,6 +110,16 @@ const server=http.createServer((req,res)=>{
   await a.getByRole('button',{name:'Minimizar sin detener la radio'}).click();
   await a.locator('#buscarAlbum').fill('Álbum');await a.locator('#botonBuscar').click();await a.locator('.boton-elegir').click();await a.locator('#comentarioPublicacion').fill('Opinión <img src=x onerror=alert(1)>');await a.locator('#botonPublicar').click();await a.locator('#feed article').waitFor();
   assert.match(await a.locator('.autor-publicacion').innerText(),/@Ana/);assert.equal(await a.locator('#feed article script').count(),0);
+  await a.locator('#peliculasNav').click();assert.equal(await a.locator('#tituloFeed').innerText(),'Reseñas de películas');
+  assert.equal(await a.locator('#panelRadio iframe').count(),1,'switching to movies must keep the radio iframe alive');
+  assert.equal(await radio.locator('body').evaluate(()=>window.pauseCalls),0,'switching to movies must not pause the player');
+  await a.locator('#buscarPelicula').fill('La película de prueba');await a.locator('#buscarPeliculas').click();
+  await a.getByRole('button',{name:'Escribir reseña'}).waitFor();await a.getByRole('button',{name:'Escribir reseña'}).click();
+  assert.match(await a.locator('#datosPelicula').innerText(),/Directora de prueba.*2020/);
+  await a.locator('#notaPelicula').selectOption('4.5');await a.locator('#opinionPelicula').fill('Una reseña de prueba');await a.getByRole('button',{name:'Publicar reseña'}).click();
+  await a.locator('#estadoBusquedaPeliculas').getByText('Reseña publicada.',{exact:true}).waitFor();assert.equal(posts.at(-1).post_type,'film');assert.equal(posts.at(-1).film_rating,4.5);
+  await a.waitForFunction(()=>document.querySelectorAll('#feed article').length===1);assert.match(await a.locator('#feed article').innerText(),/La película de prueba/);
+  await a.locator('#inicioNav').click();await a.waitForFunction(()=>document.querySelector('#feed').innerText.includes('Álbum de prueba'));assert.equal(await a.locator('#feed article').count(),1);
   await a.locator('#editarPerfil summary').click();
   await a.locator('#bioPerfil').fill('Escucho discos de Chile.');await a.getByRole('button',{name:'Guardar presentación'}).click();await a.getByText('Perfil actualizado.',{exact:true}).waitFor();
   function png1(){const zlib=require('node:zlib');const crc=b=>{let c=0xffffffff;for(const v of b){c^=v;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0);}return(c^0xffffffff)>>>0;};const chunk=(name,data)=>{const n=Buffer.from(name),len=Buffer.alloc(4),sum=Buffer.alloc(4);len.writeUInt32BE(data.length);sum.writeUInt32BE(crc(Buffer.concat([n,data])));return Buffer.concat([len,n,data,sum]);};const h=Buffer.alloc(13);h.writeUInt32BE(1,0);h.writeUInt32BE(1,4);h[8]=8;h[9]=6;return Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),chunk('IHDR',h),chunk('IDAT',zlib.deflateSync(Buffer.from([0,255,0,0,255]))),chunk('IEND',Buffer.alloc(0))]);}const photo=png1();
