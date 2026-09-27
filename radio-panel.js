@@ -5,18 +5,20 @@
  const close = document.getElementById('cerrarRadio');
  const minimize = document.getElementById('minimizarRadio');
  const title = document.getElementById('tituloPanelRadio');
+ const defaultTitle = title.textContent;
+ let nowPlaying = '';
  let frame;
  function setOpen(open) {
   panel.hidden = !open;
   panel.classList.remove('minimizado');
   minimize.textContent = 'Minimizar';
   minimize.setAttribute('aria-label', 'Minimizar sin detener la radio');
-  title.textContent = 'Radio RedMusica';
+  title.textContent = nowPlaying ? '♫ ' + nowPlaying : defaultTitle;
   button.setAttribute('aria-expanded', String(open));
   if (open && !frame) {
    frame = document.createElement('iframe');
    frame.title = 'Radio RedMusica: reproductor, búsqueda y cola';
-   frame.src = 'radio.html?panel=1&v=20260927-18';
+   frame.src = 'radio.html?panel=1&v=20260927-19';
    frame.allow = 'autoplay; fullscreen';
    panel.append(frame);
   }
@@ -28,7 +30,7 @@
   panel.classList.add('minimizado');
   minimize.textContent = 'Abrir';
   minimize.setAttribute('aria-label', 'Expandir radio');
-  title.textContent = 'Radio ♫';
+  title.textContent = nowPlaying ? '♫ ' + nowPlaying : 'Radio ♫';
   minimize.focus();
  }
  function stopRadio() {
@@ -44,6 +46,10 @@
  stop.addEventListener('click', stopRadio);
  document.addEventListener('keydown', e => { if(e.key==='Escape' && !panel.hidden && !panel.classList.contains('minimizado')) minimizePanel(); });
  window.addEventListener('message', e => {
+  if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-now-playing' && typeof e.data.title==='string') {
+   nowPlaying=e.data.title.slice(0,80);
+   title.textContent=panel.classList.contains('minimizado') ? '♫ '+nowPlaying : (nowPlaying ? '♫ '+nowPlaying : defaultTitle);
+  }
   if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-close') minimizePanel();
  });
 })();

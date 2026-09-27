@@ -10,6 +10,7 @@
 #panelRadio { position: fixed; top: 72px; right: 20px; width: min(440px, calc(100vw - 32px)); height: min(760px, calc(100vh - 88px)); height: min(760px, calc(100dvh - 88px)); z-index: 30; background: #f7f7f7; border: 1px solid #aaa; border-radius: 8px; box-shadow: 0 8px 32px #0003; overflow: hidden; display: flex; flex-direction: column; }
 #panelRadio header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #ddd; background: white; }
 #panelRadio header h2 { font-size: 18px; margin: 0; }
+#panelRadio header h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #panelRadio .controles-panel-radio { display: flex; align-items: center; gap: 6px; }
 #panelRadio .controles-panel-radio button { padding: 8px 12px; }
 #panelRadio iframe { border: 0; width: 100%; flex: 1; min-height: 0; }
@@ -36,6 +37,7 @@
 #radioResultados .radio-video-card button { grid-column: 2; justify-self: start; }
 @media(max-width:520px) { #radioResultados .radio-video-card { grid-template-columns: minmax(0, 1fr); } #radioResultados .radio-video-thumbnail, #radioResultados .radio-video-card h3, #radioResultados .radio-video-card p, #radioResultados .radio-video-card button { grid-column: 1; } #radioResultados .radio-video-thumbnail { grid-row: auto; max-height: 220px; } }
 #radioCola li { padding: 10px 0; }
+#radioProximo { padding: 10px 12px; border-left: 3px solid #777; background: #fff; }
 .tarjeta-pelicula { display: grid; grid-template-columns: minmax(100px, 150px) minmax(0,1fr); grid-template-rows: auto 1fr auto auto; gap: 6px 14px; align-items: start; }
 .tarjeta-pelicula h3, .tarjeta-pelicula p, .tarjeta-pelicula a, .tarjeta-pelicula button { grid-column: 2; margin: 0; }
 .tarjeta-pelicula .marco-afiche-resultado { grid-column: 1; grid-row: 1 / 5; width: 100%; aspect-ratio: 2 / 3; }

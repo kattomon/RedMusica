@@ -25,8 +25,12 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   await page.waitForFunction(()=>window.playerCalls.some(p=>p.videoId==='abcdefghij2'));
   queue.push({...queue[0],id:'three',video_id:'abcdefghij3',title:'Canción después del bloqueo',starts_at:new Date(Date.now()+180000).toISOString(),ends_at:new Date(Date.now()+360000).toISOString()});
   await page.evaluate(()=>window.playerOptions.events.onError({data:150}));
+  assert.equal(await page.evaluate(()=>window.playerCalls.some(p=>p.videoId==='abcdefghij3')),false,'the local player must not play a future queue item before its scheduled time');
+  await page.waitForFunction(()=>document.querySelector('#radioProximo').textContent.includes('Canción después del bloqueo'));
+  queue[0].ends_at=new Date(Date.now()-1000).toISOString();queue[1].starts_at=new Date(Date.now()-1000).toISOString();queue[1].ends_at=new Date(Date.now()+179000).toISOString();
+  await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
   await page.waitForFunction(()=>window.playerCalls.some(p=>p.videoId==='abcdefghij3'));
-  assert.equal(await page.evaluate(()=>window.playerCalls.at(-1).startSeconds),0);
+  assert.ok(await page.evaluate(()=>window.playerCalls.at(-1).startSeconds)<=5,'the player should join the scheduled live track near its current position');
   assert.match(await page.locator('#radioEscuchando').innerText(),/después del bloqueo/);
   await page.locator('#radioOtraVersion').click();
   assert.equal(await page.locator('#radioCancion').inputValue(),'Siguiente canción');
@@ -59,6 +63,7 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   await room.getByRole('button',{name:'Entrar a escuchar'}).click();
   await room.getByRole('button',{name:'Volver a la canción de la sala'}).waitFor();
   await feed.getByRole('button',{name:'Minimizar sin detener la radio'}).click();
+  assert.match(await feed.locator('#tituloPanelRadio').innerText(),/La que suena al volver/,'the minimized radio should display the current track');
   assert.equal(await feed.locator('#panelRadio').isVisible(),true);
   assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),true);
   assert.equal(await feed.frameLocator('#panelRadio iframe').locator('#radioReproductor').isVisible(),true);

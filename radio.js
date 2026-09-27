@@ -16,7 +16,18 @@
   const result=await response.json();if(!response.ok)throw Error(result.error);return result;
  }
  function playable() {
-  return queue.find(s => !omitted.has(s.id) && !blockedVideos.has(s.video_id) && Date.parse(s.ends_at)>Date.now()+offset);
+  const live=current();
+  return live && !omitted.has(live.id) && !blockedVideos.has(live.video_id) ? live : null;
+ }
+ function upcoming() { return queue.find(s=>Date.parse(s.starts_at)>Date.now()+offset && Date.parse(s.ends_at)>Date.now()+offset && !omitted.has(s.id) && !blockedVideos.has(s.video_id)); }
+ function announce(title) { if(embedded) window.parent.postMessage({type:'radio-now-playing',title},location.origin); }
+ function updateScheduleStatus() {
+  const next=upcoming();
+  if(next) {
+   const seconds=Math.max(0,Math.ceil((Date.parse(next.starts_at)-(Date.now()+offset))/1000));
+   const minutes=Math.floor(seconds/60), remainder=seconds%60;
+   $('radioProximo').textContent='Siguiente: '+decode(next.title)+' · comienza en '+(minutes ? minutes+' min ' : '')+remainder+' s';
+  } else $('radioProximo').textContent=queue.length ? 'No hay otra canción programada todavía.' : 'La sala espera el próximo pedido.';
  }
  function advance() {
   if (!panelActive || document.hidden || !ready || playerFailure || roomPaused) return;
@@ -24,9 +35,9 @@
   if(song) load(song,continuePlaying);
   else {
    player.stopVideo();
-   $('radioEscuchando').textContent='Esperando otra canción disponible.';
+   $('radioEscuchando').textContent='Esperando el siguiente turno de la programación.';
    $('radioSaltar').hidden=true;
-   $('radioPlayback').textContent='No quedan canciones reproducibles para ti en la cola. Pide otra versión u otra canción; continuaremos cuando haya una disponible.';
+   $('radioPlayback').textContent=upcoming() ? 'La canción actual se omitió en tu reproductor. La siguiente empezará a su hora para mantener sincronizada la radio.' : 'No quedan canciones reproducibles. Pide otra versión u otra canción.';
   }
  }
  window.addEventListener('message', e => {
@@ -58,6 +69,8 @@
   if(changed){loaded=null;omitted.clear();continuePlaying=joined;}
   const active=current();
   $('radioActual').textContent=active ? decode(active.title)+' · '+(active.username ? 'Pedido por @'+active.username : 'Rotación de la comunidad') : 'La sala espera la próxima canción.';
+  announce(active ? decode(active.title) : 'Esperando canciones');
+  updateScheduleStatus();
   $('radioCola').replaceChildren(...queue.map(s=>text('li',decode(s.title)+' — '+(s.username ? '@'+s.username : 'Rotación')+(s.id===active?.id ? ' · En la sala ahora' : ' · '+new Date(s.starts_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})))));
   queue.forEach((s,index)=>{
    if(session?.user?.id===s.user_id && Date.parse(s.starts_at)>Date.now()+offset){
@@ -68,12 +81,14 @@
   });
   $('radioColaEstado').textContent=queue.length ? 'La cola se actualiza automáticamente.' : 'Todavía no hay canciones. Haz el primer pedido.';
   if(roomPaused){loaded=null;if(ready)player.stopVideo();$('radioActual').textContent='Radio pausada por administración.';$('radioPlayback').textContent='La sala se reanudará cuando administración vuelva a activarla.';return;}
-  if(joined&&ready&&active&&resumingFromBackground) { if(loaded!==active.id)load(active,true);else player.playVideo();resumingFromBackground=false; }
+  if(joined&&ready&&active&&resumingFromBackground) { if(!omitted.has(active.id)&&!blockedVideos.has(active.video_id)){if(loaded!==active.id)load(active,true);else player.playVideo();}resumingFromBackground=false; }
+  else if(joined&&ready&&active&&loaded!==active.id&&!omitted.has(active.id)&&!blockedVideos.has(active.video_id)) load(active,true);
   else if (joined && !loaded) advance();
  }
  function load(song, autoplay) {
   loaded=song.id;playingSong=song;
   $('radioEscuchando').textContent='En tu reproductor: '+decode(song.title);
+  announce(decode(song.title));
   $('radioSaltar').hidden=false;
   const start=Math.max(0,Math.floor((Date.now()+offset-Date.parse(song.starts_at))/1000));
   const params={videoId:song.video_id,startSeconds:start};
@@ -87,6 +102,7 @@
  function next() {
   if(loaded) omitted.add(loaded);
   loaded=null;continuePlaying=true;
+  updateScheduleStatus();
   advance();
   refresh();
  }
@@ -100,7 +116,7 @@
   }
   if(playingSong) blockedVideos.add(playingSong.video_id);
   if(playingSong){$('radioOtraVersion').hidden=false;$('radioOtraVersion').dataset.query=decode(playingSong.title);}
-  $('radioPlayback').textContent='YouTube no permite reproducir este video aquí. Saltado para ti; probando la siguiente canción.';
+  $('radioPlayback').textContent='YouTube no permite reproducir este video aquí. Se omitió solo en tu reproductor; continuaremos con la próxima canción cuando llegue su turno.';
   next();
  }
  $('radioSaltar').addEventListener('click',()=>{playerFailure=false;next();});
@@ -162,5 +178,5 @@
  function updateSession(value){session=value;authRevision++;$('radioResultados').replaceChildren();$('radioSesion').textContent=session ? 'Ya puedes buscar y pedir canciones con tu cuenta.' : 'Puedes escuchar sin cuenta. Para pedir canciones, inicia sesión desde Inicio.';}
  db.auth.onAuthStateChange((_event,value)=>updateSession(value));
  db.auth.getSession().then(({data})=>updateSession(data.session));
- refresh();setInterval(refresh,15000);
+ refresh();setInterval(refresh,15000);setInterval(updateScheduleStatus,1000);
 })();
