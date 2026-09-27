@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+ <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Radio · RedMusica</title><link rel="stylesheet" href="style.css?v=20260927-1">
+</head>
+<body><main>
+ <h1>Radio RedMusica</h1>
+ <nav id="navegacion" aria-label="Navegación principal"><a href="./">Inicio / Mi cuenta</a><a href="radio.html" aria-current="page">Radio</a></nav>
+ <p>Una sala para escuchar lo que pide la comunidad, con YouTube.</p>
+ <section aria-labelledby="tituloEscuchar">
+  <h2 id="tituloEscuchar">En la sala</h2>
+  <p id="radioActual">Cargando la cola…</p>
+  <button id="radioEscuchar" type="button">Entrar a escuchar</button>
+  <div id="radioReproductor" hidden><div id="youtubePlayer"></div></div>
+  <p id="radioPlayback" role="status">Pulsa entrar y luego reproducir en el video. En iPhone mantén esta página abierta para escuchar.</p>
+  <p>La reproducción puede variar unos segundos entre oyentes por la carga, las pausas y los anuncios de YouTube.</p>
+ </section>
+ <section aria-labelledby="tituloPedir">
+  <h2 id="tituloPedir">Pide una canción</h2>
+  <p id="radioSesion">Comprobando tu sesión…</p>
+  <form id="radioBusqueda">
+   <div class="campos-busqueda">
+    <div><label for="radioArtista">Artista</label><input id="radioArtista" type="search" maxlength="80" placeholder="Ej.: Candelabro"></div>
+    <div><label for="radioCancion">Canción</label><input id="radioCancion" type="search" maxlength="80" placeholder="Nombre de la canción"></div>
+   </div>
+   <button id="radioBuscar" type="submit">Buscar en YouTube</button>
+  </form>
+  <p>Hasta 3 pedidos pendientes por persona. Videos de 20 segundos a 20 minutos. Las búsquedas tienen un límite diario compartido.</p>
+  <p id="radioEstado" role="status"></p><div id="radioResultados"></div>
+ </section>
+ <section aria-labelledby="tituloCola"><h2 id="tituloCola">Cola compartida</h2><p id="radioColaEstado" role="status"></p><ol id="radioCola"></ol>
+  <p>Si no hay pedidos nuevos, repetimos canciones pedidas en los últimos 7 días. Si la sala está vacía, agrega la primera.</p>
+ </section>
+ <p>Al usar el reproductor y la búsqueda aceptas los <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">Términos de YouTube</a>. Consulta la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidad de Google</a>.</p>
+</main>
+<script src="config.js?v=20260927-1"></script><script src="vendor/supabase-2.117.2.js"></script><script src="radio.js?v=20260927-1" defer></script>
+</body></html>
