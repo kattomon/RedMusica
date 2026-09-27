@@ -38,6 +38,20 @@
 @media(max-width:520px) { #radioResultados .radio-video-card { grid-template-columns: minmax(0, 1fr); } #radioResultados .radio-video-thumbnail, #radioResultados .radio-video-card h3, #radioResultados .radio-video-card p, #radioResultados .radio-video-card button { grid-column: 1; } #radioResultados .radio-video-thumbnail { grid-row: auto; max-height: 220px; } }
 #radioCola li { padding: 10px 0; }
 #radioProximo { padding: 10px 12px; border-left: 3px solid #777; background: #fff; }
+.blackjack-cabecera-sala, .blackjack-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.blackjack-cabecera-sala h3 { margin-right: auto; }
+#blackjackJugadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px; padding-left: 0; list-style: none; }
+.blackjack-jugador, .blackjack-crupier { min-width: 0; padding: 14px; border: 1px solid #ccc; border-radius: 8px; background: #fff; }
+.blackjack-jugador.es-mi-turno { border-color: #806d4f; box-shadow: 0 0 0 2px #806d4f22; }
+.blackjack-turno { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eee5d7; font-size: .85em; font-weight: 700; }
+.blackjack-mano { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 10px; }
+.blackjack-cartas { display: flex; flex-wrap: wrap; gap: 7px; min-height: 56px; margin-top: 8px; }
+.blackjack-carta { display: inline-grid; place-items: center; width: 42px; height: 56px; border: 1px solid #bbb; border-radius: 6px; background: #fff; color: #222; font-weight: 700; box-shadow: 0 1px 3px #0002; }
+.blackjack-carta.roja { color: #9a3434; }
+.blackjack-carta.oculta { color: #fff; border-color: #555; background: repeating-linear-gradient(45deg,#555 0 5px,#777 5px 10px); }
+.blackjack-resultado-jugador { display: inline-block; font-weight: 700; }
+.blackjack-acciones { margin: 16px 0; }
+@media(max-width:520px) { .blackjack-cabecera-sala { align-items: stretch; } .blackjack-cabecera-sala h3 { width: 100%; } .blackjack-acciones button { flex: 1 1 42%; min-height: 44px; } }
 .tarjeta-pelicula { display: grid; grid-template-columns: minmax(100px, 150px) minmax(0,1fr); grid-template-rows: auto 1fr auto auto; gap: 6px 14px; align-items: start; }
 .tarjeta-pelicula h3, .tarjeta-pelicula p, .tarjeta-pelicula a, .tarjeta-pelicula button { grid-column: 2; margin: 0; }
 .tarjeta-pelicula .marco-afiche-resultado { grid-column: 1; grid-row: 1 / 5; width: 100%; aspect-ratio: 2 / 3; }

@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-25">
+    <link rel="stylesheet" href="style.css?v=20260927-26">
 </head>
 <body>
 <main>
     <h1>RedMusica</h1>
     <p>Un lugar para compartir lo que escuchamos.</p>
     <nav id="navegacion" aria-label="Navegación principal" hidden>
-        <a id="inicioNav" href="./">Inicio</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="peliculasNav" href="?seccion=peliculas">Películas</a><a id="memesNav" href="?seccion=memes">Memes</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
+        <a id="inicioNav" href="./">Inicio</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="peliculasNav" href="?seccion=peliculas">Películas</a><a id="memesNav" href="?seccion=memes">Memes</a><a id="blackjackNav" href="?seccion=blackjack">Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
     </nav>
     <section id="notificaciones" aria-labelledby="tituloNotificaciones" hidden>
         <h2 id="tituloNotificaciones">Notificaciones</h2><p id="estadoNotificaciones" role="status"></p>
@@ -46,6 +46,30 @@
         <p>Ordena publicaciones de música y cine en colecciones propias.</p>
         <form id="formularioLista" class="fila-controles"><label class="solo-lectores" for="nombreLista">Nombre de la lista</label><input id="nombreLista" maxlength="50" placeholder="Ej.: Películas para el domingo" required><button type="submit">Crear lista</button></form>
         <p id="estadoListas" role="status"></p><div id="listaColecciones" aria-live="polite"></div>
+    </section>
+    <section id="seccionBlackjack" aria-labelledby="tituloBlackjack" hidden>
+        <h2 id="tituloBlackjack">Blackjack de RedMusica</h2>
+        <p>Hasta seis jugadores contra el crupier automático. Juega por turnos con fichas ficticias; no hay apuestas ni premios de dinero real.</p>
+        <p id="blackjackAcceso" hidden><a href="./">Inicia sesión desde Inicio</a> para crear una sala o unirte con un código.</p>
+        <p id="estadoBlackjack" role="status" aria-live="polite"></p>
+        <div id="blackjackEntrada">
+            <button id="crearSalaBlackjack" type="button">Crear una sala</button>
+            <form id="unirseSalaBlackjack" class="fila-controles">
+                <label for="codigoSalaBlackjack">Código de sala</label><input id="codigoSalaBlackjack" maxlength="6" minlength="6" autocomplete="off" placeholder="ABC123" required>
+                <button type="submit">Unirse</button>
+            </form>
+        </div>
+        <div id="blackjackMesa" hidden>
+            <div class="blackjack-cabecera-sala"><h3>Sala <span id="blackjackCodigo"></span></h3><button id="compartirSalaBlackjack" type="button">Copiar invitación</button></div>
+            <p id="blackjackEstadoSala"></p>
+            <section aria-labelledby="tituloJugadoresBlackjack"><h3 id="tituloJugadoresBlackjack">Jugadores</h3><ol id="blackjackJugadores"></ol></section>
+            <section id="blackjackTablero" aria-label="Mesa de blackjack" hidden>
+                <div class="blackjack-crupier"><h3>Crupier · bot</h3><div id="manoCrupierBlackjack" class="blackjack-cartas"></div><p id="totalCrupierBlackjack"></p></div>
+                <div id="blackjackManos"></div>
+            </section>
+            <p id="resultadoBlackjack" role="status"></p>
+            <div class="blackjack-acciones"><button id="iniciarRondaBlackjack" type="button" hidden>Repartir (100 fichas)</button><button id="pedirCartaBlackjack" type="button" hidden>Pedir carta</button><button id="plantarseBlackjack" type="button" hidden>Plantarse</button><button id="salirSalaBlackjack" type="button">Salir de la sala</button></div>
+        </div>
     </section>
     <hr>
     <section id="cuenta" aria-labelledby="tituloCuenta">
@@ -163,6 +187,6 @@
 </section>
 <script src="radio-panel.js?v=20260927-19" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20260927-25" defer></script>
+<script src="script.js?v=20260927-26" defer></script>
 </body>
 </html>

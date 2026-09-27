@@ -11,6 +11,7 @@
     let viendoActividad = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'actividad';
     let viendoGuardados = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'guardados';
     let viendoListas = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'listas';
+    let viendoBlackjack = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'blackjack';
     let listaActualId = new URLSearchParams(location.search).get('lista');
     let idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || "");
     let presenceChannel = null;
@@ -21,10 +22,11 @@
     let amigoChatActivo = null, mensajesPrivadosCargados = new Set();
     document.getElementById("navegacion").hidden = false;
     document.getElementById("perfilPublico").hidden = !viendoPerfil;
-    document.getElementById("crearPublicacion").hidden = viendoPerfil || viendoMemes || viendoPeliculas;
+    document.getElementById("crearPublicacion").hidden = viendoPerfil || viendoMemes || viendoPeliculas || viendoBlackjack;
     document.getElementById('crearMeme').hidden = !viendoMemes;
     document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
     document.getElementById('seccionListas').hidden = !viendoListas;
+    document.getElementById('seccionBlackjack').hidden = !viendoBlackjack;
     document.getElementById('memesNav').setAttribute('aria-current',viendoMemes?'page':'false');
     document.getElementById('peliculasNav').setAttribute('aria-current',viendoPeliculas?'page':'false');
     document.getElementById('amigosNav').hidden = !viendoAmigos;
@@ -181,7 +183,7 @@
     const estadoPerfil = document.getElementById("estadoPerfil");
 
     function actualizarVisibilidadCuenta(){
-        const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoAmigos&&!viendoActividad&&!viendoGuardados&&!viendoListas;
+        const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoAmigos&&!viendoActividad&&!viendoGuardados&&!viendoListas&&!viendoBlackjack;
         const recuperacion=Boolean(usuario&&recuperando&&inicio);
         cuenta.hidden=!(inicio&&(!usuario||recuperacion));
         const sesion=document.getElementById('sesionPerfil');
@@ -235,7 +237,7 @@
         document.getElementById('dockAmigos').hidden = !usuario;
         document.getElementById('abrirDockAmigos').hidden = !usuario;
         actualizarVisibilidadCuenta();
-        if(viendoAmigos){
+        if(viendoAmigos||viendoBlackjack){
             ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
         }
         const nombre = document.getElementById('nombrePerfil');
@@ -714,6 +716,10 @@
     setInterval(()=>{if(usuario&&!document.hidden)actualizarConteoSolicitudesAmistad();},120000);
 
     async function cargarFeed(reiniciar) {
+        if(viendoBlackjack){
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','cuenta','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
+            return;
+        }
         if(viendoAmigos){
             ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','cuenta','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
             if(usuario)cargarAmigos();else document.getElementById('estadoAmigos').textContent='Inicia sesión para ver tus amigos y solicitudes.';
@@ -831,36 +837,39 @@
         viendoAmigos = !viendoPerfil && params.get('seccion') === 'amigos';
         viendoActividad = !viendoPerfil && params.get('seccion') === 'actividad';
         viendoGuardados = !viendoPerfil && params.get('seccion') === 'guardados';
+        viendoBlackjack = !viendoPerfil && params.get('seccion') === 'blackjack';
         viendoListas = !viendoPerfil && params.get('seccion') === 'listas';
         listaActualId=params.get('lista');
         idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || '');
         document.getElementById('perfilPublico').hidden = !viendoPerfil;
-        document.getElementById('crearPublicacion').hidden = viendoPerfil || viendoMemes || viendoPeliculas;
+        document.getElementById('crearPublicacion').hidden = viendoPerfil || viendoMemes || viendoPeliculas || viendoBlackjack;
         document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
         document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
         document.getElementById('seccionListas').hidden = !viendoListas;
+        document.getElementById('seccionBlackjack').hidden = !viendoBlackjack;
         document.getElementById('seccionAmigos').hidden = !viendoAmigos;
         document.getElementById('amigosNav').setAttribute('aria-current',viendoAmigos?'page':'false');
         document.getElementById('actividadNav').setAttribute('aria-current',viendoActividad?'page':'false');
         document.getElementById('guardadosNav').setAttribute('aria-current',viendoGuardados?'page':'false');
         document.getElementById('listasNav').setAttribute('aria-current',viendoListas?'page':'false');
+        document.getElementById('blackjackNav').setAttribute('aria-current',viendoBlackjack?'page':'false');
         actualizarVisibilidadCuenta();
-        document.getElementById('chatComunitario').hidden = viendoAmigos;
-        ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos;});
+        document.getElementById('chatComunitario').hidden = viendoAmigos || viendoBlackjack;
+        ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack;});
         document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
         document.getElementById('memesNav').setAttribute('aria-current', viendoMemes ? 'page' : 'false');
         document.getElementById('peliculasNav').setAttribute('aria-current', viendoPeliculas ? 'page' : 'false');
-        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoAmigos && !viendoActividad && !viendoGuardados && !viendoListas ? 'page' : 'false');
+        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoAmigos && !viendoActividad && !viendoGuardados && !viendoListas && !viendoBlackjack ? 'page' : 'false');
         document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : viendoActividad ? 'Actividad de tus amigos' : viendoGuardados ? 'Guardados' : viendoListas ? 'Mis listas' : 'Publicaciones';
         document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : viendoActividad ? 'Agrega amigos para ver sus publicaciones aquí.' : viendoGuardados ? 'Todavía no guardas publicaciones.' : viendoListas ? 'Esta lista todavía no tiene publicaciones.' : 'Todavía no hay publicaciones. Comparte el primer álbum.';
-        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : viendoActividad ? 'Actividad de amigos · RedMusica' : viendoGuardados ? 'Guardados · RedMusica' : viendoListas ? 'Mis listas · RedMusica' : 'RedMusica';
+        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : viendoActividad ? 'Actividad de amigos · RedMusica' : viendoGuardados ? 'Guardados · RedMusica' : viendoListas ? 'Mis listas · RedMusica' : viendoBlackjack ? 'Blackjack · RedMusica' : 'RedMusica';
         if (!viendoPerfil) {
             document.getElementById('fotoPerfilPublico').replaceChildren();
             document.getElementById('rangoPerfilPublico').replaceChildren();
             document.getElementById('tituloPerfilPublico').textContent = 'Cargando perfil…';
             document.getElementById('resumenPerfilPublico').textContent = '';
         document.getElementById('compartirPerfil').hidden = true;
-            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||(viendoListas&&!listaActualId);});
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack||(viendoListas&&!listaActualId);});
             actualizarVisibilidadCuenta();
             document.getElementById('presenciaPerfil').dataset.userId='';
             document.getElementById('amistadPerfil').hidden=true;
