@@ -1,3 +1,5 @@
+Los errores del reproductor 2/5/100/101/150 saltan inmediatamente a la siguiente entrada disponible para ese oyente, aunque su horario común aún no haya comenzado. Los videos fallidos se excluyen durante la sesión de esa página; no se modifica la cola compartida. El botón Saltar para mí permite omitir una entrada manualmente. El error 153 se trata como configuración del reproductor, sin descartar todas las canciones. Las pruebas simulan estos códigos: no eliminan restricciones de copyright de YouTube.
+
 La radio se abre desde el feed mediante radio-panel.js, en un panel fijo superior derecho. radio.html se carga dentro de un iframe del mismo origen; no se abre otra pestaña. El panel conserva su estado al cerrar, pausa el reproductor y permite volver al feed con Escape. Las portadas solicitan CAA 1200 px (con respaldo de 500 px) y Apple 600 px (con respaldo del recurso original).
 
 # Cuentas y feed compartido

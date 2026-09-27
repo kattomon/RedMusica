@@ -6,7 +6,23 @@
  const config = window.REDMUSICA_CONFIG;
  const db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
  let queue = [], offset = 0, session = null, player = null, loaded = null, joined = false, ready = false, updating = false;
- let busy = false, authRevision = 0, finished = null, continuePlaying = false, panelActive = true;
+ let busy = false, authRevision = 0, continuePlaying = false, panelActive = true;
+ const omitted = new Set(), blockedVideos = new Set();
+ let playingSong = null, playerFailure = false;
+ function playable() {
+  return queue.find(s => !omitted.has(s.id) && !blockedVideos.has(s.video_id) && Date.parse(s.ends_at)>Date.now()+offset);
+ }
+ function advance() {
+  if (!panelActive || document.hidden || !ready || playerFailure) return;
+  const song=playable();
+  if(song) load(song,continuePlaying);
+  else {
+   player.stopVideo();
+   $('radioEscuchando').textContent='Esperando otra canción disponible.';
+   $('radioSaltar').hidden=true;
+   $('radioPlayback').textContent='No quedan canciones reproducibles para ti en la cola. Pide otra versión u otra canción; continuaremos cuando haya una disponible.';
+  }
+ }
  window.addEventListener('message', e => {
   if(embedded && e.source===window.parent && e.origin===location.origin && e.data?.type==='radio-pause') {
    panelActive=false;continuePlaying=false;if(ready)player.pauseVideo();
@@ -35,10 +51,12 @@
   $('radioActual').textContent=active ? decode(active.title)+' · '+(active.username ? 'Pedido por @'+active.username : 'Rotación de la comunidad') : 'La sala espera la próxima canción.';
   $('radioCola').replaceChildren(...queue.map(s=>text('li',decode(s.title)+' — '+(s.username ? '@'+s.username : 'Rotación')+(s.id===active?.id ? ' · En la sala ahora' : ' · '+new Date(s.starts_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})))));
   $('radioColaEstado').textContent=queue.length ? 'La cola se actualiza automáticamente.' : 'Todavía no hay canciones. Haz el primer pedido.';
-  if (panelActive && joined && ready && !loaded && active && active.id!==finished && !document.hidden) load(active,continuePlaying);
+  if (joined && !loaded) advance();
  }
  function load(song, autoplay) {
-  loaded=song.id;
+  loaded=song.id;playingSong=song;
+  $('radioEscuchando').textContent='En tu reproductor: '+decode(song.title);
+  $('radioSaltar').hidden=false;
   const start=Math.max(0,Math.floor((Date.now()+offset-Date.parse(song.starts_at))/1000));
   const params={videoId:song.video_id,startSeconds:start};
   if (autoplay) player.loadVideoById(params); else player.cueVideoById(params);
@@ -49,19 +67,34 @@
   try { render(await api({action:'state'})); } catch(e) { $('radioColaEstado').textContent=e.message; } finally { updating=false; }
  }
  function next() {
-  finished=loaded;loaded=null;continuePlaying=true;
+  if(loaded) omitted.add(loaded);
+  loaded=null;continuePlaying=true;
+  advance();
   refresh();
  }
+ function playbackError(event) {
+  if(!loaded) return;
+  const code=event?.data;
+  if(![2,5,100,101,150].includes(code)) {
+   playerFailure=true;continuePlaying=false;player.pauseVideo();
+   $('radioPlayback').textContent=code===153 ? 'YouTube no pudo identificar el reproductor. Recarga la página; si continúa, revisa las extensiones de privacidad del navegador.' : 'El reproductor falló. Pulsa Volver a la canción de la sala para reintentar.';
+   return;
+  }
+  if(playingSong) blockedVideos.add(playingSong.video_id);
+  $('radioPlayback').textContent='YouTube no permite reproducir este video aquí. Saltado para ti; probando la siguiente canción.';
+  next();
+ }
+ $('radioSaltar').addEventListener('click',()=>{playerFailure=false;next();});
  $('radioEscuchar').addEventListener('click',()=>{
   joined=true;$('radioReproductor').hidden=false;
-  if (ready) { const s=current();if(s) load(s,true);return; }
+  if (ready) { playerFailure=false;const s=playable();if(s) load(s,true);else advance();return; }
   $('radioEscuchar').disabled=true;
   window.onYouTubeIframeAPIReady=()=>{
    player=new YT.Player('youtubePlayer',{width:'100%',height:'360',playerVars:{playsinline:1,origin:location.origin},events:{
-    onReady:()=>{ready=true;$('radioEscuchar').disabled=false;$('radioEscuchar').textContent='Volver a la canción de la sala';const s=current();if(s)load(s,false);},
-    onStateChange:event=>{if(event.data===0)next();},
+    onReady:()=>{ready=true;$('radioEscuchar').disabled=false;$('radioEscuchar').textContent='Volver a la canción de la sala';const s=playable();if(s)load(s,false);},
+    onStateChange:event=>{if(event.data===0 && loaded)next();},
     onAutoplayBlocked:()=>{$('radioPlayback').textContent='Tu navegador pide un toque: pulsa reproducir en el video.';},
-    onError:()=>{$('radioPlayback').textContent='YouTube no puede reproducir este video en tu dispositivo. La sala continuará con la próxima canción.';finished=loaded;loaded=null;continuePlaying=true;}
+    onError:playbackError
    }});
   };
   const script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';
