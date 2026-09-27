@@ -156,10 +156,9 @@ const server=http.createServer((req,res)=>{
   try{await a.locator('.mensaje-chat').filter({hasText:'Hola desde el chat'}).waitFor({timeout:5000});}catch{throw Error(engine.name()+' chat send failed: '+await a.locator('#estadoChat').innerText()+'; account: '+await a.locator('#nombrePerfil').innerText()+'; DOM: '+await a.locator('#mensajesChat').innerText()+'; errors: '+JSON.stringify(a.errors));}assert.equal(chatMessages.length,1);
   await a.reload();await a.locator('.mensaje-chat').filter({hasText:'Hola desde el chat'}).waitFor();
   assert.equal(await a.locator('#mensajesChat .mensaje-chat').count(),1);
-  assert.deepEqual(a.errors,[]);
   assert.deepEqual(a.errors,[]);assert.deepEqual(b.errors,[]);assert.deepEqual(c.errors,[]);
   console.log(engine.name(),'PASS notifications/follows and profiles: public deep links, reload, author filter, pagination, owner controls, likes/comments, missing/empty profiles, navigation');
-  await browser.close();console.log(engine.name(),'PASS shared UI using mock API: signup, two sessions, publish, toggle like, comments, edit/delete ownership UI, reload, failure/retry, logout, mobile, no JS errors');
+  await browser.close();console.log(engine.name(),'PASS shared UI using mock API: signup, two sessions, album/meme posts, likes, comments, community chat, edit/delete ownership UI, reload, mobile, no JS errors');
  }
  server.close();
 })().catch(e=>{console.error(e);server.close();process.exit(1)});
