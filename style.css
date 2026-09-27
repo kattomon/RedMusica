@@ -201,6 +201,12 @@ hr { border: 0; border-top: 1px solid #d4cec5; margin: 22px 0; }
 #ventanaChatAmigo header { background: #f0ede7; }
 #perfilPublico { border-color: #d8d2c9; border-top-color: #8a6654; }
 #perfilPublico > #sesionPerfil { margin-top: 20px; padding-top: 16px; border-top: 1px solid #ddd7cf; }
+#listaColecciones { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 10px; }
+#listaColecciones .tarjeta-lista { margin: 0; }
+.atribucion-catalogo { margin: 18px 0; padding-top: 12px; border-top: 1px solid #ddd7cf; }
+.atribucion-catalogo h3 { margin-bottom: 6px; font-size: 15px; }
+.logo-tmdb { display: block; width: 72px; height: auto; margin: 8px 0; }
+.publicacion-pelicula .poster-pelicula { object-fit: cover; }
 @media (max-width: 520px) {
     #navegacion { gap: 2px; padding: 5px; }
     #navegacion a { padding: 6px 7px; }

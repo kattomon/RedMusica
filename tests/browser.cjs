@@ -13,7 +13,7 @@ const server=http.createServer((req,res)=>{
   const browser=await engine.launch();
   const ana={id:'11111111-1111-4111-8111-111111111111',email:'ana@example.test',aud:'authenticated',role:'authenticated'};
   const luis={id:'22222222-2222-4222-8222-222222222222',email:'luis@example.test',aud:'authenticated',role:'authenticated'};
-  let posts=[],likes=[],comments=[],follows=[],friendships=[],notifications=[],chatMessages=[],dmMessages=[],failPosts=false;
+  let posts=[],likes=[],comments=[],follows=[],friendships=[],notifications=[],chatMessages=[],dmMessages=[],savedPosts=[],personalLists=[],listItems=[],failPosts=false;
   const names={[ana.id]:'Ana',[luis.id]:'Luis'};
   const profiles={[ana.id]:{username:'Ana',role:'owner',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'},[luis.id]:{username:'Luis',role:'member',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'}};let uploads=0,imageUploads=0;const contexts=[];
   function token(user){return Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';}
@@ -22,6 +22,7 @@ const server=http.createServer((req,res)=>{
    await ctx.route('**/config.js?*',r=>r.fulfill({contentType:'text/javascript',body:'window.REDMUSICA_CONFIG={supabaseUrl:"https://redmusica-test.supabase.co",supabasePublishableKey:"sb_publishable_test",emailConfirmationEnabled:false,passwordRecoveryEnabled:true};'}));
    await ctx.route('https://musicbrainz.org/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({'release-groups':[{id:'33333333-3333-4333-8333-333333333333',title:'Álbum de prueba','artist-credit':[{name:'Artista de prueba'}]}]})}));
    await ctx.route('https://coverartarchive.org/**',r=>r.fulfill({status:404,body:''}));
+   await ctx.route('https://image.tmdb.org/t/p/**',r=>r.request().url().includes('restored-movie-poster.jpg')?r.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII=','base64')}):r.fulfill({status:404,body:''}));
    await ctx.route('https://commons.wikimedia.org/wiki/Special:FilePath/**',r=>r.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII=','base64')}));
    await ctx.route('https://itunes.apple.com/**',r=>{const url=new URL(r.request().url()),callback=url.searchParams.get('callback');const results=url.searchParams.get('term')?.toLowerCase().includes('película de prueba')?[{trackName:'La película de prueba',releaseDate:'2020-01-01',artworkUrl100:'https://is1-ssl.mzstatic.com/image/thumb/test/100x100bb.jpg'}]:[];return r.fulfill({contentType:'text/javascript',body:callback+'('+JSON.stringify({results})+')'});});
    await ctx.route('https://is*.mzstatic.com/**',r=>r.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII=','base64')}));
@@ -42,7 +43,8 @@ const server=http.createServer((req,res)=>{
    });
    await ctx.route('https://redmusica-test.supabase.co/**',async route=>{
     const req=route.request(),url=new URL(req.url()),method=req.method();const body=url.pathname.startsWith('/storage/')?null:req.postDataJSON();
-    const headers={'Content-Type':'application/json','Access-Control-Expose-Headers':'Content-Range'};
+    const headers={'Content-Type':'application/json','Access-Control-Expose-Headers':'Content-Range','Access-Control-Allow-Origin':req.headers().origin||'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info, accept, prefer, range, x-upsert','Access-Control-Allow-Methods':'GET, POST, PATCH, DELETE, OPTIONS, HEAD'};
+    if(method==='OPTIONS')return route.fulfill({status:204,headers,body:''});
     const auth=req.headers().authorization;const sub=auth?.startsWith("Bearer ey")?JSON.parse(Buffer.from(auth.split(".")[1],"base64url").toString()).sub:null;const current=sub===ana.id?ana:sub===luis.id?luis:null;
     let data={},status=200;
     if(url.pathname==='/auth/v1/signup'){data={user:ana,session:null};}
@@ -84,9 +86,23 @@ const server=http.createServer((req,res)=>{
         const m={...body,id:'dm-'+(dmMessages.length+1),sender_id:current.id,created_at:new Date().toISOString()};dmMessages.push(m);status=201;data=url.searchParams.has('select')?m:null;
       }
     }
+    else if(url.pathname==='/rest/v1/saved_posts'){
+      if(method==='GET'){const ids=url.searchParams.get('post_id')?.slice(4,-1).split(',');data=savedPosts.filter(row=>row.user_id===current?.id&&(!ids||ids.includes(row.post_id)));}
+      else if(method==='POST'){if(!current)throw Error('Unauthenticated save');if(!savedPosts.some(row=>row.user_id===current.id&&row.post_id===body.post_id))savedPosts.push({user_id:current.id,post_id:body.post_id,created_at:new Date().toISOString()});status=201;data=null;}
+      else if(method==='DELETE'){savedPosts=savedPosts.filter(row=>!(row.user_id===current?.id&&row.post_id===url.searchParams.get('post_id')?.slice(3)));status=204;data=null;}
+    }
+    else if(url.pathname==='/rest/v1/personal_lists'){
+      if(method==='GET')data=personalLists.filter(row=>row.user_id===current?.id);
+      else if(method==='POST'){if(!current)throw Error('Unauthenticated list');if(personalLists.some(row=>row.user_id===current.id&&row.name.toLowerCase()===body.name.toLowerCase())){status=409;data={code:'23505'};}else{const row={id:'list-'+(personalLists.length+1),user_id:current.id,name:body.name,created_at:new Date().toISOString()};personalLists.push(row);status=201;data=url.searchParams.has('select')?row:null;}}
+    }
+    else if(url.pathname==='/rest/v1/personal_list_items'){
+      if(method==='GET')data=listItems.filter(row=>personalLists.some(list=>list.id===row.list_id&&list.user_id===current?.id)&&row.list_id===url.searchParams.get('list_id')?.slice(3));
+      else if(method==='POST'){if(!current||!personalLists.some(list=>list.id===body.list_id&&list.user_id===current.id))throw Error('List access denied');if(!listItems.some(row=>row.list_id===body.list_id&&row.post_id===body.post_id))listItems.push({...body,created_at:new Date().toISOString()});status=201;data=null;}
+      else if(method==='DELETE'){listItems=listItems.filter(row=>!(row.list_id===url.searchParams.get('list_id')?.slice(3)&&row.post_id===url.searchParams.get('post_id')?.slice(3)));status=204;data=null;}
+    }
     else if(url.pathname==='/rest/v1/posts'){
       if(failPosts){status=503;data={message:'offline'};}
-      else if(method==='GET'){const owner=url.searchParams.get('user_id')?.slice(3);const type=url.searchParams.get('post_type')?.slice(3);const filtered=[...posts].reverse().filter(p=>(!owner||p.user_id===owner)&&(!type||(p.post_type||'album')===type));const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||20);headers['Content-Range']=`${offset}-${Math.max(offset,Math.min(offset+limit,filtered.length)-1)}/${filtered.length}`;data=filtered.slice(offset,offset+limit).map(p=>({...p,profiles:profiles[p.user_id],likes:[{count:likes.filter(l=>l.post_id===p.id).length}]}));}
+      else if(method==='GET'){const userFilter=url.searchParams.get('user_id'),owner=userFilter?.startsWith('eq.')?userFilter.slice(3):undefined,authorFilter=url.searchParams.get('user_id')?.match(/^in\.\((.*)\)$/)?.[1]?.split(','),idFilter=url.searchParams.get('id')?.match(/^in\.\((.*)\)$/)?.[1]?.split(','),type=url.searchParams.get('post_type')?.slice(3);const filtered=[...posts].reverse().filter(p=>(!owner||p.user_id===owner)&&(!authorFilter||authorFilter.includes(p.user_id))&&(!idFilter||idFilter.includes(p.id))&&(!type||(p.post_type||'album')===type));const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||20);headers['Content-Range']=`${offset}-${Math.max(offset,Math.min(offset+limit,filtered.length)-1)}/${filtered.length}`;data=filtered.slice(offset,offset+limit).map(p=>({...p,profiles:profiles[p.user_id],likes:[{count:likes.filter(l=>l.post_id===p.id).length}]}));}
       else if(method==='POST'){if(!current)throw Error('Unauthenticated insert');const item={post_type:'album',album_id:null,album_title:null,album_artist:null,image_path:null,...body,id:'post-'+(posts.length+1),user_id:current.id,created_at:new Date().toISOString()};posts.push(item);status=201;data=url.searchParams.has('select')?{id:item.id}:null;}
       else {const id=url.searchParams.get('id').slice(3),p=posts.find(p=>p.id===id&&p.user_id===current?.id);data=p?[{id:p.id}]:[];if(p&&method==='PATCH')p.body=body.body;if(p&&method==='DELETE')posts=posts.filter(p=>p.id!==id);}
     }
@@ -99,6 +115,11 @@ const server=http.createServer((req,res)=>{
     else if(url.pathname==='/rest/v1/comments'){
       if(method==='POST'){const c={...body,id:'comment-'+comments.length,user_id:current.id,profiles:{username:names[current.id]},created_at:new Date().toISOString()};comments.push(c);const target=posts.find(p=>p.id===body.post_id);if(target&&target.user_id!==current.id)notifications.push({id:'n'+(notifications.length+1),recipient_id:target.user_id,actor_id:current.id,kind:'comment',post_id:target.id,comment_id:c.id,actor:profiles[current.id],post:{album_title:target.album_title},created_at:new Date().toISOString(),read_at:null});status=201;data=null;}
       else data=comments.filter(c=>c.post_id===url.searchParams.get('post_id').slice(3));
+    }
+    else if(url.pathname==='/functions/v1/movie-catalog'){
+      const movieId=Number(body?.movieId),withoutPoster=body?.query?.toLowerCase().includes('sin afiche');
+      const movie={tmdb_id:body?.query?.toLowerCase().includes('commons')?54321:12345,title:body?.query?.toLowerCase().includes('commons')?'Película con afiche Commons':'La película de prueba',director:'Directora de prueba',year:2020,poster:withoutPoster?null:'https://image.tmdb.org/t/p/w500/test-movie-poster.jpg',description:'película chilena'};
+      data={results:[movieId?{...movie,tmdb_id:movieId,poster:'https://image.tmdb.org/t/p/w500/restored-movie-poster.jpg'}:movie]};
     }
     else if(url.pathname==='/functions/v1/admin'){data={role:'member'};}
     else if(url.pathname==='/rest/v1/site_settings'){data={title:'RedMusica',description:'Comparte música',accept_posts:true};}
@@ -141,10 +162,10 @@ const server=http.createServer((req,res)=>{
   await a.getByRole('button',{name:'Escribir reseña'}).waitFor();await a.getByRole('button',{name:'Escribir reseña'}).click();
   assert.match(await a.locator('#datosPelicula').innerText(),/Directora de prueba.*2020/);
   await a.locator('#notaPelicula').selectOption('4.5');await a.locator('#opinionPelicula').fill('Una reseña de prueba');await a.getByRole('button',{name:'Publicar reseña'}).click();
-  await a.locator('#estadoBusquedaPeliculas').getByText('Reseña publicada.',{exact:true}).waitFor();assert.equal(posts.at(-1).post_type,'film');assert.equal(posts.at(-1).film_rating,4.5);assert.match(posts.at(-1).film_poster,/600x900bb\.jpg/);await a.locator('.publicacion-pelicula .poster-pelicula').waitFor();
+  await a.locator('#estadoBusquedaPeliculas').getByText('Reseña publicada.',{exact:true}).waitFor();assert.equal(posts.at(-1).post_type,'film');assert.equal(posts.at(-1).film_tmdb_id,12345);assert.equal(posts.at(-1).film_rating,4.5);assert.match(posts.at(-1).film_poster,/image\.tmdb\.org\/t\/p\/w500/);await a.locator('.publicacion-pelicula .poster-pelicula').waitFor();assert.equal(await a.locator('.atribucion-catalogo').innerText().then(t=>t.includes('not endorsed or certified by TMDB')),true);
   await a.waitForFunction(()=>document.querySelectorAll('#feed article').length===1);assert.match(await a.locator('#feed article').innerText(),/La película de prueba/);
-  await a.locator('#buscarPelicula').fill('Película con afiche Commons');await a.locator('#buscarPeliculas').click();await a.locator('.poster-resultado-pelicula').waitFor();assert.match(await a.locator('.poster-resultado-pelicula').getAttribute('src'),/Special:FilePath\/Test_movie_poster\.jpg/);
-  await a.locator('#buscarPelicula').fill('Una película sin afiche');await a.locator('#buscarPeliculas').click();await a.getByRole('button',{name:'Escribir reseña'}).waitFor();await a.getByRole('button',{name:'Escribir reseña'}).click();await a.locator('#opinionPelicula').fill('Reseña sin imagen de catálogo');await a.getByRole('button',{name:'Publicar reseña'}).click();await a.locator('#estadoBusquedaPeliculas').getByText('Reseña publicada.',{exact:true}).waitFor();await a.locator('#'+posts.at(-1).id+' .poster-pelicula').waitFor();assert.equal(posts.at(-1).film_poster,null);assert.equal((await a.locator('#'+posts.at(-1).id+' .poster-pelicula').getAttribute('src')).includes('600x900bb.jpg'),true);assert.equal(await a.locator('#'+posts.at(-1).id+' .poster-pelicula').evaluate(el=>getComputedStyle(el).width),await a.evaluate(()=>matchMedia('(max-width:520px)').matches?'72px':'92px'));
+  await a.locator('#buscarPelicula').fill('Película con afiche Commons');await a.locator('#buscarPeliculas').click();await a.locator('.poster-resultado-pelicula').waitFor();assert.match(await a.locator('.poster-resultado-pelicula').getAttribute('src'),/image\.tmdb\.org\/t\/p\/w500/);
+  await a.locator('#buscarPelicula').fill('Una película sin afiche');await a.locator('#buscarPeliculas').click();await a.getByRole('button',{name:'Escribir reseña'}).waitFor();await a.getByRole('button',{name:'Escribir reseña'}).click();await a.locator('#opinionPelicula').fill('Reseña sin imagen de catálogo');await a.getByRole('button',{name:'Publicar reseña'}).click();await a.locator('#estadoBusquedaPeliculas').getByText('Reseña publicada.',{exact:true}).waitFor();await a.locator('#'+posts.at(-1).id+' .poster-pelicula').waitFor();assert.equal(posts.at(-1).film_poster,null);assert.equal((await a.locator('#'+posts.at(-1).id+' .poster-pelicula').getAttribute('src')).includes('restored-movie-poster.jpg'),true);assert.equal(await a.locator('#'+posts.at(-1).id+' .poster-pelicula').evaluate(el=>getComputedStyle(el).width),await a.evaluate(()=>matchMedia('(max-width:520px)').matches?'72px':'92px'));
   await a.locator('#inicioNav').click();await a.waitForFunction(()=>document.querySelector('#feed').innerText.includes('Álbum de prueba'));assert.equal(await a.locator('#feed article').count(),1);
   await a.locator('#miPerfil').click();await a.locator('#perfilPublico').waitFor({state:'visible'});assert.equal(await a.locator('#sesionPerfil').isVisible(),true,'profile settings remain available on the owner profile');await a.locator('#editarPerfil summary').click();
   await a.locator('#bioPerfil').fill('Escucho discos de Chile.');await a.getByRole('button',{name:'Guardar presentación'}).click();await a.getByText('Perfil actualizado.',{exact:true}).waitFor();
@@ -165,6 +186,12 @@ const server=http.createServer((req,res)=>{
   await b.goto('http://127.0.0.1:4174/?seccion=amigos');await b.locator('.tarjeta-amigo').getByText('@Ana',{exact:true}).waitFor();await b.locator('.tarjeta-amigo .estado-amistad').getByText('Amigos',{exact:true}).waitFor();await b.locator('.tarjeta-amigo .estado-presencia-amigo').waitFor();await b.locator('.enlace-usuario').first().waitFor();
   if(engine.name()==='webkit'){await b.locator('#abrirDockAmigos').click();await b.locator('#dockAmigos.abierto').waitFor();assert.equal(await b.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'mobile friends dock must not cause horizontal overflow');}
   await a.goto('http://127.0.0.1:4174/');await b.goto('http://127.0.0.1:4174/');
+  await b.locator('#feed article').first().getByRole('button',{name:'Guardar',exact:true}).click();await b.getByRole('button',{name:'Guardado',exact:true}).waitFor();assert.equal(savedPosts.length,1);
+  await b.locator('#guardadosNav').click();await b.getByRole('heading',{name:'Guardados'}).waitFor();await b.locator('#feed article').getByText('Álbum de prueba',{exact:true}).waitFor();
+  await b.locator('#listasNav').click();await b.locator('#nombreLista').fill('Favoritos');await b.getByRole('button',{name:'Crear lista'}).click();await b.getByRole('link',{name:'Favoritos',exact:true}).waitFor();assert.equal(personalLists.length,1);
+  await b.locator('#inicioNav').click();await b.locator('#feed article').first().locator('.acciones select').selectOption(personalLists[0].id);await b.locator('#feed article').first().getByRole('button',{name:'Añadir',exact:true}).click();await b.getByText('Añadido a tu lista.',{exact:true}).waitFor();assert.equal(listItems.length,1);
+  await b.locator('#listasNav').click();await b.getByRole('link',{name:'Favoritos',exact:true}).click();await b.locator('#feed article').getByText('Álbum de prueba',{exact:true}).waitFor();
+  await b.locator('#actividadNav').click();await b.getByRole('heading',{name:'Actividad de tus amigos'}).waitFor();await b.locator('#feed article').filter({hasText:'Álbum de prueba'}).waitFor();assert.equal(await b.locator('#feed article').count()>0,true);await b.locator('#inicioNav').click();
   if(engine.name()==='webkit')await a.locator('#abrirDockAmigos').click();
   await a.locator('.amigo-dock .estado-presencia-amigo').waitFor();assert.equal(await a.locator('.amigo-dock .amigo-identidad').count(),1);assert.equal(await a.locator('.amigo-dock .estado-presencia-amigo').evaluate(el=>el.getBoundingClientRect().top>el.parentElement.querySelector('.amigo-nombre').getBoundingClientRect().bottom),true,'friend presence is displayed below the name');
   await a.locator('.amigo-dock .boton-chat-amigo').click();await a.locator('#ventanaChatAmigo').waitFor({state:'visible'});await a.locator('#textoChatPrivado').fill('Hola en privado');await a.locator('#enviarChatPrivado').click();await a.getByText('Hola en privado',{exact:true}).waitFor();assert.equal(dmMessages.length,1);
