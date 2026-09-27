@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-9">
+    <link rel="stylesheet" href="style.css?v=20260927-10">
 </head>
 <body>
 <main>
@@ -74,17 +74,40 @@
         <button id="botonPublicar" type="button">Publicar</button>
     </section>
     <p id="estadoPublicacion" role="status"></p>
+    <section id="crearMeme" aria-labelledby="tituloMeme" hidden>
+        <h2 id="tituloMeme">Comparte un meme</h2>
+        <p>Sube una imagen y añade un texto. Se reduce en tu dispositivo antes de guardarla.</p>
+        <form id="formularioMeme">
+            <label for="imagenMeme">Imagen (JPG, PNG o WebP; máximo 10 MB)</label>
+            <input id="imagenMeme" type="file" accept="image/jpeg,image/png,image/webp" required>
+            <label for="textoMeme">Texto</label>
+            <textarea id="textoMeme" maxlength="5000" rows="3" placeholder="Añade un comentario al meme" required></textarea>
+            <button id="publicarMeme" type="submit">Publicar meme</button>
+        </form>
+        <p id="estadoMeme" role="status"></p>
+    </section>
     </section>
     <h2 id="tituloFeed">Publicaciones</h2>
     <p id="feedVacio">Todavía no hay publicaciones. Comparte el primer álbum.</p>
     <div id="feed"></div>
+    <section id="chatComunitario" aria-labelledby="tituloChat" hidden>
+        <h2 id="tituloChat">Chat de la comunidad</h2>
+        <p>Un chat general para conversar mientras compartimos música. Se muestran los últimos 50 mensajes.</p>
+        <p id="estadoChat" role="status"></p>
+        <div id="mensajesChat" aria-live="polite" aria-relevant="additions"></div>
+        <form id="formularioChat" class="fila-controles">
+            <label class="solo-lectores" for="textoChat">Mensaje (máximo 500 caracteres)</label>
+            <input id="textoChat" maxlength="500" placeholder="Escribe un mensaje" required>
+            <button id="enviarChat" type="submit">Enviar</button>
+        </form>
+    </section>
 </main>
 <button id="abrirRadio" type="button" aria-controls="panelRadio" aria-expanded="false">Radio ♫</button>
 <section id="panelRadio" role="region" aria-labelledby="tituloPanelRadio" hidden>
-    <header><h2 id="tituloPanelRadio">Radio RedMusica</h2><div class="controles-panel-radio"><button id="minimizarRadio" type="button" aria-label="Minimizar sin detener la radio">Minimizar</button><button id="cerrarRadio" type="button" aria-label="Cerrar radio y pausar">Cerrar</button></div></header>
+    <header><h2 id="tituloPanelRadio">Radio RedMusica</h2><div class="controles-panel-radio"><button id="minimizarRadio" type="button" aria-label="Minimizar sin detener la radio">Minimizar</button><button id="detenerRadio" type="button" aria-label="Detener la radio">Detener</button></div></header>
 </section>
-<script src="radio-panel.js?v=20260927-9" defer></script>
-<script src="config.js?v=20260927-9"></script>
-<script src="script.js?v=20260927-9" defer></script>
+<script src="radio-panel.js?v=20260927-10" defer></script>
+<script src="config.js?v=20260927-10"></script>
+<script src="script.js?v=20260927-10" defer></script>
 </body>
 </html>

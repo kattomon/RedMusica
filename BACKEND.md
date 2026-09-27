@@ -1,6 +1,6 @@
 Los errores del reproductor 2/5/100/101/150 saltan inmediatamente a la siguiente entrada disponible para ese oyente, aunque su horario común aún no haya comenzado. Los videos fallidos se excluyen durante la sesión de esa página; no se modifica la cola compartida. El botón Saltar para mí permite omitir una entrada manualmente. El error 153 se trata como configuración del reproductor, sin descartar todas las canciones. Las pruebas simulan estos códigos: no eliminan restricciones de copyright de YouTube.
 
-La radio se abre desde el feed mediante radio-panel.js, en un panel fijo superior derecho. radio.html se carga dentro de un iframe del mismo origen; no se abre otra pestaña. Minimizar contrae el panel y mantiene el reproductor adjunto, sin enviar la orden de pausa; cerrar sí pausa. Al volver de una pestaña oculta, la página consulta el horario común y vuelve a sincronizar el video. El navegador, especialmente Safari en iPhone, puede suspender reproducción en segundo plano por sus propias reglas; la página ya no la pausa intencionalmente. Las portadas solicitan CAA 1200 px (con respaldo de 500 px) y Apple 600 px (con respaldo del recurso original).
+La radio se abre desde el feed mediante radio-panel.js, en un panel fijo superior derecho. radio.html se carga dentro de un iframe del mismo origen; no se abre otra pestaña. Minimizar, pulsar Escape o cerrar el panel contrae la interfaz y mantiene el reproductor adjunto sin pausar; el botón Detener detiene la música expresamente. Al volver de una pestaña oculta, la página consulta el horario común y vuelve a sincronizar el video. El navegador, especialmente Safari en iPhone, puede suspender reproducción en segundo plano por sus propias reglas; la página ya no la pausa intencionalmente. Las portadas solicitan CAA 1200 px (con respaldo de 500 px) y Apple 600 px (con respaldo del recurso original).
 
 # Cuentas y feed compartido
 
@@ -92,3 +92,13 @@ Aplicar `supabase/social.sql` después de `schema.sql`, `admin.sql` y `profiles.
 El feed carga 20 publicaciones y los comentarios se piden al abrirlos. Las notificaciones se consultan al abrir el panel, en páginas de 30, y el contador consulta únicamente el total pendiente una vez por minuto con la pestaña visible. La radio ya limita sus datos temporales: búsqueda cacheada 24 horas, uso hasta 3 días y cola vieja hasta 7 días; la foto de perfil se comprime en el dispositivo a JPEG de 512×512 y menos de 1 MB. No se guardan imágenes de portadas en Supabase.
 
 Prueba local: `tests/social-database.cjs` comprueba RLS, eventos automáticos, que no haya avisos de acciones propias, borrados relacionados, deduplicación y límite de 100. `tests/browser.cjs` cubre seguir, contador, comentarios, likes y marcar como leídas en Chromium y WebKit móvil.
+
+## Memes y chat comunitario
+
+Aplicar `supabase/community.sql` después de las otras migraciones. El feed admite publicaciones de álbum y de imagen. Las imágenes se reducen en el dispositivo a JPEG de hasta 1280 píxeles y 1 MB; el bucket público solo admite JPEG y Storage limita cada cuenta a 15 imágenes de 1 MB. La eliminación del meme intenta borrar también su archivo. El texto alternativo de la imagen identifica a su autor.
+
+El chat es una sala general compartida: leer es público, escribir requiere iniciar sesión con una cuenta activa y cada mensaje admite hasta 500 caracteres. Realtime actualiza los mensajes al instante cuando está disponible; si la conexión en tiempo real falla, la página consulta el chat cada 30 segundos mientras está visible. Se muestran hasta 50 mensajes recientes y la base conserva como máximo 500 en total. No hay mensajes privados ni historial permanente.
+
+La radio se reduce a una barra en el mismo feed; el iframe sigue montado mientras se navega dentro de la página. Cerrar la pestaña o el navegador sí termina la reproducción, según las reglas del navegador y de YouTube.
+
+`tests/community-database.cjs` comprueba rutas y límites de imágenes, autorización del chat, longitud y retención. `tests/browser.cjs` prueba publicar un meme, volver a cargarlo y enviar/cargar mensajes con el SDK simulado.

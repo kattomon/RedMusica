@@ -95,7 +95,7 @@
     let revisionFeed = 0;
     let desplazamiento = 0;
     const porPagina = 20;
-    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
+    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,post_type,image_path,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
     const destinoCorreo = location.origin + location.pathname;
     const estadoPerfil = document.getElementById("estadoPerfil");
 
@@ -137,6 +137,7 @@
         if (perfil && usuario) { nombre.append(rangoPerfil(perfil.role)); document.getElementById('miFoto').append(fotoPerfil(usuario.id, perfil)); }
         document.getElementById('bioPerfil').value = perfil?.bio || '';
         document.getElementById('quitarFoto').disabled = !perfil?.avatar_updated_at;
+        document.getElementById('crearMeme').hidden = !usuario || !perfil || viendoPerfil;
         const miPerfil = document.getElementById("miPerfil");
         miPerfil.hidden = !usuario || !perfil;
         if (usuario) miPerfil.href = "?perfil=" + encodeURIComponent(usuario.id);
@@ -168,6 +169,67 @@
     db.auth.onAuthStateChange(function (evento, session) {
         setTimeout(function () { sincronizarSesion(session, evento); }, 0);
     });
+
+    // One shared chat. Realtime is preferred; polling is only a quiet fallback.
+    const cajaChat = document.getElementById('chatComunitario');
+    const listaChat = document.getElementById('mensajesChat');
+    const estadoChat = document.getElementById('estadoChat');
+    cajaChat.hidden = false;
+    const perfilesChat = new Map();
+    const mensajesChat = new Set();
+    let chatChannel = null, realtimeChat = false, cargandoChat = false;
+    async function cargarChat() {
+        if (cargandoChat || document.hidden) return;
+        cargandoChat = true;
+        try {
+            const rows = resultado(await db.from('chat_messages').select('id,user_id,body,created_at,profiles:profiles!chat_messages_user_id_fkey(username,role)').order('created_at',{ascending:false}).order('id',{ascending:false}).limit(50));
+            rows.reverse().forEach(renderMensajeChat);
+            estadoChat.textContent = realtimeChat ? 'Chat en vivo.' : 'Chat conectado; actualizando mensajes.';
+        } catch { estadoChat.textContent = 'No se pudo cargar el chat. Comprueba la conexión e inténtalo de nuevo.'; }
+        finally { cargandoChat = false; }
+    }
+    function renderMensajeChat(row) {
+        if (!row || mensajesChat.has(row.id)) return;
+        mensajesChat.add(row.id);
+        if (row.profiles?.username) perfilesChat.set(row.user_id,row.profiles);
+        const item=document.createElement('article'); item.className='mensaje-chat'; item.dataset.messageId=row.id;
+        const author=document.createElement('strong');
+        const name=row.profiles?.username || perfilesChat.get(row.user_id)?.username || 'Usuario';
+        author.append(enlaceUsuario(row.user_id,name));
+        if(row.profiles?.role) author.append(document.createTextNode(' '),rangoPerfil(row.profiles.role));
+        const body=document.createElement('p'); body.textContent=row.body;
+        const time=document.createElement('time'); time.dateTime=row.created_at; time.textContent=new Date(row.created_at).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+        item.append(author,body,time); listaChat.append(item);
+        while(listaChat.children.length>80){const old=listaChat.firstElementChild;mensajesChat.delete(old.dataset.messageId);old.remove();}
+        listaChat.scrollTop=listaChat.scrollHeight;
+    }
+    function iniciarChatRealtime() {
+        chatChannel=db.channel('redmusica-chat-general').on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},payload=>{
+            const row=payload.new;
+            if(row.user_id===usuario?.id && perfil) row.profiles=perfil;
+            renderMensajeChat(row);
+            if(!perfilesChat.has(row.user_id)) db.from('profiles').select('username,role').eq('id',row.user_id).maybeSingle().then(r=>{
+                if(r.data){perfilesChat.set(row.user_id,r.data);const link=listaChat.querySelector(`[data-message-id="${CSS.escape(row.id)}"] a`);if(link)link.textContent='@'+r.data.username;}
+            });
+        }).subscribe(status=>{
+            realtimeChat=status==='SUBSCRIBED';
+            if(realtimeChat)cargarChat();
+            else estadoChat.textContent='Chat conectado; actualizando mensajes.';
+        });
+    }
+    iniciarChatRealtime();
+    cargarChat();
+    document.getElementById('formularioChat').addEventListener('submit',e=>{
+        e.preventDefault();const input=document.getElementById('textoChat'),button=document.getElementById('enviarChat');
+        if(!exigirCuenta()||!input.value.trim())return;
+        accion(button,estadoChat,async()=>{
+            const row=resultado(await db.from('chat_messages').insert({body:input.value.trim()}).select('id,user_id,body,created_at').single());
+            row.profiles=perfil;renderMensajeChat(row);input.value='';estadoChat.textContent='Mensaje enviado.';
+        });
+    });
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)cargarChat();});
+    setInterval(()=>{if(!realtimeChat&&!document.hidden)cargarChat();},30000);
+    window.addEventListener('pagehide',()=>{if(chatChannel)db.removeChannel(chatChannel);});
 
     document.getElementById("modoAcceso").addEventListener("change", function (evento) {
         const registro = evento.target.value === "signup";
@@ -411,15 +473,19 @@
         const autor = document.createElement("p");
         autor.className = "autor-publicacion";
         autor.append(fotoPerfil(post.user_id, post.profiles), enlaceUsuario(post.user_id, post.profiles.username), rangoPerfil(post.profiles.role));
+        const esMeme = post.post_type === 'meme';
         const portada = document.createElement("img");
         portada.loading = "lazy";
         portada.width = 250;
         portada.height = 250;
-        asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
+        if (esMeme) {
+            portada.className='imagen-meme'; portada.alt='Meme publicado por @'+post.profiles.username;
+            portada.src=config.supabaseUrl+'/storage/v1/object/public/post-images/'+post.image_path.split('/').map(encodeURIComponent).join('/');
+        } else asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
         const titulo = document.createElement("h3");
-        titulo.textContent = post.album_title;
+        titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : post.album_title;
         const artista = document.createElement("p");
-        artista.textContent = post.album_artist;
+        artista.hidden=esMeme; artista.textContent = post.album_artist || '';
         const texto = document.createElement("p");
         texto.className = "opinion";
         texto.textContent = post.body;
@@ -545,6 +611,10 @@
                 accion(borrar, mensaje, async function () {
                     const filas = resultado(await db.from("posts").delete().eq("id", post.id).select("id"));
                     if (!filas.length) throw new Error("Publicación no disponible");
+                    if (post.image_path) {
+                        const cleanup=await db.storage.from('post-images').remove([post.image_path]);
+                        if(cleanup.error) mensaje.textContent='La publicación se eliminó, pero no se pudo liberar el archivo de imagen.';
+                    }
                     await cargarFeed(true);
                 });
             });
@@ -566,6 +636,38 @@
             opinion.value = "";
             estado.textContent = "Publicación compartida.";
             await cargarFeed(true);
+        });
+    });
+
+    async function prepararImagenMeme(file) {
+        if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Elige una imagen JPG, PNG o WebP.');
+        if(file.size>10*1024*1024)throw Error('La imagen no puede superar 10 MB.');
+        const url=URL.createObjectURL(file);
+        try{
+            const img=new Image();img.src=url;await img.decode();
+            if(!img.naturalWidth||!img.naturalHeight||img.naturalWidth*img.naturalHeight>50000000)throw Error('La imagen es demasiado grande para procesarla.');
+            const scale=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight));
+            const canvas=document.createElement('canvas');canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
+            canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+            for(const quality of [.84,.72,.60]){
+                const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+                if(blob&&blob.size<=1048576)return blob;
+            }
+            throw Error('La imagen aún ocupa más de 1 MB tras reducirla. Elige una imagen más sencilla.');
+        } finally {URL.revokeObjectURL(url);}
+    }
+    document.getElementById('formularioMeme').addEventListener('submit',e=>{
+        e.preventDefault();const button=document.getElementById('publicarMeme'),status=document.getElementById('estadoMeme');
+        if(!exigirCuenta())return;
+        accion(button,status,async()=>{
+            status.textContent='Preparando imagen…';
+            const blob=await prepararImagenMeme(document.getElementById('imagenMeme').files[0]);
+            const path=usuario.id+'/'+crypto.randomUUID()+'.jpg';
+            resultado(await db.storage.from('post-images').upload(path,blob,{upsert:false,contentType:'image/jpeg',cacheControl:'31536000'}));
+            try{
+                resultado(await db.from('posts').insert({post_type:'meme',image_path:path,body:document.getElementById('textoMeme').value.trim()}).select('id').single());
+            }catch(error){await db.storage.from('post-images').remove([path]);throw error;}
+            document.getElementById('formularioMeme').reset();status.textContent='Meme publicado.';await cargarFeed(true);
         });
     });
 })();

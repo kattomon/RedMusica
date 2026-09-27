@@ -1,0 +1,34 @@
+const {PGlite}=require(process.env.PGLITE_MODULE||'@electric-sql/pglite');
+const fs=require('node:fs'),assert=require('node:assert/strict');
+(async()=>{
+ const db=new PGlite();
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,raw_user_meta_data jsonb);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth,public to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated;create schema storage;create table storage.buckets(id text primary key,name text,public bool,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text);alter table storage.objects enable row level security;grant usage on schema storage to authenticated;grant all on storage.objects to authenticated;`);
+ for(const f of ['schema','radio','admin','profiles','social','community'])await db.exec(fs.readFileSync('supabase/'+f+'.sql','utf8').replace(/^\uFEFF/,''));
+ const a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222222222';
+ for(const [id,name] of [[a,'Ana'],[b,'Bob']])await db.query('insert into auth.users values($1,$2)',[id,{username:name}]);
+ async function as(id){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');}
+ await as(a);
+ const path=a+'/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg';
+ const meme=(await db.query("insert into public.posts(post_type,image_path,body) values('meme',$1,'Un meme') returning id,post_type,album_id,album_title,album_artist",[path])).rows[0];
+ assert.equal(meme.post_type,'meme');assert.equal(meme.album_id,null);
+ await db.query("insert into storage.objects(bucket_id,name) values('post-images',$1)",[path]);
+ await assert.rejects(db.query("insert into public.posts(post_type,image_path,body) values('meme',$1,'Mal')",[b+'/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.jpg']),'memes may reference only own image paths');
+ await assert.rejects(db.query("insert into public.posts(post_type,body) values('meme','Missing image')"));
+ await assert.rejects(db.query("insert into public.posts(album_id,album_title,album_artist,body,image_path) values('44444444-4444-4444-8444-444444444444','Album','Artist','Body',$1)",[path]));
+ for(let i=1;i<15;i++)await db.query("insert into storage.objects(bucket_id,name) values('post-images',$1)",[a+'/'+String(i).padStart(8,'0')+'-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg']);
+ await assert.rejects(db.query("insert into storage.objects(bucket_id,name) values('post-images',$1)",[a+'/ffffffff-ffff-4fff-8fff-ffffffffffff.jpg']),'per-user image object cap');
+ await assert.rejects(db.query("insert into storage.objects(bucket_id,name) values('post-images',$1)",[b+'/ffffffff-ffff-4fff-8fff-ffffffffffff.jpg']),'cannot upload under another account');
+ await db.query("insert into public.chat_messages(body) values('Hola comunidad')");
+ await assert.rejects(db.query("insert into public.chat_messages(body) values('   ')"));
+ await assert.rejects(db.query("insert into public.chat_messages(user_id,body) values($1,'Falsificado')",[b]));
+ await assert.rejects(db.query('insert into public.chat_messages(body) values($1)',['x'.repeat(501)]));
+ for(let i=0;i<505;i++)await db.query("insert into public.chat_messages(body) values('Mensaje')");
+ assert.equal((await db.query('select count(*)::int n from public.chat_messages')).rows[0].n,500,'chat retains only the latest 500 rows');
+ await db.exec('reset role;set role anon');
+ assert.equal((await db.query('select count(*)::int n from public.chat_messages')).rows[0].n,500,'anonymous users may read community chat');
+ await assert.rejects(db.query("insert into public.chat_messages(body) values('No')"));
+ await db.exec('reset role');
+ const bucket=(await db.query("select public,file_size_limit,allowed_mime_types from storage.buckets where id='post-images'")).rows[0];
+ assert.equal(bucket.public,true);assert.equal(Number(bucket.file_size_limit),1048576);assert.deepEqual(bucket.allowed_mime_types,['image/jpeg']);
+ await db.close();console.log('PASS community DB: meme paths and limits, image cap, public read and chat identity/length/retention');
+})().catch(e=>{console.error(e);process.exit(1)});

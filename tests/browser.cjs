@@ -13,9 +13,9 @@ const server=http.createServer((req,res)=>{
   const browser=await engine.launch();
   const ana={id:'11111111-1111-4111-8111-111111111111',email:'ana@example.test',aud:'authenticated',role:'authenticated'};
   const luis={id:'22222222-2222-4222-8222-222222222222',email:'luis@example.test',aud:'authenticated',role:'authenticated'};
-  let posts=[],likes=[],comments=[],follows=[],notifications=[],failPosts=false;
+  let posts=[],likes=[],comments=[],follows=[],notifications=[],chatMessages=[],failPosts=false;
   const names={[ana.id]:'Ana',[luis.id]:'Luis'};
-  const profiles={[ana.id]:{username:'Ana',role:'owner',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'},[luis.id]:{username:'Luis',role:'member',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'}};let uploads=0;const contexts=[];
+  const profiles={[ana.id]:{username:'Ana',role:'owner',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'},[luis.id]:{username:'Luis',role:'member',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'}};let uploads=0,imageUploads=0;const contexts=[];
   function token(user){return Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';}
   async function makePage(start=''){
    const ctx=await browser.newContext(engine===webkit?{...devices['iPhone 13']}:{viewport:{width:1280,height:900}});contexts.push(ctx);
@@ -46,11 +46,15 @@ const server=http.createServer((req,res)=>{
     }
     else if(url.pathname==='/rest/v1/profiles'){const id=url.searchParams.get('id').slice(3);if(method==='PATCH'){assert.equal(id,current.id);Object.assign(profiles[id],body);data=[profiles[id]];}else data=profiles[id]||null;}
     else if(url.pathname.startsWith('/storage/v1/object/public/')){return route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII=','base64')});}
-    else if(url.pathname.startsWith('/storage/v1/object/')){if(method==='POST'){uploads++;assert(url.pathname.endsWith(ana.id+'/avatar.jpg'));}data={};}
+    else if(url.pathname.startsWith('/storage/v1/object/')){if(method==='POST'){if(url.pathname.includes('/post-images/')){imageUploads++;assert(url.pathname.includes('/'+ana.id+'/'));assert.match(req.headers()['x-upsert'],/false/);}else{uploads++;assert(url.pathname.endsWith(ana.id+'/avatar.jpg'));}}if(method==='DELETE'&&url.pathname.includes('/post-images/'))data={};else data={};}
+    else if(url.pathname==='/rest/v1/chat_messages'){
+      if(method==='GET'){data=chatMessages.slice(-50).reverse().map(m=>({...m,profiles:profiles[m.user_id]}));headers['Content-Range']='0-'+Math.max(0,data.length-1)+'/'+chatMessages.length;}
+      else if(method==='POST'){const m={...body,id:'chat-'+(chatMessages.length+1),user_id:current.id,created_at:new Date().toISOString()};chatMessages.push(m);status=201;data=url.searchParams.has('select')?{...m}:null;}
+    }
     else if(url.pathname==='/rest/v1/posts'){
       if(failPosts){status=503;data={message:'offline'};}
       else if(method==='GET'){const owner=url.searchParams.get('user_id')?.slice(3);const filtered=[...posts].reverse().filter(p=>!owner||p.user_id===owner);const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||20);headers['Content-Range']=`${offset}-${Math.max(offset,Math.min(offset+limit,filtered.length)-1)}/${filtered.length}`;data=filtered.slice(offset,offset+limit).map(p=>({...p,profiles:profiles[p.user_id],likes:[{count:likes.filter(l=>l.post_id===p.id).length}]}));}
-      else if(method==='POST'){if(!current)throw Error('Unauthenticated insert');posts.push({...body,id:'post-'+(posts.length+1),user_id:current.id,created_at:new Date().toISOString()});status=201;data=null;}
+      else if(method==='POST'){if(!current)throw Error('Unauthenticated insert');const item={post_type:'album',album_id:null,album_title:null,album_artist:null,image_path:null,...body,id:'post-'+(posts.length+1),user_id:current.id,created_at:new Date().toISOString()};posts.push(item);status=201;data=url.searchParams.has('select')?{id:item.id}:null;}
       else {const id=url.searchParams.get('id').slice(3),p=posts.find(p=>p.id===id&&p.user_id===current?.id);data=p?[{id:p.id}]:[];if(p&&method==='PATCH')p.body=body.body;if(p&&method==='DELETE')posts=posts.filter(p=>p.id!==id);}
     }
     else if(url.pathname==='/rest/v1/likes'){
@@ -85,7 +89,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(await b.getByRole('button',{name:'Editar',exact:true}).count(),0);
   const like=b.getByRole('button',{name:/Me gusta/});await like.click();await b.waitForFunction(()=>document.querySelector('[aria-pressed]').getAttribute('aria-pressed')==='true');assert.equal(likes.length,1);
   await like.click();await b.waitForFunction(()=>document.querySelector('[aria-pressed]').getAttribute('aria-pressed')==='false');assert.equal(likes.length,0);
-  await b.getByRole('button',{name:'Comentar',exact:true}).click();await b.getByRole('textbox',{name:'Escribe un comentario'}).fill('Hola Ana');await b.getByRole('button',{name:'Enviar',exact:true}).click();await b.getByText('@Luis: Hola Ana',{exact:true}).waitFor();
+  await b.getByRole('button',{name:'Comentar',exact:true}).click();await b.getByRole('textbox',{name:'Escribe un comentario'}).fill('Hola Ana');await b.locator('.zona-comentarios form').getByRole('button',{name:'Enviar',exact:true}).click();await b.getByText('@Luis: Hola Ana',{exact:true}).waitFor();
   await a.getByRole('button',{name:/Notificaciones/}).click();await a.getByText('@Luis marcó Me gusta en tu publicación · Álbum de prueba').waitFor();await a.getByText('@Luis comentó en tu publicación · Álbum de prueba').waitFor();
   await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent.includes('(2)'));await a.getByRole('button',{name:'Marcar todas como leídas'}).click();await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent==='Notificaciones');
   await b.goto('http://127.0.0.1:4174/index.html?perfil='+ana.id);await b.getByRole('button',{name:'Seguir',exact:true}).waitFor();await b.getByRole('button',{name:'Seguir',exact:true}).click();await b.getByRole('button',{name:'Dejar de seguir',exact:true}).waitFor();
@@ -126,7 +130,7 @@ const server=http.createServer((req,res)=>{
   await b.waitForFunction(()=>document.querySelector('[aria-pressed]').getAttribute('aria-pressed')==='true');
   await b.getByRole('button',{name:'Comentar',exact:true}).first().click();
   await b.getByRole('textbox',{name:'Escribe un comentario'}).fill('Comentario en perfil');
-  await b.getByRole('button',{name:'Enviar',exact:true}).click();
+  await b.locator('.zona-comentarios form').getByRole('button',{name:'Enviar',exact:true}).click();
   await b.getByText('@Luis: Comentario en perfil',{exact:true}).waitFor();
   assert.equal(await b.locator('.lista-comentarios a').getAttribute('href'),'?perfil='+luis.id);
   await c.goto('http://127.0.0.1:4174/?perfil=00000000-0000-4000-8000-000000000000');
@@ -139,8 +143,20 @@ const server=http.createServer((req,res)=>{
   await c.waitForFunction(()=>document.querySelector('#resumenPerfilPublico').textContent==='0 publicaciones');
   assert.equal(await c.locator('#feedVacio').isVisible(),true);
   assert.equal(await c.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await c.getByRole('link',{name:'Inicio',exact:true}).click();
-  await c.locator('#crearPublicacion').waitFor();
+  await a.goto('http://127.0.0.1:4174/');
+  await a.locator('#crearPublicacion').waitFor();
+  await a.locator('#crearMeme').waitFor({state:'visible'});
+  await a.locator('#imagenMeme').setInputFiles({name:'meme.png',mimeType:'image/png',buffer:photo});
+  await a.locator('#textoMeme').fill('Memoria de la comunidad');
+  await a.getByRole('button',{name:'Publicar meme',exact:true}).click();
+  await a.getByText('Meme publicado.',{exact:true}).waitFor();
+  assert.equal(imageUploads,1);assert.equal(posts.at(-1).post_type,'meme');assert.equal(posts.at(-1).album_id,null);
+  await a.locator('.imagen-meme').waitFor();assert.equal(await a.locator('.imagen-meme').getAttribute('alt'),'Meme publicado por @Ana');
+  await a.locator('#textoChat').fill('Hola desde el chat');await a.locator('#formularioChat').getByRole('button',{name:'Enviar',exact:true}).click();
+  try{await a.locator('.mensaje-chat').filter({hasText:'Hola desde el chat'}).waitFor({timeout:5000});}catch{throw Error(engine.name()+' chat send failed: '+await a.locator('#estadoChat').innerText()+'; account: '+await a.locator('#nombrePerfil').innerText()+'; DOM: '+await a.locator('#mensajesChat').innerText()+'; errors: '+JSON.stringify(a.errors));}assert.equal(chatMessages.length,1);
+  await a.reload();await a.locator('.mensaje-chat').filter({hasText:'Hola desde el chat'}).waitFor();
+  assert.equal(await a.locator('#mensajesChat .mensaje-chat').count(),1);
+  assert.deepEqual(a.errors,[]);
   assert.deepEqual(a.errors,[]);assert.deepEqual(b.errors,[]);assert.deepEqual(c.errors,[]);
   console.log(engine.name(),'PASS notifications/follows and profiles: public deep links, reload, author filter, pagination, owner controls, likes/comments, missing/empty profiles, navigation');
   await browser.close();console.log(engine.name(),'PASS shared UI using mock API: signup, two sessions, publish, toggle like, comments, edit/delete ownership UI, reload, failure/retry, logout, mobile, no JS errors');

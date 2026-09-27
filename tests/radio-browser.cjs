@@ -64,10 +64,10 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),0,'minimizing must not pause the YouTube player');
   await feed.getByRole('button',{name:'Expandir radio'}).click();
   assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),false);
-  await feed.getByRole('button',{name:'Cerrar radio y pausar'}).click();
+  await feed.getByRole('button',{name:'Detener la radio',exact:true}).click();
   assert.equal(await feed.locator('#panelRadio').isVisible(),false);
   await room.locator('body').evaluate(()=>new Promise(resolve=>setTimeout(resolve,0)));
-  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'closing must still pause the player');
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'the explicit stop control must pause the player');
   await feed.getByRole('button',{name:'Radio ♫'}).click();
   assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).getAttribute('placeholder'),'Nombre del artista');
   assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).evaluate(e=>e.value),'Mi artista');
@@ -76,8 +76,9 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   assert.equal(await feed.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
   await feed.screenshot({path:'../../outputs/radio-panel-'+engine.name()+'.png',fullPage:false});
   await room.getByRole('searchbox',{name:'Artista',exact:true}).press('Escape');
-  await feed.locator('#panelRadio').waitFor({state:'hidden'});
-  await browser.close();console.log('PASS '+engine.name()+': radio flow, floating panel, close/reopen, Escape, preserved feed, no new tab, mobile');
+  await feed.waitForFunction(()=>document.querySelector('#panelRadio').classList.contains('minimizado'));
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'Escape should minimize without pausing');
+  await browser.close();console.log('PASS '+engine.name()+': radio flow, floating panel, minimize/restore, explicit stop, Escape, preserved feed, no new tab, mobile');
  }
  server.close();
 })().catch(e=>{console.error(e);server.close();process.exit(1)});

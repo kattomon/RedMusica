@@ -1,7 +1,7 @@
 (function () {
  const button = document.getElementById('abrirRadio');
  const panel = document.getElementById('panelRadio');
- const close = document.getElementById('cerrarRadio');
+ const stop = document.getElementById('detenerRadio');
  const minimize = document.getElementById('minimizarRadio');
  const title = document.getElementById('tituloPanelRadio');
  let frame;
@@ -15,12 +15,12 @@
   if (open && !frame) {
    frame = document.createElement('iframe');
    frame.title = 'Radio RedMusica: reproductor, búsqueda y cola';
-   frame.src = 'radio.html?panel=1&v=20260927-9';
+   frame.src = 'radio.html?panel=1&v=20260927-10';
    frame.allow = 'autoplay; fullscreen';
    panel.append(frame);
   }
-  if (frame) frame.contentWindow.postMessage({type:open ? 'radio-open' : 'radio-pause'}, location.origin);
-  (open ? close : button).focus();
+  if (frame && open) frame.contentWindow.postMessage({type:'radio-open'}, location.origin);
+  (open ? minimize : button).focus();
  }
  function minimizePanel() {
   if (panel.hidden) return;
@@ -30,12 +30,19 @@
   title.textContent = 'Radio ♫';
   minimize.focus();
  }
+ function stopRadio() {
+  panel.hidden = true;
+  panel.classList.remove('minimizado');
+  button.setAttribute('aria-expanded', 'false');
+  if (frame) frame.contentWindow.postMessage({type:'radio-stop'}, location.origin);
+  button.focus();
+ }
  button.addEventListener('click', () => setOpen(panel.hidden || panel.classList.contains('minimizado')));
  minimize.addEventListener('click', () => panel.classList.contains('minimizado') ? setOpen(true) : minimizePanel());
- close.addEventListener('click', () => setOpen(false));
- document.addEventListener('keydown', e => { if(e.key==='Escape' && !panel.hidden && !panel.classList.contains('minimizado')) setOpen(false); });
+ stop.addEventListener('click', stopRadio);
+ document.addEventListener('keydown', e => { if(e.key==='Escape' && !panel.hidden && !panel.classList.contains('minimizado')) minimizePanel(); });
  window.addEventListener('message', e => {
-  if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-close') setOpen(false);
+  if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-close') minimizePanel();
  });
 })();
 

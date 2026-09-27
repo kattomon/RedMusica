@@ -30,8 +30,8 @@
   }
  }
  window.addEventListener('message', e => {
-  if(embedded && e.source===window.parent && e.origin===location.origin && e.data?.type==='radio-pause') {
-   panelActive=false;continuePlaying=false;if(ready)player.pauseVideo();
+  if(embedded && e.source===window.parent && e.origin===location.origin && e.data?.type==='radio-stop') {
+   panelActive=false;joined=false;continuePlaying=false;if(ready)player.pauseVideo();
   }
   if(embedded && e.source===window.parent && e.origin===location.origin && e.data?.type==='radio-open') {panelActive=true;refresh();}
  });
