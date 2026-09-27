@@ -4,21 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-6">
+    <link rel="stylesheet" href="style.css?v=20260927-8">
 </head>
 <body>
 <main>
     <h1>RedMusica</h1>
     <p>Un lugar para compartir lo que escuchamos.</p>
     <nav id="navegacion" aria-label="Navegación principal" hidden>
-        <a href="./">Inicio</a><a id="miPerfil" hidden>Mi perfil</a>
+        <a href="./">Inicio</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
     </nav>
+    <section id="notificaciones" aria-labelledby="tituloNotificaciones" hidden>
+        <h2 id="tituloNotificaciones">Notificaciones</h2><p id="estadoNotificaciones" role="status"></p>
+        <button id="marcarLeidas" type="button">Marcar todas como leídas</button>
+        <div id="listaNotificaciones" aria-live="polite"></div>
+        <button id="masNotificaciones" type="button" hidden>Ver anteriores</button>
+    </section>
     <section id="perfilPublico" aria-labelledby="tituloPerfilPublico" hidden>
         <div id="fotoPerfilPublico"></div><div id="rangoPerfilPublico"></div>
         <h2 id="tituloPerfilPublico">Cargando perfil…</h2>
         <p id="bioPerfilPublico"></p>
         <p id="fechaPerfilPublico"></p>
         <p id="resumenPerfilPublico" role="status"></p>
+        <p id="conteoSeguidores"></p><button id="seguirPerfil" type="button" hidden></button>
         <div id="compartirPerfil" hidden>
             <label for="enlacePerfil">Enlace a este perfil</label>
             <input id="enlacePerfil" type="url" readonly>
@@ -76,8 +83,8 @@
 <section id="panelRadio" role="region" aria-labelledby="tituloPanelRadio" hidden>
     <header><h2 id="tituloPanelRadio">Radio RedMusica</h2><button id="cerrarRadio" type="button" aria-label="Cerrar radio y pausar">Cerrar</button></header>
 </section>
-<script src="radio-panel.js?v=20260927-6" defer></script>
-<script src="config.js?v=20260927-6"></script>
-<script src="script.js?v=20260927-6" defer></script>
+<script src="radio-panel.js?v=20260927-8" defer></script>
+<script src="config.js?v=20260927-8"></script>
+<script src="script.js?v=20260927-8" defer></script>
 </body>
 </html>

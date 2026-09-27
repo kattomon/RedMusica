@@ -1,6 +1,6 @@
 Los errores del reproductor 2/5/100/101/150 saltan inmediatamente a la siguiente entrada disponible para ese oyente, aunque su horario común aún no haya comenzado. Los videos fallidos se excluyen durante la sesión de esa página; no se modifica la cola compartida. El botón Saltar para mí permite omitir una entrada manualmente. El error 153 se trata como configuración del reproductor, sin descartar todas las canciones. Las pruebas simulan estos códigos: no eliminan restricciones de copyright de YouTube.
 
-La radio se abre desde el feed mediante radio-panel.js, en un panel fijo superior derecho. radio.html se carga dentro de un iframe del mismo origen; no se abre otra pestaña. El panel conserva su estado al cerrar, pausa el reproductor y permite volver al feed con Escape. Las portadas solicitan CAA 1200 px (con respaldo de 500 px) y Apple 600 px (con respaldo del recurso original).
+La radio se abre desde el feed mediante radio-panel.js, en un panel fijo superior derecho. radio.html se carga dentro de un iframe del mismo origen; no se abre otra pestaña. El panel conserva su estado al cerrar y pausa el reproductor cuando se cierra. Al volver de una pestaña oculta, la página consulta el horario común y vuelve a sincronizar el video. El navegador, especialmente Safari en iPhone, puede suspender reproducción en segundo plano por sus propias reglas; la página ya no la pausa intencionalmente. Las portadas solicitan CAA 1200 px (con respaldo de 500 px) y Apple 600 px (con respaldo del recurso original).
 
 # Cuentas y feed compartido
 
@@ -84,3 +84,11 @@ Aplicar `supabase/profiles.sql` después de `schema.sql` y `admin.sql`. El perfi
 Las fotos se guardan en el bucket público `avatars`, con una ruta fija por usuario. La interfaz admite JPG, PNG y WebP hasta 10 MB, los procesa localmente a JPEG cuadrado de 512x512 píxeles y menos de 1 MB. Storage valida el tipo y tamaño y las políticas RLS restringen insertar, actualizar o borrar al propio usuario activo. La descarga es pública porque se muestra en perfiles compartidos.
 
 Pruebas: `tests/profiles-database.cjs` comprueba permisos de perfil, rango inmutable, validación del texto, ruta de avatar y suspensión. `tests/browser.cjs` verifica foto, presentación y rango en Chromium y WebKit.
+
+## Seguimientos y notificaciones
+
+Aplicar `supabase/social.sql` después de `schema.sql`, `admin.sql` y `profiles.sql`. El perfil público permite seguir o dejar de seguir; cada persona consulta sus propias notificaciones de comentarios, likes y seguimientos, puede marcarlas leídas y abrir la publicación relacionada. El servidor ignora acciones propias, impide que el cliente invente notificaciones y elimina avisos al borrar su publicación/comentario o retirar un like/seguimiento. Se guardan como máximo las 100 notificaciones recientes por cuenta; publicaciones, comentarios, likes y seguimientos no se purgan por esta regla.
+
+El feed carga 20 publicaciones y los comentarios se piden al abrirlos. Las notificaciones se consultan al abrir el panel, en páginas de 30, y el contador consulta únicamente el total pendiente una vez por minuto con la pestaña visible. La radio ya limita sus datos temporales: búsqueda cacheada 24 horas, uso hasta 3 días y cola vieja hasta 7 días; la foto de perfil se comprime en el dispositivo a JPEG de 512×512 y menos de 1 MB. No se guardan imágenes de portadas en Supabase.
+
+Prueba local: `tests/social-database.cjs` comprueba RLS, eventos automáticos, que no haya avisos de acciones propias, borrados relacionados, deduplicación y límite de 100. `tests/browser.cjs` cubre seguir, contador, comentarios, likes y marcar como leídas en Chromium y WebKit móvil.

@@ -94,3 +94,15 @@ article form textarea { display: block; width: 100%; min-height: 100px; margin-t
 #editarPerfil input, #editarPerfil textarea { width: 100%; }
 #editarPerfil form { margin: 16px 0; }
 #editarPerfil button { margin: 6px 6px 0 0; }
+
+#notificaciones { margin: 16px 0 24px; padding: 16px; border: 1px solid #ddd; border-radius: 6px; background: #fff; }
+#notificaciones h2 { margin: 0 0 8px; }
+#notificaciones article { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; padding: 12px; }
+#notificaciones article a { overflow-wrap: anywhere; }
+#notificaciones article time { flex: 0 0 auto; color: #666; font-size: 13px; }
+#notificaciones .notificacion-no-leida { border-left: 4px solid #555; background: #f4f4f4; }
+@media (max-width: 480px) {
+    #notificaciones { padding: 12px; }
+    #notificaciones article { align-items: flex-start; flex-direction: column; gap: 4px; padding: 12px; }
+    #navegacion { gap: 8px 12px; }
+}

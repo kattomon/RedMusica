@@ -6,7 +6,7 @@
  const config = window.REDMUSICA_CONFIG;
  const db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
  let queue = [], offset = 0, session = null, player = null, loaded = null, joined = false, ready = false, updating = false;
- let busy = false, authRevision = 0, continuePlaying = false, panelActive = true;
+ let busy = false, authRevision = 0, continuePlaying = false, panelActive = true, resumingFromBackground = false;
  const omitted = new Set(), blockedVideos = new Set();
  let playingSong = null, playerFailure = false;
  let roomRevision = null, roomPaused = false;
@@ -68,7 +68,8 @@
   });
   $('radioColaEstado').textContent=queue.length ? 'La cola se actualiza automáticamente.' : 'Todavía no hay canciones. Haz el primer pedido.';
   if(roomPaused){loaded=null;if(ready)player.stopVideo();$('radioActual').textContent='Radio pausada por administración.';$('radioPlayback').textContent='La sala se reanudará cuando administración vuelva a activarla.';return;}
-  if (joined && !loaded) advance();
+  if(joined&&ready&&active&&resumingFromBackground) { if(loaded!==active.id)load(active,true);else player.playVideo();resumingFromBackground=false; }
+  else if (joined && !loaded) advance();
  }
  function load(song, autoplay) {
   loaded=song.id;playingSong=song;
@@ -124,10 +125,7 @@
   script.onerror=()=>{$('radioPlayback').textContent='No se pudo cargar YouTube. Recarga la página para volver a intentarlo.';};
   document.head.appendChild(script);
  });
- document.addEventListener('visibilitychange',()=>{
-  if(document.hidden && ready) { player.pauseVideo();continuePlaying=false; }
-  else { refresh();if(joined)$('radioPlayback').textContent='Pulsa reproducir para continuar o vuelve a la canción de la sala.'; }
- });
+ document.addEventListener('visibilitychange',()=>{ if(!document.hidden){resumingFromBackground=joined;refresh();} });
  $('radioBusqueda').addEventListener('submit',async event=>{
   event.preventDefault();if(busy)return;
   if(!session){$('radioEstado').textContent='Inicia sesión desde Inicio para buscar canciones.';return;}

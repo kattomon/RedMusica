@@ -88,6 +88,8 @@
     feed.after(mas);
     let usuario = null;
     let perfil = null;
+    let perfilSeguido = false, objetivoSeguir = null, guardandoSeguir = false;
+    let offsetNotificaciones = 0, cargandoNotificaciones = false, revisionNotificaciones = 0, notificacionesAbiertas = false;
     let recuperando = false;
     let revisionSesion = 0;
     let revisionFeed = 0;
@@ -123,9 +125,12 @@
         return false;
     }
     function actualizarAcceso() {
+        if (!usuario) { notificacionesAbiertas=false; document.getElementById("abrirNotificaciones").setAttribute("aria-expanded", "false"); }
         document.getElementById("formularioAcceso").hidden = Boolean(usuario);
         document.getElementById("sesionPerfil").hidden = !usuario;
         document.getElementById("formularioNuevaClave").hidden = !recuperando || !usuario;
+        document.getElementById("abrirNotificaciones").hidden = !usuario;
+        document.getElementById("notificaciones").hidden = !usuario || !notificacionesAbiertas;
         const nombre = document.getElementById('nombrePerfil');
         nombre.textContent = perfil ? 'Publicas como @' + perfil.username + ' ' : 'Cargando tu perfil…';
         document.getElementById('miFoto').replaceChildren();
@@ -154,6 +159,7 @@
             if (revision !== revisionSesion) return;
             actualizarAcceso();
             await cargarFeed(true);
+            revisionNotificaciones++;offsetNotificaciones=0;actualizarContadorNotificaciones();
         } catch (error) {
             if (revision === revisionSesion) estadoPerfil.textContent = "No se pudo cargar tu perfil. Recarga la página para volver a intentarlo.";
         }
@@ -264,6 +270,74 @@
     document.getElementById('formularioBio').addEventListener('submit',e=>{e.preventDefault(); const bio=document.getElementById('bioPerfil').value.trim(); editarDatos(async()=>({bio}));});
     document.getElementById('quitarFoto').addEventListener('click',()=>editarDatos(async id=>{resultado(await db.storage.from('avatars').remove([id+'/avatar.jpg'])); return {avatar_updated_at:null};}));
 
+
+    async function actualizarContadorNotificaciones() {
+        const ticket=revisionNotificaciones;
+        if(!usuario || document.hidden)return;
+        try {
+            const r=await db.from('notifications').select('id',{count:'exact',head:true}).eq('recipient_id',usuario.id).is('read_at',null);
+            if(r.error)throw r.error;
+            if(ticket!==revisionNotificaciones||!usuario)return;
+            const button=document.getElementById('abrirNotificaciones');
+            button.textContent=r.count ? 'Notificaciones ('+r.count+')' : 'Notificaciones';
+            button.setAttribute('aria-label',r.count ? 'Notificaciones, '+r.count+' sin leer' : 'Notificaciones');
+        } catch {}
+    }
+    async function cargarNotificaciones(reiniciar=true) {
+        if(cargandoNotificaciones||!usuario)return;
+        cargandoNotificaciones=true;const ticket=revisionNotificaciones;const box=document.getElementById('listaNotificaciones');
+        document.getElementById('estadoNotificaciones').textContent='Cargando…';
+        try {
+            const desde=reiniciar?0:offsetNotificaciones;
+            const rows=resultado(await db.from('notifications').select('id,kind,created_at,read_at,actor_id,post_id,actor:profiles!notifications_actor_id_fkey(username),post:posts(album_title)').eq('recipient_id',usuario.id).order('created_at',{ascending:false}).order('id',{ascending:false}).range(desde,desde+29));
+            if(ticket!==revisionNotificaciones)return;
+            if(reiniciar)box.replaceChildren();
+            rows.forEach(n=>{
+                const row=document.createElement('article');row.className='notificacion'+(n.read_at?'':' notificacion-no-leida');
+                const link=document.createElement('a');
+                const who=n.actor?.username?'@'+n.actor.username:'Una cuenta';
+                const what=n.kind==='comment'?'comentó en tu publicación':n.kind==='like'?'marcó Me gusta en tu publicación':'empezó a seguirte';
+                link.textContent=who+' '+what+(n.post?.album_title?' · '+n.post.album_title:'');
+                link.href=n.kind==='follow'?'?perfil='+encodeURIComponent(n.actor_id||''):'?perfil='+encodeURIComponent(usuario.id)+'#'+encodeURIComponent(n.post_id||'');
+                link.addEventListener('click',async e=>{if(!n.read_at){e.preventDefault();await db.from('notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',usuario.id);n.read_at=new Date().toISOString();await actualizarContadorNotificaciones();location.href=link.href;}});
+                const time=document.createElement('time');time.dateTime=n.created_at;time.textContent=new Date(n.created_at).toLocaleString('es',{dateStyle:'medium',timeStyle:'short'});
+                row.append(link,time);box.append(row);
+            });
+            offsetNotificaciones=desde+rows.length;document.getElementById('masNotificaciones').hidden=rows.length<30;
+            document.getElementById('estadoNotificaciones').textContent=offsetNotificaciones?'':'Todavía no tienes notificaciones.';
+            await actualizarContadorNotificaciones();
+        } catch {document.getElementById('estadoNotificaciones').textContent='No se pudieron cargar las notificaciones. Inténtalo de nuevo.';}
+        finally {cargandoNotificaciones=false;}
+    }
+    document.getElementById('abrirNotificaciones').addEventListener('click',()=>{
+        notificacionesAbiertas=!notificacionesAbiertas;
+        const box=document.getElementById('notificaciones');box.hidden=!notificacionesAbiertas;
+        document.getElementById('abrirNotificaciones').setAttribute('aria-expanded',String(notificacionesAbiertas));if(notificacionesAbiertas)cargarNotificaciones(true);
+    });
+    document.getElementById('masNotificaciones').addEventListener('click',()=>cargarNotificaciones(false));
+    document.getElementById('marcarLeidas').addEventListener('click',async()=>{
+        if(!usuario)return;const button=document.getElementById('marcarLeidas');button.disabled=true;
+        try{resultado(await db.from('notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',usuario.id).is('read_at',null));await cargarNotificaciones(true);}
+        catch{document.getElementById('estadoNotificaciones').textContent='No se pudieron actualizar. Inténtalo de nuevo.';}
+        finally{button.disabled=false;}
+    });
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden){actualizarContadorNotificaciones();if(!document.getElementById('notificaciones').hidden)cargarNotificaciones(true);}});
+    setInterval(()=>{if(usuario&&!document.hidden){actualizarContadorNotificaciones();if(notificacionesAbiertas)cargarNotificaciones(true);}},60000);
+    document.getElementById('seguirPerfil').addEventListener('click',async()=>{
+        if(!exigirCuenta()||!objetivoSeguir||guardandoSeguir)return;const button=document.getElementById('seguirPerfil');guardandoSeguir=true;button.disabled=true;
+        try{
+            if(perfilSeguido)resultado(await db.from('follows').delete().eq('followed_id',objetivoSeguir).eq('user_id',usuario.id));
+            else resultado(await db.from('follows').insert({followed_id:objetivoSeguir}));
+            perfilSeguido=!perfilSeguido;button.textContent=perfilSeguido?'Dejar de seguir':'Seguir';await actualizarSeguidores();
+        }catch{document.getElementById('estadoPerfil').textContent='No se pudo actualizar el seguimiento. Revisa tu sesión e inténtalo de nuevo.';}
+        finally{guardandoSeguir=false;button.disabled=false;}
+    });
+    async function actualizarSeguidores(){
+        if(!objetivoSeguir)return;
+        const total=await db.from('follows').select('user_id',{count:'exact',head:true}).eq('followed_id',objetivoSeguir);
+        document.getElementById('conteoSeguidores').textContent=(total.count||0)+(total.count===1?' seguidor':' seguidores');
+    }
+
     async function cargarFeed(reiniciar) {
         const revision = ++revisionFeed;
         refrescar.disabled = true;
@@ -278,6 +352,7 @@
                     document.getElementById('fotoPerfilPublico').replaceChildren();
                     document.getElementById('rangoPerfilPublico').replaceChildren();
                     document.getElementById('bioPerfilPublico').textContent = '';
+                    objetivoSeguir=null;document.getElementById("seguirPerfil").hidden=true;document.getElementById("conteoSeguidores").textContent="";
                     document.getElementById("tituloPerfilPublico").textContent = "Perfil no encontrado";
                     document.getElementById("fechaPerfilPublico").textContent = "";
                     document.getElementById("resumenPerfilPublico").textContent = "Comprueba el enlace o vuelve a Inicio.";
@@ -292,6 +367,15 @@
                 document.getElementById('rangoPerfilPublico').replaceChildren(rangoPerfil(publico.role));
                 document.getElementById('bioPerfilPublico').textContent = publico.bio || 'Todavía no hay una presentación.';
                 document.title = "@" + publico.username + " · RedMusica";
+                objetivoSeguir=perfilSolicitado;const followButton=document.getElementById('seguirPerfil');
+                followButton.hidden=!usuario||usuario.id===perfilSolicitado;
+                if(usuario&&usuario.id!==perfilSolicitado){
+                    const existing=resultado(await db.from('follows').select('followed_id').eq('user_id',usuario.id).eq('followed_id',perfilSolicitado));
+                    perfilSeguido=existing.length>0;followButton.textContent=perfilSeguido?'Dejar de seguir':'Seguir';
+                }
+                const followers=await db.from('follows').select('user_id',{count:'exact',head:true}).eq('followed_id',perfilSolicitado);
+                const following=await db.from('follows').select('followed_id',{count:'exact',head:true}).eq('user_id',perfilSolicitado);
+                document.getElementById('conteoSeguidores').textContent=(followers.count||0)+' seguidores · '+(following.count||0)+' siguiendo';
                 document.getElementById("tituloPerfilPublico").textContent = "@" + publico.username;
                 document.getElementById("fechaPerfilPublico").textContent = "En RedMusica desde " + new Date(publico.created_at).toLocaleDateString("es", { month: "long", year: "numeric" });
                 document.getElementById("enlacePerfil").value = location.origin + location.pathname + "?perfil=" + encodeURIComponent(perfilSolicitado);
@@ -323,6 +407,7 @@
     function crearPublicacion(post, meGusta) {
         const articulo = document.createElement("article");
         articulo.dataset.postId = post.id;
+        articulo.id = post.id;
         const autor = document.createElement("p");
         autor.className = "autor-publicacion";
         autor.append(fotoPerfil(post.user_id, post.profiles), enlaceUsuario(post.user_id, post.profiles.username), rangoPerfil(post.profiles.role));

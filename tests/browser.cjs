@@ -13,7 +13,7 @@ const server=http.createServer((req,res)=>{
   const browser=await engine.launch();
   const ana={id:'11111111-1111-4111-8111-111111111111',email:'ana@example.test',aud:'authenticated',role:'authenticated'};
   const luis={id:'22222222-2222-4222-8222-222222222222',email:'luis@example.test',aud:'authenticated',role:'authenticated'};
-  let posts=[],likes=[],comments=[],failPosts=false;
+  let posts=[],likes=[],comments=[],follows=[],notifications=[],failPosts=false;
   const names={[ana.id]:'Ana',[luis.id]:'Luis'};
   const profiles={[ana.id]:{username:'Ana',role:'owner',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'},[luis.id]:{username:'Luis',role:'member',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'}};let uploads=0;const contexts=[];
   function token(user){return Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';}
@@ -33,6 +33,17 @@ const server=http.createServer((req,res)=>{
     else if(url.pathname==='/auth/v1/logout'){status=204;data=null;}
     else if(url.pathname==='/auth/v1/recover'){data={};}
     else if(url.pathname==='/auth/v1/user'){data=current;}
+    else if(url.pathname==='/rest/v1/notifications'){
+      const recipient=url.searchParams.get('recipient_id')?.replace(/^eq\./,'');
+      if(method==='GET'||method==='HEAD'){const unread=url.searchParams.has('read_at');const items=notifications.filter(n=>(!recipient||n.recipient_id===recipient)&&(!unread||n.read_at===null));headers['Content-Range']='0-'+Math.max(0,items.length-1)+'/'+items.length;data=method==='HEAD'?null:items.slice().reverse();}
+      else if(method==='PATCH'){for(const n of notifications)if(n.recipient_id===recipient&&(!url.searchParams.has('id')||n.id===url.searchParams.get('id').slice(3))&&n.read_at===null)n.read_at=body.read_at;data=[];}
+    }
+    else if(url.pathname==='/rest/v1/follows'){
+      const user=url.searchParams.get('user_id')?.replace(/^eq\./,'');const target=url.searchParams.get('followed_id')?.replace(/^eq\./,'');
+      if(method==='GET'){const items=follows.filter(f=>(!user||f.user_id===user)&&(!target||f.followed_id===target));headers['Content-Range']='0-'+Math.max(0,items.length-1)+'/'+items.length;data=method==='HEAD'?null:items;}
+      else if(method==='POST'){const f={user_id:current.id,followed_id:body.followed_id};if(!follows.some(x=>x.user_id===f.user_id&&x.followed_id===f.followed_id)){follows.push(f);const u=profiles[f.followed_id];notifications.push({id:'n'+(notifications.length+1),recipient_id:f.followed_id,actor_id:current.id,kind:'follow',post_id:null,comment_id:null,actor:profiles[current.id],post:null,created_at:new Date().toISOString(),read_at:null});}status=201;data=null;}
+      else if(method==='DELETE'){const doomed=follows.filter(f=>f.user_id===current.id&&f.followed_id===target);follows=follows.filter(f=>!doomed.includes(f));notifications=notifications.filter(n=>!(n.kind==='follow'&&n.recipient_id===target&&n.actor_id===current.id));status=204;data=null;}
+    }
     else if(url.pathname==='/rest/v1/profiles'){const id=url.searchParams.get('id').slice(3);if(method==='PATCH'){assert.equal(id,current.id);Object.assign(profiles[id],body);data=[profiles[id]];}else data=profiles[id]||null;}
     else if(url.pathname.startsWith('/storage/v1/object/public/')){return route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII=','base64')});}
     else if(url.pathname.startsWith('/storage/v1/object/')){if(method==='POST'){uploads++;assert(url.pathname.endsWith(ana.id+'/avatar.jpg'));}data={};}
@@ -44,12 +55,12 @@ const server=http.createServer((req,res)=>{
     }
     else if(url.pathname==='/rest/v1/likes'){
       const id=url.searchParams.get('post_id')?.replace(/^eq\./,'');
-      if(method==='POST'){if(!likes.some(l=>l.post_id===body.post_id&&l.user_id===current.id))likes.push({post_id:body.post_id,user_id:current.id});status=201;data=null;}
+      if(method==='POST'){if(!likes.some(l=>l.post_id===body.post_id&&l.user_id===current.id)){likes.push({post_id:body.post_id,user_id:current.id});const target=posts.find(p=>p.id===body.post_id);if(target&&target.user_id!==current.id)notifications.push({id:'n'+(notifications.length+1),recipient_id:target.user_id,actor_id:current.id,kind:'like',post_id:target.id,comment_id:null,actor:profiles[current.id],post:{album_title:target.album_title},created_at:new Date().toISOString(),read_at:null});}status=201;data=null;}
       else if(method==='DELETE'){likes=likes.filter(l=>!(l.post_id===id&&l.user_id===current.id));status=204;data=null;}
       else {data=likes.filter(l=>(!id||id.startsWith('in.')||l.post_id===id)&&(!url.searchParams.has('user_id')||l.user_id===url.searchParams.get('user_id').slice(3)));headers['Content-Range']='0-0/'+data.length;if(method==='HEAD')data=null;}
     }
     else if(url.pathname==='/rest/v1/comments'){
-      if(method==='POST'){comments.push({...body,id:'comment-'+comments.length,user_id:current.id,profiles:{username:names[current.id]},created_at:new Date().toISOString()});status=201;data=null;}
+      if(method==='POST'){const c={...body,id:'comment-'+comments.length,user_id:current.id,profiles:{username:names[current.id]},created_at:new Date().toISOString()};comments.push(c);const target=posts.find(p=>p.id===body.post_id);if(target&&target.user_id!==current.id)notifications.push({id:'n'+(notifications.length+1),recipient_id:target.user_id,actor_id:current.id,kind:'comment',post_id:target.id,comment_id:c.id,actor:profiles[current.id],post:{album_title:target.album_title},created_at:new Date().toISOString(),read_at:null});status=201;data=null;}
       else data=comments.filter(c=>c.post_id===url.searchParams.get('post_id').slice(3));
     }
     else if(url.pathname==='/functions/v1/admin'){data={role:'member'};}
@@ -75,6 +86,10 @@ const server=http.createServer((req,res)=>{
   const like=b.getByRole('button',{name:/Me gusta/});await like.click();await b.waitForFunction(()=>document.querySelector('[aria-pressed]').getAttribute('aria-pressed')==='true');assert.equal(likes.length,1);
   await like.click();await b.waitForFunction(()=>document.querySelector('[aria-pressed]').getAttribute('aria-pressed')==='false');assert.equal(likes.length,0);
   await b.getByRole('button',{name:'Comentar',exact:true}).click();await b.getByRole('textbox',{name:'Escribe un comentario'}).fill('Hola Ana');await b.getByRole('button',{name:'Enviar',exact:true}).click();await b.getByText('@Luis: Hola Ana',{exact:true}).waitFor();
+  await a.getByRole('button',{name:/Notificaciones/}).click();await a.getByText('@Luis marcó Me gusta en tu publicación · Álbum de prueba').waitFor();await a.getByText('@Luis comentó en tu publicación · Álbum de prueba').waitFor();
+  await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent.includes('(2)'));await a.getByRole('button',{name:'Marcar todas como leídas'}).click();await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent==='Notificaciones');
+  await b.goto('http://127.0.0.1:4174/index.html?perfil='+ana.id);await b.getByRole('button',{name:'Seguir',exact:true}).waitFor();await b.getByRole('button',{name:'Seguir',exact:true}).click();await b.getByRole('button',{name:'Dejar de seguir',exact:true}).waitFor();
+  await a.getByRole('button',{name:'Notificaciones',exact:true}).click();await a.getByRole('button',{name:'Notificaciones',exact:true}).click();await a.getByText('@Luis empezó a seguirte').waitFor();await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent.includes('(1)'));
   await a.getByRole('button',{name:'Comentar',exact:true}).click();await a.getByText('@Luis: Hola Ana',{exact:true}).waitFor();
   await a.getByRole('button',{name:'Editar',exact:true}).click();await a.getByRole('textbox',{name:'Editar opinión'}).fill('Opinión editada');await a.getByRole('button',{name:'Guardar cambios'}).click();await a.getByText('Publicación actualizada.',{exact:true}).waitFor();
   await b.locator('#actualizarFeed').click();await b.locator('.opinion').filter({hasText:'Opinión editada'}).waitFor();
@@ -127,7 +142,7 @@ const server=http.createServer((req,res)=>{
   await c.getByRole('link',{name:'Inicio',exact:true}).click();
   await c.locator('#crearPublicacion').waitFor();
   assert.deepEqual(a.errors,[]);assert.deepEqual(b.errors,[]);assert.deepEqual(c.errors,[]);
-  console.log(engine.name(),'PASS profiles: public deep links, reload, author filter, pagination, owner controls, likes/comments, missing/empty profiles, navigation');
+  console.log(engine.name(),'PASS notifications/follows and profiles: public deep links, reload, author filter, pagination, owner controls, likes/comments, missing/empty profiles, navigation');
   await browser.close();console.log(engine.name(),'PASS shared UI using mock API: signup, two sessions, publish, toggle like, comments, edit/delete ownership UI, reload, failure/retry, logout, mobile, no JS errors');
  }
  server.close();
