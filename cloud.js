@@ -5,14 +5,22 @@
     window.redmusicaClient = db;
     const perfilSolicitado = new URLSearchParams(location.search).get("perfil");
     const viendoPerfil = perfilSolicitado !== null;
+    const viendoMemes = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'memes';
     const idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || "");
     document.getElementById("navegacion").hidden = false;
     document.getElementById("perfilPublico").hidden = !viendoPerfil;
-    document.getElementById("crearPublicacion").hidden = viendoPerfil;
+    document.getElementById("crearPublicacion").hidden = viendoPerfil || viendoMemes;
+    document.getElementById('crearMeme').hidden = !viendoMemes;
+    document.getElementById('memesNav').setAttribute('aria-current',viendoMemes?'page':'false');
+    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes?'page':'false');
     if (viendoPerfil) {
         document.getElementById("tituloFeed").textContent = "Publicaciones de este perfil";
         document.getElementById("feedVacio").textContent = "Este usuario todavía no ha publicado.";
         document.title = "Perfil · RedMusica";
+    } else if(viendoMemes) {
+        document.getElementById('tituloFeed').textContent='Memes de la comunidad';
+        document.getElementById('feedVacio').textContent='Todavía no hay memes. ¡Comparte el primero!';
+        document.title='Memes · RedMusica';
     }
     function fotoPerfil(id, datos) {
         const caja = document.createElement('span'); caja.className = 'avatar';
@@ -137,7 +145,7 @@
         if (perfil && usuario) { nombre.append(rangoPerfil(perfil.role)); document.getElementById('miFoto').append(fotoPerfil(usuario.id, perfil)); }
         document.getElementById('bioPerfil').value = perfil?.bio || '';
         document.getElementById('quitarFoto').disabled = !perfil?.avatar_updated_at;
-        document.getElementById('crearMeme').hidden = !usuario || !perfil || viendoPerfil;
+        document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
         const miPerfil = document.getElementById("miPerfil");
         miPerfil.hidden = !usuario || !perfil;
         if (usuario) miPerfil.href = "?perfil=" + encodeURIComponent(usuario.id);
@@ -445,6 +453,7 @@
             }
             let consulta = db.from("posts").select(seleccionPosts, viendoPerfil ? { count: "exact" } : {});
             if (viendoPerfil) consulta = consulta.eq("user_id", perfilSolicitado);
+            else consulta = consulta.eq('post_type',viendoMemes?'meme':'album');
             const respuesta = await consulta.order("created_at", { ascending: false }).order("id", { ascending: false }).range(inicio, inicio + porPagina - 1);
             const datos = resultado(respuesta);
             let propios = [];

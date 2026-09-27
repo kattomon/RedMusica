@@ -53,7 +53,7 @@ const server=http.createServer((req,res)=>{
     }
     else if(url.pathname==='/rest/v1/posts'){
       if(failPosts){status=503;data={message:'offline'};}
-      else if(method==='GET'){const owner=url.searchParams.get('user_id')?.slice(3);const filtered=[...posts].reverse().filter(p=>!owner||p.user_id===owner);const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||20);headers['Content-Range']=`${offset}-${Math.max(offset,Math.min(offset+limit,filtered.length)-1)}/${filtered.length}`;data=filtered.slice(offset,offset+limit).map(p=>({...p,profiles:profiles[p.user_id],likes:[{count:likes.filter(l=>l.post_id===p.id).length}]}));}
+      else if(method==='GET'){const owner=url.searchParams.get('user_id')?.slice(3);const type=url.searchParams.get('post_type')?.slice(3);const filtered=[...posts].reverse().filter(p=>(!owner||p.user_id===owner)&&(!type||(p.post_type||'album')===type));const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||20);headers['Content-Range']=`${offset}-${Math.max(offset,Math.min(offset+limit,filtered.length)-1)}/${filtered.length}`;data=filtered.slice(offset,offset+limit).map(p=>({...p,profiles:profiles[p.user_id],likes:[{count:likes.filter(l=>l.post_id===p.id).length}]}));}
       else if(method==='POST'){if(!current)throw Error('Unauthenticated insert');const item={post_type:'album',album_id:null,album_title:null,album_artist:null,image_path:null,...body,id:'post-'+(posts.length+1),user_id:current.id,created_at:new Date().toISOString()};posts.push(item);status=201;data=url.searchParams.has('select')?{id:item.id}:null;}
       else {const id=url.searchParams.get('id').slice(3),p=posts.find(p=>p.id===id&&p.user_id===current?.id);data=p?[{id:p.id}]:[];if(p&&method==='PATCH')p.body=body.body;if(p&&method==='DELETE')posts=posts.filter(p=>p.id!==id);}
     }
@@ -143,8 +143,11 @@ const server=http.createServer((req,res)=>{
   await c.waitForFunction(()=>document.querySelector('#resumenPerfilPublico').textContent==='0 publicaciones');
   assert.equal(await c.locator('#feedVacio').isVisible(),true);
   assert.equal(await c.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await a.goto('http://127.0.0.1:4174/');
-  await a.locator('#crearPublicacion').waitFor();
+  await a.goto('http://127.0.0.1:4174/?seccion=memes');
+  await a.locator('#crearPublicacion').waitFor({state:'attached'});
+  assert.equal(await a.locator('#crearPublicacion').isVisible(),false);
+  assert.equal(await a.locator('#tituloFeed').innerText(),'Memes de la comunidad');
+  assert.equal(await a.locator('#memesNav').getAttribute('aria-current'),'page');
   await a.locator('#crearMeme').waitFor({state:'visible'});
   await a.locator('#imagenMeme').setInputFiles({name:'meme.png',mimeType:'image/png',buffer:photo});
   await a.locator('#textoMeme').fill('Memoria de la comunidad');
@@ -152,13 +155,16 @@ const server=http.createServer((req,res)=>{
   await a.getByText('Meme publicado.',{exact:true}).waitFor();
   assert.equal(imageUploads,1);assert.equal(posts.at(-1).post_type,'meme');assert.equal(posts.at(-1).album_id,null);
   await a.locator('.imagen-meme').waitFor();assert.equal(await a.locator('.imagen-meme').getAttribute('alt'),'Meme publicado por @Ana');
+  await a.goto('http://127.0.0.1:4174/');await a.locator('#feedVacio').waitFor();
+  assert.equal(await a.locator('.imagen-meme').count(),0,'memes stay out of the album feed');
+  await a.goto('http://127.0.0.1:4174/?seccion=memes');await a.locator('.imagen-meme').waitFor();
   await a.locator('#textoChat').fill('Hola desde el chat');await a.locator('#formularioChat').getByRole('button',{name:'Enviar',exact:true}).click();
   try{await a.locator('.mensaje-chat').filter({hasText:'Hola desde el chat'}).waitFor({timeout:5000});}catch{throw Error(engine.name()+' chat send failed: '+await a.locator('#estadoChat').innerText()+'; account: '+await a.locator('#nombrePerfil').innerText()+'; DOM: '+await a.locator('#mensajesChat').innerText()+'; errors: '+JSON.stringify(a.errors));}assert.equal(chatMessages.length,1);
   await a.reload();await a.locator('.mensaje-chat').filter({hasText:'Hola desde el chat'}).waitFor();
   assert.equal(await a.locator('#mensajesChat .mensaje-chat').count(),1);
   assert.deepEqual(a.errors,[]);assert.deepEqual(b.errors,[]);assert.deepEqual(c.errors,[]);
   console.log(engine.name(),'PASS notifications/follows and profiles: public deep links, reload, author filter, pagination, owner controls, likes/comments, missing/empty profiles, navigation');
-  await browser.close();console.log(engine.name(),'PASS shared UI using mock API: signup, two sessions, album/meme posts, likes, comments, community chat, edit/delete ownership UI, reload, mobile, no JS errors');
+  await browser.close();console.log(engine.name(),'PASS shared UI using mock API: signup, album and separate meme page/feed, likes, comments, community chat, ownership UI, reload, mobile, no JS errors');
  }
  server.close();
 })().catch(e=>{console.error(e);server.close();process.exit(1)});
