@@ -14,6 +14,21 @@
         document.getElementById("feedVacio").textContent = "Este usuario todavía no ha publicado.";
         document.title = "Perfil · RedMusica";
     }
+    function fotoPerfil(id, datos) {
+        const caja = document.createElement('span'); caja.className = 'avatar';
+        caja.textContent = (datos.username || '?').slice(0, 2).toUpperCase();
+        caja.setAttribute('aria-label', 'Foto de @' + datos.username);
+        if (datos.avatar_updated_at) {
+            const img = document.createElement('img'); img.alt = ''; img.width = 64; img.height = 64; img.loading = 'lazy';
+            img.src = config.supabaseUrl + '/storage/v1/object/public/avatars/' + encodeURIComponent(id) + '/avatar.jpg?v=' + encodeURIComponent(datos.avatar_updated_at);
+            img.onerror = () => img.remove(); caja.append(img);
+        }
+        return caja;
+    }
+    function rangoPerfil(role) {
+        const badge = document.createElement('span'); badge.className = 'rango-perfil';
+        badge.textContent = ({owner:'Owner', admin:'Admin', member:'Miembro'})[role] || 'Miembro'; return badge;
+    }
     function enlaceUsuario(id, nombre) {
         const enlace = document.createElement("a");
         enlace.href = "?perfil=" + encodeURIComponent(id);
@@ -44,7 +59,14 @@
             <input id="nuevaClave" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
             <button type="submit">Guardar contraseña</button>
         </form>
-        <div id="sesionPerfil" hidden><p id="nombrePerfil"></p><button id="cerrarSesion" type="button">Cerrar sesión</button></div>
+        <div id="sesionPerfil" hidden><p id="nombrePerfil"></p>
+            <details id="editarPerfil"><summary>Editar mi perfil</summary>
+            <div id="miFoto"></div>
+            <form id="formularioFoto"><label for="archivoFoto">Foto de perfil</label><input id="archivoFoto" type="file" accept="image/jpeg,image/png,image/webp" required>
+            <p>JPG, PNG o WebP, hasta 10 MB. Se recorta al centro. La foto será pública.</p>
+            <button type="submit">Guardar foto</button><button id="quitarFoto" type="button">Quitar foto</button></form>
+            <form id="formularioBio"><label for="bioPerfil">Sobre mí</label><textarea id="bioPerfil" maxlength="300" rows="3"></textarea><button type="submit">Guardar presentación</button></form>
+            <p id="estadoEdicionPerfil" role="status"></p></details><button id="cerrarSesion" type="button">Cerrar sesión</button></div>
         <p id="estadoPerfil" role="status"></p>`;
     if (config.emailConfirmationEnabled === false) {
         const aviso = document.createElement("p");
@@ -71,7 +93,7 @@
     let revisionFeed = 0;
     let desplazamiento = 0;
     const porPagina = 20;
-    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,body,created_at,profiles:profiles!posts_user_id_fkey(username),likes(count)";
+    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
     const destinoCorreo = location.origin + location.pathname;
     const estadoPerfil = document.getElementById("estadoPerfil");
 
@@ -104,7 +126,12 @@
         document.getElementById("formularioAcceso").hidden = Boolean(usuario);
         document.getElementById("sesionPerfil").hidden = !usuario;
         document.getElementById("formularioNuevaClave").hidden = !recuperando || !usuario;
-        document.getElementById("nombrePerfil").textContent = perfil ? "Publicas como @" + perfil.username : "Cargando tu perfil…";
+        const nombre = document.getElementById('nombrePerfil');
+        nombre.textContent = perfil ? 'Publicas como @' + perfil.username + ' ' : 'Cargando tu perfil…';
+        document.getElementById('miFoto').replaceChildren();
+        if (perfil && usuario) { nombre.append(rangoPerfil(perfil.role)); document.getElementById('miFoto').append(fotoPerfil(usuario.id, perfil)); }
+        document.getElementById('bioPerfil').value = perfil?.bio || '';
+        document.getElementById('quitarFoto').disabled = !perfil?.avatar_updated_at;
         const miPerfil = document.getElementById("miPerfil");
         miPerfil.hidden = !usuario || !perfil;
         if (usuario) miPerfil.href = "?perfil=" + encodeURIComponent(usuario.id);
@@ -120,7 +147,7 @@
         actualizarAcceso();
         try {
             if (usuario) {
-                const datos = resultado(await db.from("profiles").select("username").eq("id", usuario.id).single());
+                const datos = resultado(await db.from("profiles").select("username,role,bio,avatar_updated_at").eq("id", usuario.id).single());
                 if (revision !== revisionSesion) return;
                 perfil = datos;
             }
@@ -196,6 +223,47 @@
         });
     });
 
+
+    const estadoEdicion = document.getElementById('estadoEdicionPerfil');
+    let guardandoPerfil = false;
+    async function editarDatos(tarea) {
+        if (!usuario || !perfil || guardandoPerfil) return;
+        const id = usuario.id, revision = revisionSesion;
+        guardandoPerfil = true; estadoEdicion.textContent = 'Guardando…';
+        const botones = [...document.querySelectorAll('#editarPerfil button')]; botones.forEach(b => b.disabled = true);
+        try {
+            const cambios = await tarea(id);
+            const filas = resultado(await db.from('profiles').update(cambios).eq('id', id).select('username,role,bio,avatar_updated_at'));
+            if (!filas.length) throw Error('No se pudo guardar el perfil.');
+            if (revision !== revisionSesion) return;
+            perfil = filas[0]; actualizarAcceso(); await cargarFeed(true);
+            estadoEdicion.textContent = 'Perfil actualizado.';
+        } catch(e) { if(revision === revisionSesion) estadoEdicion.textContent = e.message || 'No se pudo guardar. Inténtalo otra vez.'; }
+        finally { guardandoPerfil = false; botones.forEach(b => b.disabled = false); document.getElementById('quitarFoto').disabled = !perfil?.avatar_updated_at; }
+    }
+    async function prepararFoto(file) {
+        if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type)) throw Error('Elige una imagen JPG, PNG o WebP.');
+        if (file.size > 10*1024*1024) throw Error('La imagen no puede superar 10 MB.');
+        const url = URL.createObjectURL(file);
+        try {
+            const img = new Image(); img.src = url; await img.decode();
+            if (!img.naturalWidth || !img.naturalHeight || img.naturalWidth * img.naturalHeight > 50000000) throw Error('La imagen es demasiado grande. Elige una más pequeña.');
+            const canvas = document.createElement('canvas'); canvas.width = canvas.height = 512;
+            const ctx = canvas.getContext('2d'); const side = Math.min(img.naturalWidth,img.naturalHeight);
+            ctx.fillStyle = '#eeeeee'; ctx.fillRect(0,0,512,512);
+            ctx.drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,512,512);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve,'image/jpeg',0.88));
+            if (!blob || blob.size>1048576) throw Error('No se pudo preparar la foto. Elige otra imagen.');
+            return blob;
+        } finally { URL.revokeObjectURL(url); }
+    }
+    document.getElementById('formularioFoto').addEventListener('submit',e=>{
+        e.preventDefault(); const file = document.getElementById('archivoFoto').files[0];
+        editarDatos(async id=>{ const blob = await prepararFoto(file); resultado(await db.storage.from('avatars').upload(id+'/avatar.jpg',blob,{upsert:true,contentType:'image/jpeg',cacheControl:'60'})); document.getElementById('archivoFoto').value=''; return {avatar_updated_at:new Date().toISOString()}; });
+    });
+    document.getElementById('formularioBio').addEventListener('submit',e=>{e.preventDefault(); const bio=document.getElementById('bioPerfil').value.trim(); editarDatos(async()=>({bio}));});
+    document.getElementById('quitarFoto').addEventListener('click',()=>editarDatos(async id=>{resultado(await db.storage.from('avatars').remove([id+'/avatar.jpg'])); return {avatar_updated_at:null};}));
+
     async function cargarFeed(reiniciar) {
         const revision = ++revisionFeed;
         refrescar.disabled = true;
@@ -204,9 +272,12 @@
         const inicio = reiniciar ? 0 : desplazamiento;
         try {
             if (viendoPerfil) {
-                const publico = idPerfilValido ? resultado(await db.from("profiles").select("username,created_at").eq("id", perfilSolicitado).maybeSingle()) : null;
+                const publico = idPerfilValido ? resultado(await db.from("profiles").select("username,created_at,role,bio,avatar_updated_at").eq("id", perfilSolicitado).maybeSingle()) : null;
                 if (revision !== revisionFeed) return;
                 if (!publico) {
+                    document.getElementById('fotoPerfilPublico').replaceChildren();
+                    document.getElementById('rangoPerfilPublico').replaceChildren();
+                    document.getElementById('bioPerfilPublico').textContent = '';
                     document.getElementById("tituloPerfilPublico").textContent = "Perfil no encontrado";
                     document.getElementById("fechaPerfilPublico").textContent = "";
                     document.getElementById("resumenPerfilPublico").textContent = "Comprueba el enlace o vuelve a Inicio.";
@@ -217,6 +288,9 @@
                     estadoFeed.textContent = "";
                     return;
                 }
+                document.getElementById('fotoPerfilPublico').replaceChildren(fotoPerfil(perfilSolicitado, publico));
+                document.getElementById('rangoPerfilPublico').replaceChildren(rangoPerfil(publico.role));
+                document.getElementById('bioPerfilPublico').textContent = publico.bio || 'Todavía no hay una presentación.';
                 document.title = "@" + publico.username + " · RedMusica";
                 document.getElementById("tituloPerfilPublico").textContent = "@" + publico.username;
                 document.getElementById("fechaPerfilPublico").textContent = "En RedMusica desde " + new Date(publico.created_at).toLocaleDateString("es", { month: "long", year: "numeric" });
@@ -251,7 +325,7 @@
         articulo.dataset.postId = post.id;
         const autor = document.createElement("p");
         autor.className = "autor-publicacion";
-        autor.append("Publicado por ", enlaceUsuario(post.user_id, post.profiles.username));
+        autor.append(fotoPerfil(post.user_id, post.profiles), enlaceUsuario(post.user_id, post.profiles.username), rangoPerfil(post.profiles.role));
         const portada = document.createElement("img");
         portada.loading = "lazy";
         portada.width = 250;

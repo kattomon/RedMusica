@@ -76,3 +76,11 @@ Nadie puede asignar `owner` desde el cliente ni modificar una cuenta owner. La a
 La cabina permite poner una canción ahora o siguiente, quitarla, saltar para todos y pausar/reanudar la sala. Los clientes reciben el cambio en hasta 15 segundos mientras la radio está abierta. Reanudar vuelve a iniciar la selección pendiente. Los pedidos cancelados no vuelven a la rotación. La cabina es control de selección de YouTube: no incluye emisión de micrófono, mezcla de audio ni elimina restricciones de reproducción de YouTube.
 
 Pruebas: `tests/admin-database.cjs` verifica RLS, ausencia de escalada de privilegios, protección del owner, revocación, moderación, suspensión, ajustes y cola. `tests/admin-browser.cjs` verifica el panel, acciones, cierre de sesión y diseño móvil con Chromium/WebKit. Los navegadores usan respuestas simuladas; la base usa PGlite. El despliegue también se comprueba con solicitudes sin token y con token inválido.
+
+## Perfiles públicos y fotos
+
+Aplicar `supabase/profiles.sql` después de `schema.sql` y `admin.sql`. El perfil público muestra el nombre, el rango, una presentación de hasta 300 caracteres y la foto si existe. Las publicaciones también incluyen avatar y rango del autor. El permiso de actualización se limita a `bio` y `avatar_updated_at`; el rango y el usuario siguen siendo de solo lectura para la persona.
+
+Las fotos se guardan en el bucket público `avatars`, con una ruta fija por usuario. La interfaz admite JPG, PNG y WebP hasta 10 MB, los procesa localmente a JPEG cuadrado de 512x512 píxeles y menos de 1 MB. Storage valida el tipo y tamaño y las políticas RLS restringen insertar, actualizar o borrar al propio usuario activo. La descarga es pública porque se muestra en perfiles compartidos.
+
+Pruebas: `tests/profiles-database.cjs` comprueba permisos de perfil, rango inmutable, validación del texto, ruta de avatar y suspensión. `tests/browser.cjs` verifica foto, presentación y rango en Chromium y WebKit.

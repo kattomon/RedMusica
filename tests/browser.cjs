@@ -15,7 +15,7 @@ const server=http.createServer((req,res)=>{
   const luis={id:'22222222-2222-4222-8222-222222222222',email:'luis@example.test',aud:'authenticated',role:'authenticated'};
   let posts=[],likes=[],comments=[],failPosts=false;
   const names={[ana.id]:'Ana',[luis.id]:'Luis'};
-  const contexts=[];
+  const profiles={[ana.id]:{username:'Ana',role:'owner',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'},[luis.id]:{username:'Luis',role:'member',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'}};let uploads=0;const contexts=[];
   function token(user){return Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';}
   async function makePage(start=''){
    const ctx=await browser.newContext(engine===webkit?{...devices['iPhone 13']}:{viewport:{width:1280,height:900}});contexts.push(ctx);
@@ -24,7 +24,7 @@ const server=http.createServer((req,res)=>{
    await ctx.route('https://coverartarchive.org/**',r=>r.fulfill({status:404,body:''}));
    await ctx.route('https://itunes.apple.com/**',r=>r.fulfill({contentType:'text/javascript',body:new URL(r.request().url()).searchParams.get('callback')+'({"results":[]})'}));
    await ctx.route('https://redmusica-test.supabase.co/**',async route=>{
-    const req=route.request(),url=new URL(req.url()),method=req.method();const body=req.postDataJSON();
+    const req=route.request(),url=new URL(req.url()),method=req.method();const body=url.pathname.startsWith('/storage/')?null:req.postDataJSON();
     const headers={'Content-Type':'application/json','Access-Control-Expose-Headers':'Content-Range'};
     const auth=req.headers().authorization;const sub=auth?.startsWith("Bearer ey")?JSON.parse(Buffer.from(auth.split(".")[1],"base64url").toString()).sub:null;const current=sub===ana.id?ana:sub===luis.id?luis:null;
     let data={},status=200;
@@ -33,10 +33,12 @@ const server=http.createServer((req,res)=>{
     else if(url.pathname==='/auth/v1/logout'){status=204;data=null;}
     else if(url.pathname==='/auth/v1/recover'){data={};}
     else if(url.pathname==='/auth/v1/user'){data=current;}
-    else if(url.pathname==='/rest/v1/profiles'){const id=url.searchParams.get('id').slice(3);data=names[id]?{username:names[id],created_at:'2026-09-26T12:00:00Z'}:null;}
+    else if(url.pathname==='/rest/v1/profiles'){const id=url.searchParams.get('id').slice(3);if(method==='PATCH'){assert.equal(id,current.id);Object.assign(profiles[id],body);data=[profiles[id]];}else data=profiles[id]||null;}
+    else if(url.pathname.startsWith('/storage/v1/object/public/')){return route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII=','base64')});}
+    else if(url.pathname.startsWith('/storage/v1/object/')){if(method==='POST'){uploads++;assert(url.pathname.endsWith(ana.id+'/avatar.jpg'));}data={};}
     else if(url.pathname==='/rest/v1/posts'){
       if(failPosts){status=503;data={message:'offline'};}
-      else if(method==='GET'){const owner=url.searchParams.get('user_id')?.slice(3);const filtered=[...posts].reverse().filter(p=>!owner||p.user_id===owner);const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||20);headers['Content-Range']=`${offset}-${Math.max(offset,Math.min(offset+limit,filtered.length)-1)}/${filtered.length}`;data=filtered.slice(offset,offset+limit).map(p=>({...p,profiles:{username:names[p.user_id]},likes:[{count:likes.filter(l=>l.post_id===p.id).length}]}));}
+      else if(method==='GET'){const owner=url.searchParams.get('user_id')?.slice(3);const filtered=[...posts].reverse().filter(p=>!owner||p.user_id===owner);const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||20);headers['Content-Range']=`${offset}-${Math.max(offset,Math.min(offset+limit,filtered.length)-1)}/${filtered.length}`;data=filtered.slice(offset,offset+limit).map(p=>({...p,profiles:profiles[p.user_id],likes:[{count:likes.filter(l=>l.post_id===p.id).length}]}));}
       else if(method==='POST'){if(!current)throw Error('Unauthenticated insert');posts.push({...body,id:'post-'+(posts.length+1),user_id:current.id,created_at:new Date().toISOString()});status=201;data=null;}
       else {const id=url.searchParams.get('id').slice(3),p=posts.find(p=>p.id===id&&p.user_id===current?.id);data=p?[{id:p.id}]:[];if(p&&method==='PATCH')p.body=body.body;if(p&&method==='DELETE')posts=posts.filter(p=>p.id!==id);}
     }
@@ -63,6 +65,11 @@ const server=http.createServer((req,res)=>{
   await login(a,ana.email);
   await a.locator('#buscarAlbum').fill('Álbum');await a.locator('#botonBuscar').click();await a.locator('.boton-elegir').click();await a.locator('#comentarioPublicacion').fill('Opinión <img src=x onerror=alert(1)>');await a.locator('#botonPublicar').click();await a.locator('#feed article').waitFor();
   assert.match(await a.locator('.autor-publicacion').innerText(),/@Ana/);assert.equal(await a.locator('#feed article script').count(),0);
+  await a.locator('#editarPerfil summary').click();
+  await a.locator('#bioPerfil').fill('Escucho discos de Chile.');await a.getByRole('button',{name:'Guardar presentación'}).click();await a.getByText('Perfil actualizado.',{exact:true}).waitFor();
+  function png1(){const zlib=require('node:zlib');const crc=b=>{let c=0xffffffff;for(const v of b){c^=v;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0);}return(c^0xffffffff)>>>0;};const chunk=(name,data)=>{const n=Buffer.from(name),len=Buffer.alloc(4),sum=Buffer.alloc(4);len.writeUInt32BE(data.length);sum.writeUInt32BE(crc(Buffer.concat([n,data])));return Buffer.concat([len,n,data,sum]);};const h=Buffer.alloc(13);h.writeUInt32BE(1,0);h.writeUInt32BE(1,4);h[8]=8;h[9]=6;return Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),chunk('IHDR',h),chunk('IDAT',zlib.deflateSync(Buffer.from([0,255,0,0,255]))),chunk('IEND',Buffer.alloc(0))]);}const photo=png1();
+  await a.locator('#archivoFoto').setInputFiles({name:'foto.png',mimeType:'image/png',buffer:photo});await a.getByRole('button',{name:'Guardar foto',exact:true}).click();await a.getByText('Perfil actualizado.',{exact:true}).waitFor();assert.equal(uploads,1);assert(profiles[ana.id].avatar_updated_at);
+  await a.locator('#archivoFoto').setInputFiles({name:'invalido.svg',mimeType:'image/svg+xml',buffer:Buffer.from('<svg/>')});await a.getByRole('button',{name:'Guardar foto',exact:true}).click();await a.getByText('Elige una imagen JPG, PNG o WebP.',{exact:true}).waitFor();assert.equal(uploads,1);
   const b=await makePage();await login(b,luis.email);await b.locator('#feed article').waitFor();
   assert.equal(await b.getByRole('button',{name:'Editar',exact:true}).count(),0);
   const like=b.getByRole('button',{name:/Me gusta/});await like.click();await b.waitForFunction(()=>document.querySelector('[aria-pressed]').getAttribute('aria-pressed')==='true');assert.equal(likes.length,1);
@@ -82,7 +89,7 @@ const server=http.createServer((req,res)=>{
   await a.locator('#formularioNuevaClave').waitFor();await a.locator('#nuevaClave').fill('new-password-123');await a.getByRole('button',{name:'Guardar contraseña',exact:true}).click();await a.getByText('Contraseña actualizada.',{exact:true}).waitFor();
   // Public profile deep links must filter on the server and keep pagination/ownership.
   posts=Array.from({length:22},(_,i)=>({id:'profile-post-'+i,user_id:i===21?luis.id:ana.id,album_id:'33333333-3333-4333-8333-333333333333',album_title:'Disco '+i,album_artist:'Artista',body:'Opinión '+i,created_at:new Date().toISOString()}));
-  const c=await makePage('?perfil='+ana.id);
+  const c=await makePage('?perfil='+ana.id);await c.locator('#bioPerfilPublico').getByText('Escucho discos de Chile.',{exact:true}).waitFor();assert.equal(await c.locator('#rangoPerfilPublico').innerText(),'Owner');assert.equal(await c.locator('#fotoPerfilPublico img').count(),1);
   await c.waitForFunction(()=>document.querySelector('#resumenPerfilPublico').textContent==='21 publicaciones');
   assert.equal(await c.locator('#tituloPerfilPublico').innerText(),'@Ana');
   assert.equal(await c.locator('#feed article').count(),20);
