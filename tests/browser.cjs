@@ -22,14 +22,15 @@ const server=http.createServer((req,res)=>{
    await ctx.route('**/config.js?*',r=>r.fulfill({contentType:'text/javascript',body:'window.REDMUSICA_CONFIG={supabaseUrl:"https://redmusica-test.supabase.co",supabasePublishableKey:"sb_publishable_test",emailConfirmationEnabled:false,passwordRecoveryEnabled:true};'}));
    await ctx.route('https://musicbrainz.org/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({'release-groups':[{id:'33333333-3333-4333-8333-333333333333',title:'Álbum de prueba','artist-credit':[{name:'Artista de prueba'}]}]})}));
    await ctx.route('https://coverartarchive.org/**',r=>r.fulfill({status:404,body:''}));
-   await ctx.route('https://itunes.apple.com/**',r=>r.fulfill({contentType:'text/javascript',body:new URL(r.request().url()).searchParams.get('callback')+'({"results":[]})'}));
+   await ctx.route('https://itunes.apple.com/**',r=>{const url=new URL(r.request().url()),callback=url.searchParams.get('callback');const results=url.searchParams.get('term')?.toLowerCase().includes('película de prueba')?[{trackName:'La película de prueba',releaseDate:'2020-01-01',artworkUrl100:'https://is1-ssl.mzstatic.com/image/thumb/test/100x100bb.jpg'}]:[];return r.fulfill({contentType:'text/javascript',body:callback+'('+JSON.stringify({results})+')'});});
+   await ctx.route('https://is*.mzstatic.com/**',r=>r.fulfill({contentType:'image/jpeg',body:Buffer.from('ffd8ffe0','hex')}));
    await ctx.route('https://www.wikidata.org/w/api.php?*',r=>{
     const url=new URL(r.request().url()),action=url.searchParams.get('action');let body={};
     if(action==='wbsearchentities')body={search:[{id:'Q12345',label:'La película de prueba',description:'película chilena'}]};
-    else{
+  else{
      body={entities:{}};
      for(const id of url.searchParams.get('ids').split('|')){
-      if(id==='Q12345')body.entities[id]={id,labels:{es:{value:'La película de prueba'}},descriptions:{es:{value:'película chilena'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q11424'}}}}],P57:[{mainsnak:{datavalue:{value:{id:'Q67890'}}}}],P18:[{mainsnak:{datavalue:{value:'Afiche de prueba.jpg'}}}],P577:[{mainsnak:{datavalue:{value:{time:'+2020-01-01T00:00:00Z'}}}}]}};
+      if(id==='Q12345')body.entities[id]={id,labels:{es:{value:'La película de prueba'}},descriptions:{es:{value:'película chilena'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q11424'}}}}],P57:[{mainsnak:{datavalue:{value:{id:'Q67890'}}}}],P577:[{mainsnak:{datavalue:{value:{time:'+2020-01-01T00:00:00Z'}}}}]}};
       else body.entities[id]={id,labels:{es:{value:'Directora de prueba'}}};
      }
     }
@@ -117,7 +118,7 @@ const server=http.createServer((req,res)=>{
   await a.getByRole('button',{name:'Escribir reseña'}).waitFor();await a.getByRole('button',{name:'Escribir reseña'}).click();
   assert.match(await a.locator('#datosPelicula').innerText(),/Directora de prueba.*2020/);
   await a.locator('#notaPelicula').selectOption('4.5');await a.locator('#opinionPelicula').fill('Una reseña de prueba');await a.getByRole('button',{name:'Publicar reseña'}).click();
-  await a.locator('#estadoBusquedaPeliculas').getByText('Reseña publicada.',{exact:true}).waitFor();assert.equal(posts.at(-1).post_type,'film');assert.equal(posts.at(-1).film_rating,4.5);
+  await a.locator('#estadoBusquedaPeliculas').getByText('Reseña publicada.',{exact:true}).waitFor();assert.equal(posts.at(-1).post_type,'film');assert.equal(posts.at(-1).film_rating,4.5);assert.match(posts.at(-1).film_poster,/600x900bb\.jpg/);await a.locator('.publicacion-pelicula .poster-pelicula').waitFor();
   await a.waitForFunction(()=>document.querySelectorAll('#feed article').length===1);assert.match(await a.locator('#feed article').innerText(),/La película de prueba/);
   await a.locator('#inicioNav').click();await a.waitForFunction(()=>document.querySelector('#feed').innerText.includes('Álbum de prueba'));assert.equal(await a.locator('#feed article').count(),1);
   await a.locator('#editarPerfil summary').click();

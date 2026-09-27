@@ -38,13 +38,18 @@
 #radioCola li { padding: 10px 0; }
 .tarjeta-pelicula { display: grid; grid-template-columns: minmax(100px, 150px) minmax(0,1fr); grid-template-rows: auto 1fr auto auto; gap: 6px 14px; align-items: start; }
 .tarjeta-pelicula h3, .tarjeta-pelicula p, .tarjeta-pelicula a, .tarjeta-pelicula button { grid-column: 2; margin: 0; }
-.tarjeta-pelicula .poster-resultado-pelicula { grid-column: 1; grid-row: 1 / 5; width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px; background: #eee; }
-.publicacion-pelicula .poster-pelicula { width: min(240px, 100%); aspect-ratio: 2 / 3; object-fit: cover; }
+.tarjeta-pelicula .marco-afiche-resultado { grid-column: 1; grid-row: 1 / 5; width: 100%; aspect-ratio: 2 / 3; }
+.tarjeta-pelicula .poster-resultado-pelicula, .marco-afiche-resultado .poster-pelicula { display: block; width: 100%; height: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px; background: #eee; }
+#posterSeleccionPelicula { width: min(240px, 100%); aspect-ratio: 2 / 3; margin: 12px 0; }
+#posterSeleccionPelicula .poster-pelicula, .publicacion-pelicula .poster-pelicula { display: block; width: 100%; height: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px; background: #eee; }
+.poster-pelicula-alternativo { display: flex !important; flex-direction: column; justify-content: space-between; gap: 16px; overflow: hidden; padding: 18px; color: #f7f4ed; background: linear-gradient(155deg, #444 0%, #202020 55%, #785d3f 100%); text-align: left; }
+.poster-pelicula-alternativo span { font-size: 11px; letter-spacing: .12em; opacity: .8; }
+.poster-pelicula-alternativo strong { font-family: Georgia, serif; font-size: clamp(17px, 4vw, 27px); line-height: 1.15; }
 .publicacion-pelicula .nota-pelicula { color: #815d12; font-weight: 700; }
 .fuente-pelicula, .atribucion-catalogo { font-size: 14px; }
 #notaPelicula { display: block; width: 100%; margin-bottom: 12px; }
 #opinionPelicula { display: block; width: 100%; min-height: 120px; margin-bottom: 12px; resize: vertical; }
-@media(max-width:520px) { .tarjeta-pelicula { grid-template-columns: minmax(0,1fr); } .tarjeta-pelicula h3, .tarjeta-pelicula p, .tarjeta-pelicula a, .tarjeta-pelicula button, .tarjeta-pelicula .poster-resultado-pelicula { grid-column: 1; } .tarjeta-pelicula .poster-resultado-pelicula { grid-row: auto; width: min(220px,100%); } #navegacion { gap: 12px; } }
+@media(max-width:520px) { .tarjeta-pelicula { grid-template-columns: minmax(0,1fr); } .tarjeta-pelicula h3, .tarjeta-pelicula p, .tarjeta-pelicula a, .tarjeta-pelicula button, .tarjeta-pelicula .marco-afiche-resultado { grid-column: 1; } .tarjeta-pelicula .marco-afiche-resultado { grid-row: auto; width: min(220px,100%); } #navegacion { gap: 12px; } }
 [hidden] { display: none !important; }
 body { margin: 0; background: #f7f7f7; color: #222222; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; }
 main { max-width: 960px; margin: 0 auto; padding: 24px; }
