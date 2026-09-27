@@ -9,7 +9,7 @@
   if (open && !frame) {
    frame = document.createElement('iframe');
    frame.title = 'Radio RedMusica: reproductor, búsqueda y cola';
-   frame.src = 'radio.html?panel=1';
+   frame.src = 'radio.html?panel=1&v=20260927-5';
    frame.allow = 'autoplay; fullscreen';
    panel.append(frame);
   }
@@ -23,3 +23,4 @@
   if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-close') setOpen(false);
  });
 })();
+
