@@ -615,8 +615,9 @@
             if(!friendship||friendship.status!=='accepted'){document.getElementById('estadoDockAmigos').textContent='El chat solo está disponible entre amigos.';return;}
             amigoChatActivo=person;mensajesPrivadosCargados.clear();listaPrivada.replaceChildren();
             document.getElementById('tituloChatAmigo').textContent='@'+person.username;
+            const toggleMinimize=document.getElementById('minimizarChatAmigo');toggleMinimize.textContent='−';toggleMinimize.setAttribute('aria-label','Minimizar chat');
             document.getElementById('estadoChatPrivado').textContent='Cargando conversación…';
-            ventanaPrivada.hidden=false;ventanaPrivada.classList.remove('minimizado');document.getElementById('mostrarChatMinimizado').hidden=true;
+            ventanaPrivada.hidden=false;ventanaPrivada.classList.remove('minimizado');
             const filter='and(sender_id.eq.'+usuario.id+',recipient_id.eq.'+person.id+'),and(sender_id.eq.'+person.id+',recipient_id.eq.'+usuario.id+')';
             const rows=resultado(await db.from('dm_messages').select('id,sender_id,recipient_id,body,created_at').or(filter).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(50));
             if(amigoChatActivo?.id!==person.id)return;
@@ -643,9 +644,12 @@
             pintarMensajePrivado(row);input.value='';
         });
     });
-    document.getElementById('minimizarChatAmigo').addEventListener('click',()=>{ventanaPrivada.classList.add('minimizado');document.getElementById('mostrarChatMinimizado').textContent='Chat · @'+(amigoChatActivo?.username||'amigo');document.getElementById('mostrarChatMinimizado').hidden=false;});
-    document.getElementById('cerrarChatAmigo').addEventListener('click',()=>{ventanaPrivada.hidden=true;document.getElementById('mostrarChatMinimizado').hidden=true;amigoChatActivo=null;});
-    document.getElementById('mostrarChatMinimizado').addEventListener('click',()=>{ventanaPrivada.classList.remove('minimizado');document.getElementById('mostrarChatMinimizado').hidden=true;document.getElementById('textoChatPrivado').focus();});
+    document.getElementById('minimizarChatAmigo').addEventListener('click',event=>{
+        const button=event.currentTarget,collapsed=ventanaPrivada.classList.toggle('minimizado');
+        button.textContent=collapsed?'□':'−';button.setAttribute('aria-label',collapsed?'Restaurar chat':'Minimizar chat');
+        if(!collapsed)document.getElementById('textoChatPrivado').focus();
+    });
+    document.getElementById('cerrarChatAmigo').addEventListener('click',()=>{ventanaPrivada.hidden=true;amigoChatActivo=null;});
     const dockButton=document.getElementById('abrirDockAmigos'),dock=document.getElementById('dockAmigos');
     dockButton.addEventListener('click',()=>{const open=dock.classList.toggle('abierto');dockButton.setAttribute('aria-expanded',String(open));});
     document.getElementById('actualizarDockAmigos').addEventListener('click',cargarAmigosDock);
@@ -1010,7 +1014,7 @@
             const isFilm=kinds.some(kind=>movieIds.has(kind))||(/\b(movie|film|película|pelicula|largometraje|cortometraje)\b/i.test(description)&&!/director|actor|actriz/i.test(description));
             if(!isFilm)return null;
             const directorIds=claimValue(entity,'P57').map(person=>person.id).filter(Boolean);
-            const poster=claimValue(entity,'P18')[0]||null;
+            const poster=claimValue(entity,'P3383')[0]||claimValue(entity,'P18')[0]||null;
             return {id:item.id,title:nombreEntidad(entity)||item.label||'',description,directorIds,poster,year:añoPelicula(entity)};
         }).filter(movie=>movie&&movie.title);
         if(!possible.length)return [];
@@ -1088,7 +1092,7 @@
         if(!value)return '';
         if(/^https:\/\/is\d+-ssl\.mzstatic\.com\//i.test(value))return value.replace(/\/(?:100|512|600)x(?:100|512|600)(?:bb)?\./,'/'+width+'x'+Math.round(width*1.5)+'bb.');
         if(/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\//i.test(value))return value;
-        if(!/^https?:\/\//i.test(value)&&value.length<=500)return 'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(value)+'?width='+width;
+        if(!/^https?:\/\//i.test(value)&&value.length<=500)return 'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(value.replace(/^File:/i,''))+'?width='+width;
         return '';
     }
     function crearAficheAlternativo(title,year){
