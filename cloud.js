@@ -825,8 +825,8 @@
         } else if (esPelicula) {
             portada.className='poster-pelicula';portada.alt='Afiche de '+post.film_title;
             const posterUrl=imagenAfiche(post.film_poster,600);
-            if(posterUrl){portada.src=posterUrl;portada.onerror=()=>{portada.replaceWith(crearAficheAlternativo(post.film_title,post.film_year));};}
-            else portada=crearAficheAlternativo(post.film_title,post.film_year);
+            if(posterUrl){portada.src=posterUrl;activarRespaldoAfiche(portada,{title:post.film_title,year:post.film_year,poster:post.film_poster},600);}
+            else {portada=crearAficheAlternativo(post.film_title,post.film_year);recuperarAfichePublicacion(portada,{title:post.film_title,year:post.film_year},600);}
         } else asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
         const titulo = document.createElement("h3");
         titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : esPelicula ? post.film_title : post.album_title;
@@ -1109,8 +1109,26 @@
         if(!value)return '';
         if(/^https:\/\/is\d+-ssl\.mzstatic\.com\//i.test(value))return value.replace(/\/(?:100|512|600)x(?:100|512|600)(?:bb)?\./,'/'+width+'x'+Math.round(width*1.5)+'bb.');
         if(/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\//i.test(value))return value;
+        const commonsFile=value.match(/^https:\/\/commons\.wikimedia\.org\/wiki\/(?:Special:FilePath\/|File:)([^?#]+)/i);
+        if(commonsFile)return 'https://commons.wikimedia.org/wiki/Special:FilePath/'+commonsFile[1]+'?width='+width;
         if(!/^https?:\/\//i.test(value)&&value.length<=500)return 'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(value.replace(/^File:/i,''))+'?width='+width;
         return '';
+    }
+    function activarRespaldoAfiche(image,movie,width){
+        let etapa=0,actual=image.src;
+        image.onerror=async()=>{
+            if(etapa===0){etapa=1;try{const wiki=await buscarAfichesWikipedia([movie]),candidate=imagenAfiche(wiki.get(normalizarTitulo(movie.title)),width);if(candidate&&candidate!==actual){actual=candidate;image.src=candidate;return;}}catch{}}
+            if(etapa<=1){etapa=2;try{const artwork=await buscarAficheItunes([movie.title,movie.year].filter(Boolean).join(' ')),match=artwork.find(item=>normalizarTitulo(item.trackName)===normalizarTitulo(movie.title)&&(!movie.year||!item.releaseDate||Math.abs(Number(item.releaseDate.slice(0,4))-movie.year)<=1)),candidate=imagenAfiche(match?.artworkUrl600||match?.artworkUrl512||match?.artworkUrl100,width);if(candidate&&candidate!==actual){actual=candidate;image.src=candidate;return;}}catch{}}
+            image.onerror=null;image.replaceWith(crearAficheAlternativo(movie.title,movie.year));
+        };
+    }
+    async function recuperarAfichePublicacion(fallback,movie,width){
+        try{
+            const options=await buscarCatalogoPeliculas(movie.title),match=options.find(item=>normalizarTitulo(item.title)===normalizarTitulo(movie.title)&&(!movie.year||!item.year||item.year===movie.year));
+            const url=imagenAfiche(match?.poster,width);if(!url||!fallback.isConnected)return;
+            const image=document.createElement('img');image.className='poster-pelicula';image.width=300;image.height=450;image.loading='lazy';image.alt='Afiche de '+movie.title;image.src=url;
+            activarRespaldoAfiche(image,{...movie,poster:match.poster},width);fallback.replaceWith(image);
+        }catch{}
     }
     function crearAficheAlternativo(title,year){
         const fallback=document.createElement('div');fallback.className='poster-pelicula poster-pelicula-alternativo';fallback.setAttribute('role','img');fallback.setAttribute('aria-label','Portada de '+title);
@@ -1124,7 +1142,7 @@
         const url=imagenAfiche(movie.poster,width);
         if(!url){contenedor.append(crearAficheAlternativo(movie.title,movie.year));return;}
         const image=document.createElement('img');image.className='poster-pelicula';image.width=300;image.height=450;image.loading='lazy';image.alt='Afiche de '+movie.title;image.src=url;
-        image.onerror=()=>image.replaceWith(crearAficheAlternativo(movie.title,movie.year));contenedor.append(image);
+        activarRespaldoAfiche(image,movie,width);contenedor.append(image);
     }
     const formularioBusquedaPeliculas=document.getElementById('formularioBusquedaPeliculas');
     formularioBusquedaPeliculas.addEventListener('submit',async event=>{
@@ -1142,7 +1160,7 @@
                 const card=document.createElement('article');card.className='tarjeta-pelicula';
                 const posterBox=document.createElement('div');posterBox.className='marco-afiche-resultado';
                 const posterUrl=imagenAfiche(movie.poster,360);
-                if(posterUrl){const image=document.createElement('img');image.className='poster-resultado-pelicula';image.loading='lazy';image.alt='Afiche de '+movie.title;image.src=posterUrl;image.onerror=()=>image.replaceWith(crearAficheAlternativo(movie.title,movie.year));posterBox.append(image);}
+                if(posterUrl){const image=document.createElement('img');image.className='poster-resultado-pelicula';image.loading='lazy';image.alt='Afiche de '+movie.title;image.src=posterUrl;activarRespaldoAfiche(image,movie,360);posterBox.append(image);}
                 else posterBox.append(crearAficheAlternativo(movie.title,movie.year));card.append(posterBox);
                 const title=document.createElement('h3');title.textContent=movie.title;
                 const meta=document.createElement('p');meta.textContent=[movie.director,movie.year,movie.description].filter(Boolean).join(' · ');

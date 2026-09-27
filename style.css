@@ -176,30 +176,31 @@ input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border
 .tarjeta-amigo .estado-amistad { grid-column: 1 / -1; margin: 0 0 0 54px; }
 .tarjeta-amigo .acciones { grid-column: 1 / -1; }
 
-/* A restrained 2009 social-network look: clear blue navigation and paper-white panels. */
-body { background: #e9edf3; }
-h1, h2, h3 { color: #273f68; }
-a { color: #365899; }
-button { background: #4267a9; }
-button:hover { background: #31518a; }
-hr { border: 0; border-top: 1px solid #c5ceda; margin: 22px 0; }
-#navegacion { align-items: center; gap: 4px; padding: 6px 8px; border: 1px solid #29487d; border-radius: 3px; background: #3b5998; }
-#navegacion a { padding: 6px 10px; border-bottom: 2px solid transparent; color: #fff; text-decoration: none; }
-#navegacion a:hover { background: #314d83; }
-#navegacion a[aria-current="page"] { border-bottom-color: #fff; font-weight: 700; }
-#navegacion button { background: #e7edf7; color: #263f69; }
-#navegacion button:hover { background: #fff; }
-#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas, #seccionAmigos, #chatComunitario, #notificaciones { padding: 18px; border: 1px solid #ccd5e0; border-radius: 3px; background: #fff; }
-#cuenta { max-width: 760px; border-bottom: 1px solid #ccd5e0; }
+/* A warm, understated palette keeps the classic social layout distinct to RedMusica. */
+body { background: #f2f0ec; }
+h1, h2, h3 { color: #3e3934; }
+a { color: #705447; }
+button { background: #5b625d; }
+button:hover { background: #444b46; }
+hr { border: 0; border-top: 1px solid #d4cec5; margin: 22px 0; }
+#navegacion { align-items: center; gap: 4px; padding: 6px 8px; border: 1px solid #cbc4ba; border-radius: 3px; background: #e5e0d8; }
+#navegacion a { padding: 6px 10px; border-bottom: 2px solid transparent; color: #403b36; text-decoration: none; }
+#navegacion a:hover { background: #d9d2c8; }
+#navegacion a[aria-current="page"] { border-bottom-color: #8a6654; font-weight: 700; }
+#navegacion button { background: #5b625d; color: #fff; }
+#navegacion button:hover { background: #444b46; }
+#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas, #seccionAmigos, #chatComunitario, #notificaciones { padding: 18px; border: 1px solid #d8d2c9; border-radius: 3px; background: #fff; }
+#cuenta { max-width: 760px; border-bottom: 1px solid #d8d2c9; }
 #cuenta h2, #crearPublicacion h2, #crearMeme h2, #seccionPeliculas h2, #seccionAmigos h2, #chatComunitario h2 { margin-top: 0; }
 #perfilPublico { border: 1px solid #ccd5e0; border-top: 5px solid #3b5998; border-radius: 3px; }
-#feed > article { border-color: #ccd5e0; border-radius: 3px; box-shadow: 0 1px 2px #1d35551a; }
-#resultadosPeliculas .tarjeta-pelicula { border-color: #d2dae4; border-radius: 3px; }
-#dockAmigos { border-color: #c6d1df; border-radius: 4px; }
-#dockAmigos header { background: #eef3fa; }
-#ventanaChatAmigo { border-color: #b9c8da; border-radius: 4px; }
-#ventanaChatAmigo header { background: #eef3fa; }
-#perfilPublico > #sesionPerfil { margin-top: 20px; padding-top: 16px; border-top: 1px solid #d7dde5; }
+#feed > article { border-color: #d8d2c9; border-radius: 3px; box-shadow: 0 1px 2px #372b2010; }
+#resultadosPeliculas .tarjeta-pelicula { border-color: #ded8cf; border-radius: 3px; }
+#dockAmigos { border-color: #d6cfc5; border-radius: 4px; }
+#dockAmigos header { background: #f0ede7; }
+#ventanaChatAmigo { border-color: #d0c8bd; border-radius: 4px; }
+#ventanaChatAmigo header { background: #f0ede7; }
+#perfilPublico { border-color: #d8d2c9; border-top-color: #8a6654; }
+#perfilPublico > #sesionPerfil { margin-top: 20px; padding-top: 16px; border-top: 1px solid #ddd7cf; }
 @media (max-width: 520px) {
     #navegacion { gap: 2px; padding: 5px; }
     #navegacion a { padding: 6px 7px; }
