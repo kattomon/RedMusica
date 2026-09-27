@@ -10,13 +10,21 @@
 #panelRadio { position: fixed; top: 72px; right: 20px; width: min(440px, calc(100vw - 32px)); height: min(760px, calc(100vh - 88px)); height: min(760px, calc(100dvh - 88px)); z-index: 30; background: #f7f7f7; border: 1px solid #aaa; border-radius: 8px; box-shadow: 0 8px 32px #0003; overflow: hidden; display: flex; flex-direction: column; }
 #panelRadio header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #ddd; background: white; }
 #panelRadio header h2 { font-size: 18px; margin: 0; }
+#panelRadio .controles-panel-radio { display: flex; align-items: center; gap: 6px; }
+#panelRadio .controles-panel-radio button { padding: 8px 12px; }
 #panelRadio iframe { border: 0; width: 100%; flex: 1; min-height: 0; }
+#panelRadio.minimizado { width: min(220px, calc(100vw - 32px)); height: 60px; overflow: hidden; }
+#panelRadio.minimizado header { height: 60px; padding: 6px 8px; gap: 6px; }
+#panelRadio.minimizado header h2 { flex: 1; font-size: 14px; white-space: nowrap; }
+#panelRadio.minimizado .controles-panel-radio { gap: 4px; }
+#panelRadio.minimizado .controles-panel-radio button { min-height: 42px; padding: 6px 8px; font-size: 14px; }
+#panelRadio.minimizado iframe { position: fixed; top: 0; left: -10000px; width: min(440px, calc(100vw - 32px)); height: min(760px, calc(100dvh - 88px)); }
 .radio-embedded main { padding: 16px; }
 .radio-embedded main > h1, .radio-embedded #navegacion, .radio-embedded main > p:first-of-type { display: none; }
 .radio-embedded h2 { font-size: 20px; margin-top: 16px; }
 .radio-embedded .campos-busqueda { grid-template-columns: 1fr; }
 .radio-embedded #radioReproductor iframe { height: 240px; }
-@media(max-width:480px) { #abrirRadio { top: 12px; right: 16px; } #panelRadio { right: 16px; } body:not(.radio-embedded) main > h1 { padding-right: 110px; } }
+@media(max-width:480px) { #abrirRadio { top: 12px; right: 16px; } #panelRadio { right: 16px; } #panelRadio.minimizado { right: 16px; } body:not(.radio-embedded) main > h1 { padding-right: 110px; } }
 #radioReproductor { margin: 16px 0; width: 100%; min-height: 240px; }
 #radioReproductor iframe { display: block; width: 100%; min-height: 240px; aspect-ratio: 16 / 9; border: 0; }
 #radioResultados article h3 { margin-top: 0; }

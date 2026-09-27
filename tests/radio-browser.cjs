@@ -57,8 +57,17 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   await room.getByRole('searchbox',{name:'Artista',exact:true}).fill('Mi artista');
   await room.getByRole('button',{name:'Entrar a escuchar'}).click();
   await room.getByRole('button',{name:'Volver a la canción de la sala'}).waitFor();
+  await feed.getByRole('button',{name:'Minimizar sin detener la radio'}).click();
+  assert.equal(await feed.locator('#panelRadio').isVisible(),true);
+  assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),true);
+  assert.equal(await feed.frameLocator('#panelRadio iframe').locator('#radioReproductor').isVisible(),true);
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),0,'minimizing must not pause the YouTube player');
+  await feed.getByRole('button',{name:'Expandir radio'}).click();
+  assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),false);
   await feed.getByRole('button',{name:'Cerrar radio y pausar'}).click();
   assert.equal(await feed.locator('#panelRadio').isVisible(),false);
+  await room.locator('body').evaluate(()=>new Promise(resolve=>setTimeout(resolve,0)));
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'closing must still pause the player');
   await feed.getByRole('button',{name:'Radio ♫'}).click();
   assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).getAttribute('placeholder'),'Nombre del artista');
   assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).evaluate(e=>e.value),'Mi artista');
