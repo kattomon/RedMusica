@@ -13,6 +13,8 @@
     let presenceOwner = null;
     const presenciaEnLinea = new Set();
     let revisionAmigos = 0;
+    let canalMensajesPrivados = null, propietarioMensajesPrivados = null;
+    let amigoChatActivo = null, mensajesPrivadosCargados = new Set();
     document.getElementById("navegacion").hidden = false;
     document.getElementById("perfilPublico").hidden = !viendoPerfil;
     document.getElementById("crearPublicacion").hidden = viendoPerfil || viendoMemes || viendoPeliculas;
@@ -71,6 +73,11 @@
             const online=presenciaEnLinea.has(status.dataset.userId);
             status.textContent=online?'En línea':'Desconectado';
             status.classList.toggle('en-linea',online);
+        });
+        document.querySelectorAll('.amigo-dock[data-user-id]').forEach(row=>{
+            const online=presenciaEnLinea.has(row.dataset.userId);
+            const status=row.querySelector('.estado-presencia-amigo');
+            if(status){status.textContent=online?'En línea':'Desconectado';status.classList.toggle('en-linea',online);}
         });
         const status=document.getElementById('presenciaPerfil');
         if(status?.dataset.userId){const online=presenciaEnLinea.has(status.dataset.userId);status.textContent=online?'● En línea':'○ Desconectado';status.classList.toggle('en-linea',online);status.classList.toggle('desconectado',!online);}
@@ -199,6 +206,8 @@
         document.getElementById("abrirNotificaciones").hidden = !usuario;
         document.getElementById("notificaciones").hidden = !usuario || !notificacionesAbiertas;
         document.getElementById('amigosNav').hidden = !usuario;
+        document.getElementById('dockAmigos').hidden = !usuario;
+        document.getElementById('abrirDockAmigos').hidden = !usuario;
         if(viendoAmigos){
             ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
             document.getElementById('cuenta').hidden=Boolean(usuario);
@@ -234,7 +243,8 @@
             if (revision !== revisionSesion) return;
             actualizarAcceso();
             await cargarFeed(true);
-            await actualizarConteoSolicitudesAmistad();
+            await Promise.all([actualizarConteoSolicitudesAmistad(),cargarAmigosDock()]);
+            iniciarMensajesPrivados();
             revisionNotificaciones++;offsetNotificaciones=0;actualizarContadorNotificaciones();
         } catch (error) {
             if (revision === revisionSesion) estadoPerfil.textContent = "No se pudo cargar tu perfil. Recarga la página para volver a intentarlo.";
@@ -511,7 +521,7 @@
         }else resultado(await query);
         if(viendoPerfil)await cargarEstadoAmistadPerfil();
         if(viendoAmigos)await cargarAmigos();
-        await actualizarConteoSolicitudesAmistad();
+        await Promise.all([actualizarConteoSolicitudesAmistad(),cargarAmigosDock()]);
     }
     document.getElementById('amistadPerfil').addEventListener('click',async()=>{
         if(!exigirCuenta()||!objetivoSeguir)return;
@@ -564,6 +574,80 @@
     }
     document.getElementById('actualizarAmigos').addEventListener('click',cargarAmigos);
     setInterval(()=>{if(viendoAmigos&&!document.hidden)cargarAmigos();},60000);
+    async function cargarAmigosDock(){
+        const box=document.getElementById('listaDockAmigos'),status=document.getElementById('estadoDockAmigos');
+        if(!usuario){box.replaceChildren();return;}
+        status.textContent='';
+        try{
+            const rows=resultado(await db.from('friendships').select('user_a,user_b,status').or('user_a.eq.'+usuario.id+',user_b.eq.'+usuario.id).eq('status','accepted').order('created_at',{ascending:false}).limit(100));
+            if(!usuario)return;
+            const ids=[...new Set(rows.map(row=>row.user_a===usuario.id?row.user_b:row.user_a))];
+            const people=ids.length?resultado(await db.from('profiles').select('id,username,role,avatar_updated_at').in('id',ids)):[];
+            const byId=new Map(people.map(person=>[person.id,person]));box.replaceChildren();
+            rows.forEach(row=>{
+                const id=row.user_a===usuario.id?row.user_b:row.user_a,person=byId.get(id);if(!person)return;
+                const item=document.createElement('div');item.className='amigo-dock';item.dataset.userId=id;
+                item.append(fotoPerfil(id,person));
+                const link=enlaceUsuario(id,person.username);item.append(link);
+                const presence=document.createElement('span');presence.className='estado-presencia-amigo';presence.dataset.userId=id;presence.textContent=presenciaEnLinea.has(id)?'En línea':'Desconectado';presence.classList.toggle('en-linea',presenciaEnLinea.has(id));item.append(presence);
+                const button=crearBoton('Chat');button.className='boton-chat-amigo';button.setAttribute('aria-label','Abrir chat con @'+person.username);button.addEventListener('click',()=>abrirChatPrivado({id,username:person.username}));item.append(button);box.append(item);
+            });
+            if(!rows.length){const empty=document.createElement('p');empty.className='estado-vacio-amigos';empty.textContent='Tus amigos aparecerán aquí.';box.append(empty);}
+        }catch{status.textContent='No se pudo cargar la lista de amigos.';}
+    }
+    const ventanaPrivada=document.getElementById('ventanaChatAmigo');
+    const listaPrivada=document.getElementById('mensajesPrivados');
+    function pintarMensajePrivado(row){
+        if(!row||mensajesPrivadosCargados.has(row.id)||!amigoChatActivo)return;
+        if(!((row.sender_id===usuario?.id&&row.recipient_id===amigoChatActivo.id)||(row.recipient_id===usuario?.id&&row.sender_id===amigoChatActivo.id)))return;
+        mensajesPrivadosCargados.add(row.id);
+        const item=document.createElement('article');item.className='mensaje-privado'+(row.sender_id===usuario.id?' propio':'');item.dataset.messageId=row.id;
+        const body=document.createElement('p');body.textContent=row.body;
+        const time=document.createElement('time');time.dateTime=row.created_at;time.textContent=new Date(row.created_at).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+        item.append(body,time);listaPrivada.append(item);while(listaPrivada.children.length>50){mensajesPrivadosCargados.delete(listaPrivada.firstElementChild.dataset.messageId);listaPrivada.firstElementChild.remove();}
+        listaPrivada.scrollTop=listaPrivada.scrollHeight;
+    }
+    async function abrirChatPrivado(person){
+        if(!exigirCuenta())return;
+        try{
+            const friendship=await obtenerAmistad(person.id);
+            if(!friendship||friendship.status!=='accepted'){document.getElementById('estadoDockAmigos').textContent='El chat solo está disponible entre amigos.';return;}
+            amigoChatActivo=person;mensajesPrivadosCargados.clear();listaPrivada.replaceChildren();
+            document.getElementById('tituloChatAmigo').textContent='@'+person.username;
+            document.getElementById('estadoChatPrivado').textContent='Cargando conversación…';
+            ventanaPrivada.hidden=false;ventanaPrivada.classList.remove('minimizado');document.getElementById('mostrarChatMinimizado').hidden=true;
+            const filter='and(sender_id.eq.'+usuario.id+',recipient_id.eq.'+person.id+'),and(sender_id.eq.'+person.id+',recipient_id.eq.'+usuario.id+')';
+            const rows=resultado(await db.from('dm_messages').select('id,sender_id,recipient_id,body,created_at').or(filter).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(50));
+            if(amigoChatActivo?.id!==person.id)return;
+            rows.reverse().forEach(pintarMensajePrivado);document.getElementById('estadoChatPrivado').textContent='';document.getElementById('textoChatPrivado').focus();
+        }catch{document.getElementById('estadoChatPrivado').textContent='No se pudo abrir el chat. Comprueba que siguen siendo amigos.';}
+    }
+    function iniciarMensajesPrivados(){
+        if(!usuario){if(canalMensajesPrivados){db.removeChannel(canalMensajesPrivados);canalMensajesPrivados=null;}propietarioMensajesPrivados=null;amigoChatActivo=null;ventanaPrivada.hidden=true;return;}
+        if(canalMensajesPrivados&&propietarioMensajesPrivados===usuario.id)return;
+        if(canalMensajesPrivados)db.removeChannel(canalMensajesPrivados);
+        const owner=usuario.id;propietarioMensajesPrivados=owner;
+        canalMensajesPrivados=db.channel('redmusica-dms-'+owner).on('postgres_changes',{event:'INSERT',schema:'public',table:'dm_messages'},payload=>{
+            const row=payload.new;
+            if(usuario?.id!==owner)return;
+            if(amigoChatActivo&&((row.sender_id===owner&&row.recipient_id===amigoChatActivo.id)||(row.recipient_id===owner&&row.sender_id===amigoChatActivo.id)))pintarMensajePrivado(row);
+            else if(row.recipient_id===owner){const friend=document.querySelector('.amigo-dock[data-user-id="'+CSS.escape(row.sender_id)+'"] .boton-chat-amigo');if(friend)friend.textContent='Chat · nuevo';}
+        }).subscribe();
+    }
+    document.getElementById('formularioChatPrivado').addEventListener('submit',event=>{
+        event.preventDefault();const input=document.getElementById('textoChatPrivado'),button=document.getElementById('enviarChatPrivado'),body=input.value.trim();
+        if(!body||!amigoChatActivo||!exigirCuenta())return;
+        accion(button,document.getElementById('estadoChatPrivado'),async()=>{
+            const row=resultado(await db.from('dm_messages').insert({recipient_id:amigoChatActivo.id,body}).select('id,sender_id,recipient_id,body,created_at').single());
+            pintarMensajePrivado(row);input.value='';
+        });
+    });
+    document.getElementById('minimizarChatAmigo').addEventListener('click',()=>{ventanaPrivada.classList.add('minimizado');document.getElementById('mostrarChatMinimizado').textContent='Chat · @'+(amigoChatActivo?.username||'amigo');document.getElementById('mostrarChatMinimizado').hidden=false;});
+    document.getElementById('cerrarChatAmigo').addEventListener('click',()=>{ventanaPrivada.hidden=true;document.getElementById('mostrarChatMinimizado').hidden=true;amigoChatActivo=null;});
+    document.getElementById('mostrarChatMinimizado').addEventListener('click',()=>{ventanaPrivada.classList.remove('minimizado');document.getElementById('mostrarChatMinimizado').hidden=true;document.getElementById('textoChatPrivado').focus();});
+    const dockButton=document.getElementById('abrirDockAmigos'),dock=document.getElementById('dockAmigos');
+    dockButton.addEventListener('click',()=>{const open=dock.classList.toggle('abierto');dockButton.setAttribute('aria-expanded',String(open));});
+    document.getElementById('actualizarDockAmigos').addEventListener('click',cargarAmigosDock);
     async function actualizarConteoSolicitudesAmistad(){
         if(!usuario)return;
         try{

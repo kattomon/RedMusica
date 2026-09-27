@@ -121,6 +121,42 @@ input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border
 .estado-presencia-amigo { font-size: 13px; color: #666; }
 .estado-presencia-amigo.en-linea { color: #278547; }
 
+/* Friend sidebar and persistent private chat */
+#dockAmigos { position: fixed; z-index: 16; top: 84px; right: 16px; width: 246px; max-height: min(72vh, 680px); overflow: hidden; display: flex; flex-direction: column; background: #fff; border: 1px solid #d5d5d5; border-radius: 8px; box-shadow: 0 3px 14px #0002; }
+#dockAmigos header, #ventanaChatAmigo header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #ddd; background: #f7f7f7; }
+#dockAmigos header h2, #ventanaChatAmigo header h2 { flex: 1; margin: 0; font-size: 16px; }
+#dockAmigos header button, #ventanaChatAmigo header button { min-width: 38px; padding: 4px 8px; }
+#estadoDockAmigos { margin: 0; padding: 4px 10px; color: #666; font-size: 13px; }
+#listaDockAmigos { overflow-y: auto; overscroll-behavior: contain; }
+.amigo-dock { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-top: 1px solid #eee; }
+.amigo-dock .avatar { flex-basis: 36px; width: 36px; height: 36px; font-size: 13px; }
+.amigo-dock .enlace-usuario { flex: 1; min-width: 0; }
+.amigo-dock .estado-presencia-amigo { flex: 0 0 auto; font-size: 11px; }
+.amigo-dock .boton-chat-amigo { min-height: 36px; padding: 5px 8px; font-size: 13px; }
+#ventanaChatAmigo { position: fixed; z-index: 28; right: 278px; bottom: 16px; width: min(340px, calc(100vw - 24px)); height: min(440px, calc(100dvh - 32px)); display: flex; flex-direction: column; overflow: hidden; background: white; border: 1px solid #bbb; border-radius: 8px; box-shadow: 0 6px 24px #0003; }
+#ventanaChatAmigo.minimizado { height: auto; }
+#ventanaChatAmigo.minimizado #mensajesPrivados, #ventanaChatAmigo.minimizado #estadoChatPrivado, #ventanaChatAmigo.minimizado #formularioChatPrivado { display: none; }
+#mensajesPrivados { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; overscroll-behavior: contain; padding: 10px; }
+.mensaje-privado { max-width: 88%; align-self: flex-start; padding: 8px 10px; border-radius: 10px; background: #eee; overflow-wrap: anywhere; }
+.mensaje-privado.propio { align-self: flex-end; background: #e3e3e3; }
+.mensaje-privado p { margin: 0; white-space: pre-wrap; }
+.mensaje-privado time { display: block; margin-top: 3px; color: #666; font-size: 11px; }
+#estadoChatPrivado { margin: 0; padding: 0 10px; color: #555; font-size: 12px; }
+#formularioChatPrivado { display: flex; gap: 8px; padding: 8px; border-top: 1px solid #ddd; }
+#formularioChatPrivado input { flex: 1; min-width: 0; }
+#formularioChatPrivado button { padding: 8px 12px; }
+#mostrarChatMinimizado { position: fixed; z-index: 28; right: 278px; bottom: 16px; }
+@media (min-width: 1280px) { main { width: min(960px, calc(100vw - 320px)); margin: 0 0 0 max(16px, calc((100vw - 278px - 960px) / 2)); } }
+@media (max-width: 1279px) {
+    #abrirDockAmigos { display: block; position: fixed; z-index: 16; right: 12px; bottom: 68px; }
+    #dockAmigos { top: auto; right: 12px; bottom: 12px; width: min(320px, calc(100vw - 24px)); max-height: min(55vh, 480px); display: none; }
+    #dockAmigos.abierto { display: flex; }
+    #dockAmigos::before { content: ""; position: fixed; right: 12px; bottom: 12px; }
+    #ventanaChatAmigo { right: 12px; bottom: 12px; z-index: 34; }
+    #mostrarChatMinimizado { right: 12px; bottom: 12px; z-index: 34; }
+}
+@media (max-width: 480px) { #ventanaChatAmigo { width: calc(100vw - 24px); height: min(420px, calc(100dvh - 24px)); } }
+
 #formularioAcceso, #formularioNuevaClave { max-width: 440px; }
 #formularioAcceso input, #formularioAcceso select, #formularioNuevaClave input { display: block; width: 100%; margin-bottom: 12px; }
 select { font: inherit; font-size: 16px; min-height: 44px; padding: 8px; }

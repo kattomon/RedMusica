@@ -13,12 +13,12 @@ const server=http.createServer((req,res)=>{
   const browser=await engine.launch();
   const ana={id:'11111111-1111-4111-8111-111111111111',email:'ana@example.test',aud:'authenticated',role:'authenticated'};
   const luis={id:'22222222-2222-4222-8222-222222222222',email:'luis@example.test',aud:'authenticated',role:'authenticated'};
-  let posts=[],likes=[],comments=[],follows=[],friendships=[],notifications=[],chatMessages=[],failPosts=false;
+  let posts=[],likes=[],comments=[],follows=[],friendships=[],notifications=[],chatMessages=[],dmMessages=[],failPosts=false;
   const names={[ana.id]:'Ana',[luis.id]:'Luis'};
   const profiles={[ana.id]:{username:'Ana',role:'owner',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'},[luis.id]:{username:'Luis',role:'member',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'}};let uploads=0,imageUploads=0;const contexts=[];
   function token(user){return Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';}
   async function makePage(start=''){
-   const ctx=await browser.newContext(engine===webkit?{...devices['iPhone 13']}:{viewport:{width:1280,height:900}});contexts.push(ctx);
+   const ctx=await browser.newContext(engine===webkit?{...devices['iPhone 13']}:{viewport:{width:1440,height:900}});contexts.push(ctx);
    await ctx.route('**/config.js?*',r=>r.fulfill({contentType:'text/javascript',body:'window.REDMUSICA_CONFIG={supabaseUrl:"https://redmusica-test.supabase.co",supabasePublishableKey:"sb_publishable_test",emailConfirmationEnabled:false,passwordRecoveryEnabled:true};'}));
    await ctx.route('https://musicbrainz.org/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({'release-groups':[{id:'33333333-3333-4333-8333-333333333333',title:'Álbum de prueba','artist-credit':[{name:'Artista de prueba'}]}]})}));
    await ctx.route('https://coverartarchive.org/**',r=>r.fulfill({status:404,body:''}));
@@ -72,6 +72,15 @@ const server=http.createServer((req,res)=>{
     else if(url.pathname==='/rest/v1/chat_messages'){
       if(method==='GET'){data=chatMessages.slice(-50).reverse().map(m=>({...m,profiles:profiles[m.user_id]}));headers['Content-Range']='0-'+Math.max(0,data.length-1)+'/'+chatMessages.length;}
       else if(method==='POST'){const m={...body,id:'chat-'+(chatMessages.length+1),user_id:current.id,created_at:new Date().toISOString()};chatMessages.push(m);status=201;data=url.searchParams.has('select')?{...m}:null;}
+    }
+    else if(url.pathname==='/rest/v1/dm_messages'){
+      if(method==='GET'){
+        const or=url.searchParams.get('or')||'',other=(or.match(/sender_id\.eq\.([0-9a-f-]{36})/)||[])[1]===current?.id?(or.match(/recipient_id\.eq\.([0-9a-f-]{36})/)||[])[1]:(or.match(/sender_id\.eq\.([0-9a-f-]{36})/)||[])[1];
+        data=dmMessages.filter(m=>(m.sender_id===current?.id&&m.recipient_id===other)||(m.recipient_id===current?.id&&m.sender_id===other)).slice(-50).reverse();headers['Content-Range']='0-'+Math.max(0,data.length-1)+'/'+data.length;
+      }else if(method==='POST'){
+        assert(friendships.some(f=>f.status==='accepted'&&((f.user_a===current.id&&f.user_b===body.recipient_id)||(f.user_b===current.id&&f.user_a===body.recipient_id))),'private chat requires accepted friendship');
+        const m={...body,id:'dm-'+(dmMessages.length+1),sender_id:current.id,created_at:new Date().toISOString()};dmMessages.push(m);status=201;data=url.searchParams.has('select')?m:null;
+      }
     }
     else if(url.pathname==='/rest/v1/posts'){
       if(failPosts){status=503;data={message:'offline'};}
@@ -147,7 +156,14 @@ const server=http.createServer((req,res)=>{
   await b.getByRole('button',{name:'Agregar amigo',exact:true}).click();await b.getByRole('button',{name:'Cancelar solicitud',exact:true}).waitFor();assert.equal(friendships.length,1);
   await a.goto('http://127.0.0.1:4174/?seccion=amigos');await a.getByRole('heading',{name:'Amigos y solicitudes'}).waitFor();await a.getByRole('button',{name:'Aceptar',exact:true}).click();await a.locator('.tarjeta-amigo .estado-amistad').getByText('Amigos',{exact:true}).waitFor();assert.equal(friendships[0].status,'accepted');
   await b.goto('http://127.0.0.1:4174/?seccion=amigos');await b.locator('.tarjeta-amigo').getByText('@Ana',{exact:true}).waitFor();await b.locator('.tarjeta-amigo .estado-amistad').getByText('Amigos',{exact:true}).waitFor();await b.locator('.tarjeta-amigo .estado-presencia-amigo').waitFor();await b.locator('.enlace-usuario').first().waitFor();
+  if(engine.name()==='webkit'){await b.locator('#abrirDockAmigos').click();await b.locator('#dockAmigos.abierto').waitFor();assert.equal(await b.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'mobile friends dock must not cause horizontal overflow');}
   await a.goto('http://127.0.0.1:4174/');await b.goto('http://127.0.0.1:4174/');
+  if(engine.name()==='webkit')await a.locator('#abrirDockAmigos').click();
+  await a.locator('.amigo-dock .boton-chat-amigo').click();await a.locator('#ventanaChatAmigo').waitFor({state:'visible'});await a.locator('#textoChatPrivado').fill('Hola en privado');await a.locator('#enviarChatPrivado').click();await a.getByText('Hola en privado',{exact:true}).waitFor();assert.equal(dmMessages.length,1);
+  await a.locator('#memesNav').click();assert.equal(await a.locator('#ventanaChatAmigo').isVisible(),true,'private chat stays open while changing sections');await a.locator('#inicioNav').click();
+  if(engine.name()==='webkit')await b.locator('#abrirDockAmigos').click();
+  await b.locator('.amigo-dock .boton-chat-amigo').click();await b.getByText('Hola en privado',{exact:true}).waitFor();await b.locator('#textoChatPrivado').fill('Respuesta privada');await b.locator('#enviarChatPrivado').click();await b.getByText('Respuesta privada',{exact:true}).waitFor();assert.equal(dmMessages.length,2);
+  await a.locator('#minimizarChatAmigo').click();await a.locator('#mostrarChatMinimizado').click();assert.equal(await a.locator('#ventanaChatAmigo').isVisible(),true);await a.locator('#cerrarChatAmigo').click();await a.locator('.amigo-dock .boton-chat-amigo').click();await a.getByText('Respuesta privada',{exact:true}).waitFor();
   await a.getByRole('button',{name:/Notificaciones/}).click();await a.getByText('@Luis empezó a seguirte').waitFor();await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent.includes('(1)'));
   await a.getByRole('button',{name:'Comentar',exact:true}).click();await a.getByText('@Luis: Hola Ana',{exact:true}).waitFor();
   await a.getByRole('button',{name:'Editar',exact:true}).click();await a.getByRole('textbox',{name:'Editar opinión'}).fill('Opinión editada');await a.getByRole('button',{name:'Guardar cambios'}).click();await a.getByText('Publicación actualizada.',{exact:true}).waitFor();
@@ -212,6 +228,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(imageUploads,1);assert.equal(posts.at(-1).post_type,'meme');assert.equal(posts.at(-1).album_id,null);
   await a.locator('.imagen-meme').waitFor();assert.equal(await a.locator('.imagen-meme').getAttribute('alt'),'Meme publicado por @Ana');
   await a.locator('#inicioNav').click();await a.locator('#feedVacio').waitFor();
+  await a.waitForFunction(()=>!document.querySelector('#feed').innerText.includes('Meme de @Ana'));
   assert.equal(await a.locator('.imagen-meme').count(),0,'memes stay out of the album feed');
   await a.locator('#memesNav').click();await a.locator('.imagen-meme').waitFor();
   await a.locator('#textoChat').fill('Hola desde el chat');await a.locator('#formularioChat').getByRole('button',{name:'Enviar',exact:true}).click();
