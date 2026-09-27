@@ -79,7 +79,7 @@
     if (config.emailConfirmationEnabled === false) {
         const aviso = document.createElement("p");
         aviso.className = "aviso-cuenta";
-        aviso.textContent = "Prueba inicial: el correo todavía no se verifica y no hay recuperación de contraseña. Guarda tu contraseña; no uses la de otros servicios.";
+        aviso.textContent = "En RedMusica crear una cuenta es simple: no necesitas confirmar el correo. Lo usamos solo para iniciar sesión y no aparece en tu perfil. Por ahora no hay recuperación de contraseña, así que guarda bien tu contraseña.";
         document.getElementById("tituloCuenta").after(aviso);
     }
     document.getElementById("recuperarClave").hidden = config.passwordRecoveryEnabled === false;
@@ -260,7 +260,11 @@
                     estadoPerfil.textContent = "No se pudo crear la cuenta. Revisa los datos o prueba otro nombre de usuario.";
                     return;
                 }
-                estadoPerfil.textContent = respuesta.data.session ? "Cuenta creada." : "Revisa tu correo para confirmar la cuenta antes de entrar. Si ya tienes cuenta, inicia sesión.";
+                if (config.emailConfirmationEnabled === false) {
+                    estadoPerfil.textContent = respuesta.data.session ? "Cuenta creada. Ya puedes participar." : "Cuenta creada. Inicia sesión para participar.";
+                } else {
+                    estadoPerfil.textContent = respuesta.data.session ? "Cuenta creada." : "Revisa tu correo para confirmar la cuenta antes de entrar. Si ya tienes cuenta, inicia sesión.";
+                }
             } else {
                 respuesta = await db.auth.signInWithPassword({ email, password });
                 if (respuesta.error) {

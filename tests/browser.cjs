@@ -19,7 +19,7 @@ const server=http.createServer((req,res)=>{
   function token(user){return Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';}
   async function makePage(start=''){
    const ctx=await browser.newContext(engine===webkit?{...devices['iPhone 13']}:{viewport:{width:1280,height:900}});contexts.push(ctx);
-   await ctx.route('**/config.js?*',r=>r.fulfill({contentType:'text/javascript',body:'window.REDMUSICA_CONFIG={supabaseUrl:"https://redmusica-test.supabase.co",supabasePublishableKey:"sb_publishable_test"};'}));
+   await ctx.route('**/config.js?*',r=>r.fulfill({contentType:'text/javascript',body:'window.REDMUSICA_CONFIG={supabaseUrl:"https://redmusica-test.supabase.co",supabasePublishableKey:"sb_publishable_test",emailConfirmationEnabled:false,passwordRecoveryEnabled:true};'}));
    await ctx.route('https://musicbrainz.org/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({'release-groups':[{id:'33333333-3333-4333-8333-333333333333',title:'Álbum de prueba','artist-credit':[{name:'Artista de prueba'}]}]})}));
    await ctx.route('https://coverartarchive.org/**',r=>r.fulfill({status:404,body:''}));
    await ctx.route('https://itunes.apple.com/**',r=>r.fulfill({contentType:'text/javascript',body:new URL(r.request().url()).searchParams.get('callback')+'({"results":[]})'}));
@@ -76,7 +76,9 @@ const server=http.createServer((req,res)=>{
   }
   async function login(page,email){await page.locator('#modoAcceso').selectOption('login');await page.locator('#correoUsuario').fill(email);await page.locator('#claveUsuario').fill('test-password-123');await page.locator('#botonAcceso').click();await page.locator('#sesionPerfil').waitFor();await page.waitForFunction(()=>document.querySelector('#nombrePerfil').textContent.startsWith('Publicas como'));}
   const a=await makePage();
-  await a.locator('#modoAcceso').selectOption('signup');await a.locator('#nombreUsuario').fill('Ana');await a.locator('#correoUsuario').fill(ana.email);await a.locator('#claveUsuario').fill('test-password-123');await a.locator('#botonAcceso').click();await a.waitForFunction(()=>document.querySelector('#estadoPerfil').textContent.includes('Revisa tu correo'));
+  await a.locator('#modoAcceso').selectOption('signup');await a.locator('#nombreUsuario').fill('Ana');await a.locator('#correoUsuario').fill(ana.email);await a.locator('#claveUsuario').fill('test-password-123');await a.locator('#botonAcceso').click();await a.waitForFunction(()=>document.querySelector('#estadoPerfil').textContent.includes('Cuenta creada. Inicia sesión'));
+  assert.match(await a.locator('.aviso-cuenta').innerText(),/no necesitas confirmar el correo/i);
+  assert.match(await a.locator('.aviso-cuenta').innerText(),/no hay recuperación de contraseña/i);
   await login(a,ana.email);
   await a.locator('#buscarAlbum').fill('Álbum');await a.locator('#botonBuscar').click();await a.locator('.boton-elegir').click();await a.locator('#comentarioPublicacion').fill('Opinión <img src=x onerror=alert(1)>');await a.locator('#botonPublicar').click();await a.locator('#feed article').waitFor();
   assert.match(await a.locator('.autor-publicacion').innerText(),/@Ana/);assert.equal(await a.locator('#feed article script').count(),0);

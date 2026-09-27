@@ -6,9 +6,9 @@ La radio se abre desde el feed mediante radio-panel.js, en un panel fijo superio
 
 Estado: Supabase RedMusica (svnmwttoawpoavohfrya), región São Paulo, configurado el 26 de septiembre de 2026. La migración remota redmusica_initial_schema está aplicada y config.js activa el feed compartido.
 
-Por decisión del propietario, esta primera prueba permite correo y contraseña SIN confirmar el correo. La recuperación por correo está desactivada en la interfaz. Ningún correo debe considerarse verificado a efectos de identidad. No se guardan contraseñas en las tablas públicas.
+La política de RedMusica es facilitar el registro: correo y contraseña, sin confirmar que el correo exista o pertenezca a la persona. El correo funciona como identificador de inicio de sesión y no se muestra en el perfil. La recuperación por correo está desactivada, así que la interfaz pide guardar la contraseña. Ningún correo debe considerarse verificado a efectos de identidad. No se guardan contraseñas en las tablas públicas.
 
-Cuando haya SMTP, activar Confirm email en Supabase y cambiar emailConfirmationEnabled/passwordRecoveryEnabled a true en config.js. Comprobar envío y recepción reales antes de anunciar esas funciones.
+La confirmación y la recuperación por correo no están habilitadas porque esta es la política elegida. Si el propietario decide cambiarla, deberá configurar SMTP, activar Confirm email en Supabase y cambiar emailConfirmationEnabled/passwordRecoveryEnabled en config.js. Comprobar envío y recepción reales antes de anunciar esas funciones.
 
 Los datos antiguos de redmusica.local.v1 se conservan en el navegador y no se suben automáticamente. Dejando vacíos los valores de conexión en config.js puede recuperarse el prototipo local.
 
