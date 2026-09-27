@@ -139,6 +139,13 @@
    $('radioEstado').textContent=result.songs.length ? 'Elige la versión que quieres escuchar.' : 'No encontramos videos reproducibles. Prueba otra canción o escribe menos palabras.';
    result.songs.forEach(song=>{
     const card=document.createElement('article');
+    card.className='radio-video-card';
+    if(song.thumbnail){
+     const image=document.createElement('img');image.className='radio-video-thumbnail';image.src=song.thumbnail;image.alt='';image.loading='lazy';image.decoding='async';
+     image.referrerPolicy='no-referrer';
+     image.addEventListener('error',()=>image.remove(),{once:true});
+     card.append(image);
+    }
     const link=document.createElement('a');link.href='https://www.youtube.com/watch?v='+encodeURIComponent(song.video_id);link.target='_blank';link.rel='noopener';link.textContent=decode(song.title);
     const heading=document.createElement('h3');heading.append(link);
     const button=text('button','Agregar a la cola');button.type='button';

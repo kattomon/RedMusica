@@ -26,7 +26,9 @@ function song(item: any) {
  const duration = m ? Number(m[1] || 0)*3600+Number(m[2] || 0)*60+Number(m[3] || 0) : 0;
  const restriction = item.contentDetails?.regionRestriction;
  if (duration<20 || duration>1200 || !item.status?.embeddable || item.status?.privacyStatus!=='public' || item.snippet?.liveBroadcastContent!=='none' || restriction?.blocked?.includes('CL') || (restriction?.allowed && !restriction.allowed.includes('CL'))) return null;
- return { video_id:item.id, title:item.snippet.title.slice(0,300), channel:item.snippet.channelTitle.slice(0,200), duration };
+ const thumbnails = item.snippet?.thumbnails || {};
+ const thumbnail = thumbnails.maxres?.url || thumbnails.standard?.url || thumbnails.high?.url || thumbnails.medium?.url || thumbnails.default?.url || null;
+ return { video_id:item.id, title:item.snippet.title.slice(0,300), channel:item.snippet.channelTitle.slice(0,200), duration, thumbnail };
 }
 Deno.serve(async req => {
  if (req.method==='OPTIONS') return new Response(null, { headers });

@@ -29,6 +29,12 @@
 #radioReproductor { margin: 16px 0; width: 100%; min-height: 240px; }
 #radioReproductor iframe { display: block; width: 100%; min-height: 240px; aspect-ratio: 16 / 9; border: 0; }
 #radioResultados article h3 { margin-top: 0; }
+#radioResultados { display: grid; gap: 12px; }
+#radioResultados .radio-video-card { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 1fr); grid-template-rows: auto 1fr auto; align-items: start; gap: 6px 14px; padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
+#radioResultados .radio-video-thumbnail { grid-column: 1; grid-row: 1 / 4; display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; background: #eee; }
+#radioResultados .radio-video-card h3, #radioResultados .radio-video-card p { grid-column: 2; margin: 0; }
+#radioResultados .radio-video-card button { grid-column: 2; justify-self: start; }
+@media(max-width:520px) { #radioResultados .radio-video-card { grid-template-columns: minmax(0, 1fr); } #radioResultados .radio-video-thumbnail, #radioResultados .radio-video-card h3, #radioResultados .radio-video-card p, #radioResultados .radio-video-card button { grid-column: 1; } #radioResultados .radio-video-thumbnail { grid-row: auto; max-height: 220px; } }
 #radioCola li { padding: 10px 0; }
 [hidden] { display: none !important; }
 body { margin: 0; background: #f7f7f7; color: #222222; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; }

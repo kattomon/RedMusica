@@ -3,10 +3,10 @@
     const config = window.REDMUSICA_CONFIG;
     const db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
     window.redmusicaClient = db;
-    const perfilSolicitado = new URLSearchParams(location.search).get("perfil");
-    const viendoPerfil = perfilSolicitado !== null;
-    const viendoMemes = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'memes';
-    const idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || "");
+    let perfilSolicitado = new URLSearchParams(location.search).get("perfil");
+    let viendoPerfil = perfilSolicitado !== null;
+    let viendoMemes = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'memes';
+    let idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || "");
     document.getElementById("navegacion").hidden = false;
     document.getElementById("perfilPublico").hidden = !viendoPerfil;
     document.getElementById("crearPublicacion").hidden = viendoPerfil || viendoMemes;
@@ -478,6 +478,42 @@
     }
     refrescar.addEventListener("click", function () { cargarFeed(true); });
     mas.addEventListener("click", function () { cargarFeed(false); });
+
+    function aplicarRuta() {
+        const params = new URLSearchParams(location.search);
+        perfilSolicitado = params.get('perfil');
+        viendoPerfil = perfilSolicitado !== null;
+        viendoMemes = !viendoPerfil && params.get('seccion') === 'memes';
+        idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || '');
+        document.getElementById('perfilPublico').hidden = !viendoPerfil;
+        document.getElementById('crearPublicacion').hidden = viendoPerfil || viendoMemes;
+        document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
+        document.getElementById('memesNav').setAttribute('aria-current', viendoMemes ? 'page' : 'false');
+        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes ? 'page' : 'false');
+        document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : 'Publicaciones';
+        document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : 'Todavía no hay publicaciones. Comparte el primer álbum.';
+        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : 'RedMusica';
+        if (!viendoPerfil) {
+            document.getElementById('fotoPerfilPublico').replaceChildren();
+            document.getElementById('rangoPerfilPublico').replaceChildren();
+            document.getElementById('tituloPerfilPublico').textContent = 'Cargando perfil…';
+            document.getElementById('resumenPerfilPublico').textContent = '';
+            document.getElementById('compartirPerfil').hidden = true;
+        }
+        cargarFeed(true);
+    }
+    document.addEventListener('click', event => {
+        const target = event.target instanceof Element ? event.target : event.target.parentElement;
+        const anchor = target?.closest('a[href]');
+        if (!anchor || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || anchor.target || anchor.hasAttribute('download')) return;
+        const destination = new URL(anchor.href, location.href);
+        if (destination.origin !== location.origin || destination.pathname !== location.pathname) return;
+        event.preventDefault();
+        if (destination.href !== location.href) history.pushState(null, '', destination.href);
+        aplicarRuta();
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+    window.addEventListener('popstate', aplicarRuta);
 
     function crearPublicacion(post, meGusta) {
         const articulo = document.createElement("article");
