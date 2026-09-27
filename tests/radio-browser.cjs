@@ -19,6 +19,9 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   assert.equal(await page.evaluate(()=>window.playerCalls[0].videoId),'abcdefghijk');
   await page.evaluate(()=>window.playerOptions.events.onAutoplayBlocked());assert.match(await page.locator('#radioPlayback').innerText(),/pulsa reproducir/);
   const other=await ctx.newPage();await other.goto('http://127.0.0.1:4180/radio.html');await other.locator('#radioCola li').waitFor();assert.match(await other.locator('#radioCola').innerText(),/Refugio/);
+  queue=[{...queue[0],id:'two',video_id:'abcdefghij2',title:'Siguiente canción',starts_at:new Date(Date.now()-1000).toISOString(),ends_at:new Date(Date.now()+179000).toISOString()}];
+  await page.evaluate(()=>window.playerOptions.events.onStateChange({data:0}));
+  await page.waitForFunction(()=>window.playerCalls.some(p=>p.videoId==='abcdefghij2'));
   await page.evaluate(()=>window.playerOptions.events.onError());assert.match(await page.locator('#radioPlayback').innerText(),/no puede reproducir/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);assert.deepEqual(errors,[]);
   await page.screenshot({path:'../radio-'+engine.name()+'.png',fullPage:true});await browser.close();console.log('PASS '+engine.name()+': search, request, shared queue, visible player, autoplay/error, responsive layout');
