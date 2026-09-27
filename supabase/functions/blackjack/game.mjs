@@ -1,6 +1,8 @@
 const suits=['♠','♥','♦','♣'];
 const ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 export const BET=100;
+const roomAlphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export function roomCode(bytes){return Array.from(bytes.slice(0,6),byte=>roomAlphabet[byte%roomAlphabet.length]).join('');}
 
 export function shuffledDeck(){
  const cards=Array.from({length:6},()=>suits.flatMap(suit=>ranks.map(rank=>({rank,suit})))).flat();

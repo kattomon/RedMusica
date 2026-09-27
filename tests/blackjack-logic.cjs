@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict');
 (async()=>{
- const {BET,advance,finishRound,natural,score,shuffledDeck,startRound}=await import('../supabase/functions/blackjack/game.mjs');
+ const {BET,advance,finishRound,natural,roomCode,score,shuffledDeck,startRound}=await import('../supabase/functions/blackjack/game.mjs');
+ assert.match(roomCode(Uint8Array.from([0,1,2,3,4,5,6,7])),/^[A-Z0-9]{6}$/,'room codes must satisfy the six-character database and invite format');
  assert.equal(BET,100);assert.equal(score([{rank:'A'},{rank:'6'}]),17);assert.equal(score([{rank:'A'},{rank:'A'},{rank:'9'}]),21);assert.equal(score([{rank:'10'},{rank:'9'},{rank:'4'}]),23);
  assert.equal(natural([{rank:'A'},{rank:'K'}]),true);assert.equal(natural([{rank:'7'},{rank:'7'},{rank:'7'}]),false);assert.equal(shuffledDeck().length,312);
  const card=(rank,suit='♠')=>({rank,suit});

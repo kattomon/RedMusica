@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
-import { advance, draw, holdTurn, score, startRound } from './game.mjs';
+import { advance, draw, holdTurn, roomCode, score, startRound } from './game.mjs';
 
 const origin='https://kattomon.github.io';
 const headers={'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
@@ -12,7 +12,7 @@ function publicState(room:any){
  if(state.status==='playing'&&state.dealer.hand.length>1)state.dealer={hand:[state.dealer.hand[0],{hidden:true}],hidden:true};
  return {code:room.code,host_id:room.host_id,status:state.status,players:state.players,dealer:state.dealer,current_player_id:state.current_player_id,result:state.result||'',updated_at:room.updated_at};
 }
-function code(){const bytes=new Uint8Array(8);crypto.getRandomValues(bytes);return Array.from(bytes,b=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b%32]).join('');}
+function code(){const bytes=new Uint8Array(6);crypto.getRandomValues(bytes);return roomCode(bytes);}
 async function getProfile(userId:string){
  const {data,error}=await db.from('profiles').select('username,suspended').eq('id',userId).single();
  if(error||!data)throw new Error('No se encontró tu perfil.');
