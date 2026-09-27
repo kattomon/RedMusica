@@ -64,6 +64,10 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),0,'minimizing must not pause the YouTube player');
   await feed.getByRole('button',{name:'Expandir radio'}).click();
   assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),false);
+  await feed.getByRole('button',{name:'Cerrar la ventana y mantener la radio'}).click();
+  assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),true);
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),0,'closing the panel must minimize without pausing');
+  await feed.getByRole('button',{name:'Expandir radio'}).click();
   await feed.getByRole('button',{name:'Detener la radio',exact:true}).click();
   assert.equal(await feed.locator('#panelRadio').isVisible(),false);
   await room.locator('body').evaluate(()=>new Promise(resolve=>setTimeout(resolve,0)));

@@ -17,6 +17,7 @@
 #panelRadio.minimizado header { height: 60px; padding: 6px 8px; gap: 6px; }
 #panelRadio.minimizado header h2 { flex: 1; font-size: 14px; white-space: nowrap; }
 #panelRadio.minimizado .controles-panel-radio { gap: 4px; }
+#panelRadio.minimizado #cerrarRadio { display: none; }
 #panelRadio.minimizado .controles-panel-radio button { min-height: 42px; padding: 6px 8px; font-size: 14px; }
 #panelRadio.minimizado iframe { position: fixed; top: 0; left: -10000px; width: min(440px, calc(100vw - 32px)); height: min(760px, calc(100dvh - 88px)); }
 .radio-embedded main { padding: 16px; }
