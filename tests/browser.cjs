@@ -148,6 +148,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(await a.locator('#crearPublicacion').isVisible(),false);
   assert.equal(await a.locator('#tituloFeed').innerText(),'Memes de la comunidad');
   assert.equal(await a.locator('#memesNav').getAttribute('aria-current'),'page');
+  assert((await a.locator('#imagenMeme').getAttribute('accept')).includes('.jpeg'));
   await a.locator('#crearMeme').waitFor({state:'visible'});
   await a.locator('#imagenMeme').setInputFiles({name:'meme.png',mimeType:'image/png',buffer:photo});
   await a.locator('#textoMeme').fill('Memoria de la comunidad');

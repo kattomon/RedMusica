@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-12">
+    <link rel="stylesheet" href="style.css?v=20260927-13">
 </head>
 <body>
 <main>
@@ -79,8 +79,8 @@
         <h2 id="tituloMeme">Comparte un meme</h2>
         <p>Sube una imagen y añade un texto. Se reduce en tu dispositivo antes de guardarla.</p>
         <form id="formularioMeme">
-            <label for="imagenMeme">Imagen (JPG, PNG o WebP; máximo 10 MB)</label>
-            <input id="imagenMeme" type="file" accept="image/jpeg,image/png,image/webp" required>
+            <label for="imagenMeme">Imagen (JPEG/JPG, PNG o WebP; máximo 10 MB)</label>
+            <input id="imagenMeme" type="file" accept=".jpg,.jpeg,image/jpeg,image/png,image/webp" required>
             <label for="textoMeme">Texto</label>
             <textarea id="textoMeme" maxlength="5000" rows="3" placeholder="Añade un comentario al meme" required></textarea>
             <button id="publicarMeme" type="submit">Publicar meme</button>
@@ -106,8 +106,8 @@
 <section id="panelRadio" role="region" aria-labelledby="tituloPanelRadio" hidden>
     <header><h2 id="tituloPanelRadio">Radio RedMusica</h2><div class="controles-panel-radio"><button id="minimizarRadio" type="button" aria-label="Minimizar sin detener la radio">Minimizar</button><button id="cerrarRadio" type="button" aria-label="Cerrar la ventana y mantener la radio">Cerrar</button><button id="detenerRadio" type="button" aria-label="Detener la radio">Detener</button></div></header>
 </section>
-<script src="radio-panel.js?v=20260927-12" defer></script>
-<script src="config.js?v=20260927-12"></script>
-<script src="script.js?v=20260927-12" defer></script>
+<script src="radio-panel.js?v=20260927-13" defer></script>
+<script src="config.js?v=20260927-13"></script>
+<script src="script.js?v=20260927-13" defer></script>
 </body>
 </html>

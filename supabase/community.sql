@@ -28,12 +28,12 @@ create policy post_images_delete_self on storage.objects for delete to authentic
 -- Hard per-account cap keeps the free storage tier bounded even if a client fails to clean up.
 create function private.limit_post_images_per_user() returns trigger
 language plpgsql security definer set search_path='' as $$
-declare owner_id uuid;
+declare v_owner_id uuid;
 begin
  if new.bucket_id='post-images' then
-  owner_id:=split_part(new.name,'/',1)::uuid;
-  perform pg_advisory_xact_lock(hashtextextended(owner_id::text,0));
-  if (select count(*) from storage.objects where bucket_id='post-images' and name like owner_id::text||'/%')>=15 then
+  v_owner_id:=split_part(new.name,'/',1)::uuid;
+  perform pg_advisory_xact_lock(hashtextextended(v_owner_id::text,0));
+  if (select count(*) from storage.objects existing_image where existing_image.bucket_id='post-images' and existing_image.name like v_owner_id::text||'/%')>=15 then
    raise exception 'Image storage limit reached';
   end if;
  end if;
