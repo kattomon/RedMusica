@@ -199,6 +199,7 @@
         return false;
     }
     function actualizarAcceso() {
+        document.body.classList.toggle('con-dock-amigos',Boolean(usuario));
         if (!usuario) { notificacionesAbiertas=false; document.getElementById("abrirNotificaciones").setAttribute("aria-expanded", "false"); }
         document.getElementById("formularioAcceso").hidden = Boolean(usuario);
         document.getElementById("sesionPerfil").hidden = !usuario;

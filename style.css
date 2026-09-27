@@ -146,7 +146,7 @@ input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border
 #formularioChatPrivado input { flex: 1; min-width: 0; }
 #formularioChatPrivado button { padding: 8px 12px; }
 #mostrarChatMinimizado { position: fixed; z-index: 28; right: 278px; bottom: 16px; }
-@media (min-width: 1280px) { main { width: min(960px, calc(100vw - 320px)); margin: 0 0 0 max(16px, calc((100vw - 278px - 960px) / 2)); } }
+@media (min-width: 1280px) { body.con-dock-amigos main { width: min(960px, calc(100vw - 320px)); margin: 0 0 0 max(16px, calc((100vw - 278px - 960px) / 2)); } }
 @media (max-width: 1279px) {
     #abrirDockAmigos { display: block; position: fixed; z-index: 16; right: 12px; bottom: 68px; }
     #dockAmigos { top: auto; right: 12px; bottom: 12px; width: min(320px, calc(100vw - 24px)); max-height: min(55vh, 480px); display: none; }
