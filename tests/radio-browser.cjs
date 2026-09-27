@@ -24,7 +24,27 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   await page.waitForFunction(()=>window.playerCalls.some(p=>p.videoId==='abcdefghij2'));
   await page.evaluate(()=>window.playerOptions.events.onError());assert.match(await page.locator('#radioPlayback').innerText(),/no puede reproducir/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);assert.deepEqual(errors,[]);
-  await page.screenshot({path:'../radio-'+engine.name()+'.png',fullPage:true});await browser.close();console.log('PASS '+engine.name()+': search, request, shared queue, visible player, autoplay/error, responsive layout');
+  await ctx.route('**/script.js?*',r=>r.fulfill({contentType:'text/javascript',body:''}));
+  const feed=await ctx.newPage();await feed.goto('http://127.0.0.1:4180/index.html');
+  await feed.locator('#buscarAlbum').fill('Mi búsqueda sin perder');
+  const pages=ctx.pages().length;
+  await feed.getByRole('button',{name:'Radio ♫'}).click();
+  const room=feed.frameLocator('#panelRadio iframe');
+  await room.getByRole('searchbox',{name:'Artista',exact:true}).fill('Mi artista');
+  await room.getByRole('button',{name:'Entrar a escuchar'}).click();
+  await room.getByRole('button',{name:'Volver a la canción de la sala'}).waitFor();
+  await feed.getByRole('button',{name:'Cerrar radio y pausar'}).click();
+  assert.equal(await feed.locator('#panelRadio').isVisible(),false);
+  await feed.getByRole('button',{name:'Radio ♫'}).click();
+  assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).getAttribute('placeholder'),'Nombre del artista');
+  assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).evaluate(e=>e.value),'Mi artista');
+  assert.equal(await feed.locator('#buscarAlbum').inputValue(),'Mi búsqueda sin perder');
+  assert.equal(ctx.pages().length,pages);
+  assert.equal(await feed.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
+  await feed.screenshot({path:'../../outputs/radio-panel-'+engine.name()+'.png',fullPage:false});
+  await room.getByRole('searchbox',{name:'Artista',exact:true}).press('Escape');
+  await feed.locator('#panelRadio').waitFor({state:'hidden'});
+  await browser.close();console.log('PASS '+engine.name()+': radio flow, floating panel, close/reopen, Escape, preserved feed, no new tab, mobile');
  }
  server.close();
 })().catch(e=>{console.error(e);server.close();process.exit(1)});

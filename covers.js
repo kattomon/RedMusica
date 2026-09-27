@@ -48,7 +48,9 @@ function buscarPortadaAlternativa(titulo, artista) {
         const enlace = new URL(album.collectionViewUrl);
         if (imagen.protocol !== "https:" || !imagen.hostname.endsWith(".mzstatic.com") || enlace.protocol !== "https:" || !["music.apple.com", "itunes.apple.com"].includes(enlace.hostname)) return null;
         enlace.searchParams.set("app", "itunes");
-        return { imagen: imagen.href, enlace: enlace.href };
+        const original = imagen.href;
+        imagen.pathname = imagen.pathname.replace(/\/100x100([^/]*)$/, '/600x600$1');
+        return { imagen: imagen.href, original: original, enlace: enlace.href };
     });
     colaPortadas = tarea.catch(() => null);
     solicitudesPortada.set(clave, tarea);
@@ -63,6 +65,11 @@ function asignarPortada(imagen, url, titulo, artista) {
     estadosPortada.set(imagen, estado);
     imagen.alt = "Portada de " + titulo;
     imagen.onerror = async function () {
+        if (!estado.reintento && /^https:\/\/coverartarchive\.org\//.test(url) && /\/front-500$/.test(url)) {
+            estado.reintento = true;
+            imagen.src = url;
+            return;
+        }
         imagen.onerror = null;
         imagen.src = portadaAlternativa;
         if (!artista) return;
@@ -81,10 +88,14 @@ function asignarPortada(imagen, url, titulo, artista) {
             insignia.height = 40;
             enlace.appendChild(insignia);
             estado.enlace = enlace;
-            imagen.onerror = function () { imagen.onerror = null; imagen.src = portadaAlternativa; enlace.remove(); };
+            imagen.onerror = function () {
+                imagen.onerror = function () { imagen.onerror = null; imagen.src = portadaAlternativa; enlace.remove(); };
+                imagen.src = alternativa.original;
+            };
             imagen.src = alternativa.imagen;
             imagen.after(enlace);
         } catch (error) { /* Keep the placeholder; publishing stays available. */ }
     };
-    imagen.src = url;
+    // Serve enough pixels for high-density phone screens while retaining stored album URLs.
+    imagen.src = /^https:\/\/coverartarchive\.org\//.test(url) ? url.replace(/\/front-500$/, '/front-1200') : url;
 }

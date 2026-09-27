@@ -29,6 +29,7 @@ const assert = require('node:assert/strict');
             await page.evaluate(() => asignarPortada(document.querySelector('#cover'), 'https://coverartarchive.org/release-group/f6a18125-c2ab-4936-bb56-e03dda3a3ea6/front-500', 'Amor entre sábanas', 'La Noche'));
             await page.waitForFunction(() => { const img = document.querySelector('#cover'); return img.src.includes('mzstatic.com') && img.complete && img.naturalWidth > 0; }, null, { timeout: 30000 });
             assert.match(await page.locator('.fuente-portada').getAttribute('href'), /music\.apple\.com/);
+            if (process.env.LIVE_COVERS) assert.ok(await page.locator('#cover').evaluate(img => img.naturalWidth >= 600), 'Real fallback should be at least 600 pixels');
             if (!process.env.LIVE_COVERS) {
                 assert.match(await page.locator('#cover').getAttribute('src'), /right\.jpg/);
                 await page.evaluate(() => asignarPortada(document.querySelector('#second'), 'https://coverartarchive.org/missing', 'Amor entre sabanas', 'La Noche'));

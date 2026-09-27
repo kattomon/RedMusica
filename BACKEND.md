@@ -1,3 +1,5 @@
+La radio se abre desde el feed mediante radio-panel.js, en un panel fijo superior derecho. radio.html se carga dentro de un iframe del mismo origen; no se abre otra pestaña. El panel conserva su estado al cerrar, pausa el reproductor y permite volver al feed con Escape. Las portadas solicitan CAA 1200 px (con respaldo de 500 px) y Apple 600 px (con respaldo del recurso original).
+
 # Cuentas y feed compartido
 
 Estado: Supabase RedMusica (svnmwttoawpoavohfrya), región São Paulo, configurado el 26 de septiembre de 2026. La migración remota redmusica_initial_schema está aplicada y config.js activa el feed compartido.

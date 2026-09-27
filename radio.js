@@ -1,10 +1,21 @@
 (function () {
  'use strict';
  const $ = id => document.getElementById(id);
+ const embedded = window.parent !== window && new URLSearchParams(location.search).get('panel') === '1';
+ if (embedded) document.body.classList.add('radio-embedded');
  const config = window.REDMUSICA_CONFIG;
  const db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
  let queue = [], offset = 0, session = null, player = null, loaded = null, joined = false, ready = false, updating = false;
- let busy = false, authRevision = 0, finished = null, continuePlaying = false;
+ let busy = false, authRevision = 0, finished = null, continuePlaying = false, panelActive = true;
+ window.addEventListener('message', e => {
+  if(embedded && e.source===window.parent && e.origin===location.origin && e.data?.type==='radio-pause') {
+   panelActive=false;continuePlaying=false;if(ready)player.pauseVideo();
+  }
+  if(embedded && e.source===window.parent && e.origin===location.origin && e.data?.type==='radio-open') {panelActive=true;refresh();}
+ });
+ document.addEventListener('keydown', e => {
+  if(embedded && e.key==='Escape') window.parent.postMessage({type:'radio-close'},location.origin);
+ });
  const api = async body => {
   const { data:auth } = await db.auth.getSession();
   const response = await fetch(config.supabaseUrl + '/functions/v1/radio', {
@@ -24,7 +35,7 @@
   $('radioActual').textContent=active ? decode(active.title)+' · '+(active.username ? 'Pedido por @'+active.username : 'Rotación de la comunidad') : 'La sala espera la próxima canción.';
   $('radioCola').replaceChildren(...queue.map(s=>text('li',decode(s.title)+' — '+(s.username ? '@'+s.username : 'Rotación')+(s.id===active?.id ? ' · En la sala ahora' : ' · '+new Date(s.starts_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})))));
   $('radioColaEstado').textContent=queue.length ? 'La cola se actualiza automáticamente.' : 'Todavía no hay canciones. Haz el primer pedido.';
-  if (joined && ready && !loaded && active && active.id!==finished && !document.hidden) load(active,continuePlaying);
+  if (panelActive && joined && ready && !loaded && active && active.id!==finished && !document.hidden) load(active,continuePlaying);
  }
  function load(song, autoplay) {
   loaded=song.id;
@@ -33,7 +44,7 @@
   if (autoplay) player.loadVideoById(params); else player.cueVideoById(params);
  }
  async function refresh() {
-  if (updating || document.hidden) return;
+  if (updating || document.hidden || !panelActive) return;
   updating=true;
   try { render(await api({action:'state'})); } catch(e) { $('radioColaEstado').textContent=e.message; } finally { updating=false; }
  }

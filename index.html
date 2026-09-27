@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-1">
+    <link rel="stylesheet" href="style.css?v=20260927-2">
 </head>
 <body>
 <main>
     <h1>RedMusica</h1>
     <p>Un lugar para compartir lo que escuchamos.</p>
     <nav id="navegacion" aria-label="Navegación principal" hidden>
-        <a href="./">Inicio</a><a id="miPerfil" hidden>Mi perfil</a><a href="radio.html">Radio</a>
+        <a href="./">Inicio</a><a id="miPerfil" hidden>Mi perfil</a>
     </nav>
     <section id="perfilPublico" aria-labelledby="tituloPerfilPublico" hidden>
         <h2 id="tituloPerfilPublico">Cargando perfil…</h2>
@@ -70,7 +70,12 @@
     <p id="feedVacio">Todavía no hay publicaciones. Comparte el primer álbum.</p>
     <div id="feed"></div>
 </main>
-<script src="config.js?v=20260926-6"></script>
-<script src="script.js?v=20260926-6" defer></script>
+<button id="abrirRadio" type="button" aria-controls="panelRadio" aria-expanded="false">Radio ♫</button>
+<section id="panelRadio" role="region" aria-labelledby="tituloPanelRadio" hidden>
+    <header><h2 id="tituloPanelRadio">Radio RedMusica</h2><button id="cerrarRadio" type="button" aria-label="Cerrar radio y pausar">Cerrar</button></header>
+</section>
+<script src="radio-panel.js?v=20260927-2" defer></script>
+<script src="config.js?v=20260927-2"></script>
+<script src="script.js?v=20260927-2" defer></script>
 </body>
 </html>
