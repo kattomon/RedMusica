@@ -26,7 +26,7 @@
   return live && !omitted.has(live.id) && !blockedVideos.has(live.video_id) ? live : null;
  }
  function upcoming() { return queue.find(s=>Date.parse(s.starts_at)>Date.now()+offset && Date.parse(s.ends_at)>Date.now()+offset && !omitted.has(s.id) && !blockedVideos.has(s.video_id)); }
- function announce(title) { if(embedded) window.parent.postMessage({type:'radio-now-playing',title},location.origin); }
+ function announce(title,videoId=null) { if(embedded) window.parent.postMessage({type:'radio-now-playing',title,videoId:/^[A-Za-z0-9_-]{11}$/.test(videoId||'')?videoId:null},location.origin); }
  function updateScheduleStatus() {
   const next=upcoming();
   if(next) {
@@ -75,7 +75,7 @@
   if(changed){loaded=null;omitted.clear();continuePlaying=joined;}
   const active=current();
   $('radioActual').textContent=active ? decode(active.title)+' · '+(active.username ? 'Pedido por @'+active.username : 'Rotación de la comunidad') : 'La sala espera la próxima canción.';
-  announce(active ? decode(active.title) : 'Esperando canciones');
+  announce(active ? decode(active.title) : 'Esperando canciones',active?.video_id);
   updateScheduleStatus();
   $('radioCola').replaceChildren(...queue.map(s=>text('li',decode(s.title)+' — '+(s.username ? '@'+s.username : 'Rotación')+(s.id===active?.id ? ' · En la sala ahora' : ' · '+new Date(s.starts_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})))));
   queue.forEach((s,index)=>{
@@ -94,7 +94,7 @@
  function load(song, autoplay) {
   loaded=song.id;playingSong=song;
   $('radioEscuchando').textContent='En tu reproductor: '+decode(song.title);
-  announce(decode(song.title));
+  announce(decode(song.title),song.video_id);
   $('radioSaltar').hidden=false;
   const start=Math.max(0,Math.floor((Date.now()+offset-Date.parse(song.starts_at))/1000));
   const params={videoId:song.video_id,startSeconds:start};

@@ -66,6 +66,7 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   await room.getByRole('button',{name:'Volver a la canción de la sala'}).waitFor();
   await feed.getByRole('button',{name:'Minimizar sin detener la radio'}).click();
   assert.match(await feed.locator('#tituloPanelRadio').innerText(),/La que suena al volver/,'the minimized radio should display the current track');
+  assert.equal(await feed.locator('#miniaturaRadioPanel').isVisible(),true,'the minimized radio shows the current YouTube thumbnail');assert.match(await feed.locator('#miniaturaRadioPanel').getAttribute('src'),/i\.ytimg\.com\/vi\/ponmlkjihgf\/mqdefault\.jpg/);
   assert.equal(await feed.locator('#panelRadio').isVisible(),true);
   assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),true);
   assert.equal(await feed.frameLocator('#panelRadio iframe').locator('#radioReproductor').isVisible(),true);

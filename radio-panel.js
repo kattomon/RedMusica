@@ -5,6 +5,7 @@
  const close = document.getElementById('cerrarRadio');
  const minimize = document.getElementById('minimizarRadio');
  const title = document.getElementById('tituloPanelRadio');
+ const thumbnail = document.getElementById('miniaturaRadioPanel');
  const defaultTitle = title.textContent;
  let nowPlaying = '';
  let frame;
@@ -59,6 +60,8 @@
  window.addEventListener('message', e => {
   if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-now-playing' && typeof e.data.title==='string') {
    nowPlaying=e.data.title.slice(0,80);
+   if(typeof e.data.videoId==='string'&&/^[A-Za-z0-9_-]{11}$/.test(e.data.videoId)){thumbnail.src='https://i.ytimg.com/vi/'+e.data.videoId+'/mqdefault.jpg';thumbnail.alt='Miniatura de '+nowPlaying;thumbnail.hidden=false;thumbnail.onerror=()=>{thumbnail.hidden=true;thumbnail.removeAttribute('src');};}
+   else{thumbnail.hidden=true;thumbnail.removeAttribute('src');thumbnail.alt='';}
    title.textContent=panel.classList.contains('minimizado') ? '♫ '+nowPlaying : (nowPlaying ? '♫ '+nowPlaying : defaultTitle);
   }
   if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-close') minimizePanel();
