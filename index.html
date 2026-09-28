@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#313131">
     <link rel="manifest" href="site.webmanifest">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-35">
+    <link rel="stylesheet" href="style.css?v=20260927-36">
 </head>
 <body>
 <main>
@@ -216,7 +216,7 @@
 </section>
 <button id="abrirRadio" type="button" aria-controls="panelRadio" aria-expanded="false">Radio ♫</button>
 <section id="panelRadio" role="region" aria-labelledby="tituloPanelRadio" hidden>
-    <header><img id="miniaturaRadioPanel" class="miniatura-radio-panel" alt="" hidden><h2 id="tituloPanelRadio">Radio RedMusica</h2><div class="controles-panel-radio"><button id="minimizarRadio" type="button" aria-label="Minimizar sin detener la radio">Minimizar</button><button id="cerrarRadio" type="button" aria-label="Cerrar la ventana y mantener la radio">Cerrar</button><button id="detenerRadio" type="button" aria-label="Detener la radio">Detener</button></div></header>
+    <header><img id="miniaturaRadioPanel" class="miniatura-radio-panel" alt="" hidden><h2 id="tituloPanelRadio">Radio RedMusica</h2><div class="controles-panel-radio"><button id="alternarRadio" type="button" aria-label="Pausar radio solo para ti" hidden>Ⅱ</button><button id="minimizarRadio" type="button" aria-label="Minimizar sin detener la radio">Minimizar</button><button id="cerrarRadio" type="button" aria-label="Cerrar la ventana y mantener la radio">Cerrar</button><button id="detenerRadio" type="button" aria-label="Detener la radio">Detener</button></div></header>
 </section>
 <dialog id="selectorGif" aria-labelledby="tituloSelectorGif">
     <form method="dialog" class="selector-gif-cerrar"><button aria-label="Cerrar selector de GIFs">×</button></form>
@@ -226,7 +226,7 @@
     <form id="buscarGifs"><label class="solo-lectores" for="textoBuscarGifs">Buscar GIFs</label><input id="textoBuscarGifs" type="search" maxlength="50" placeholder="Buscar GIFs…" required><button type="submit">Buscar</button></form>
     <div id="resultadosGifs" aria-live="polite"></div>
 </dialog>
-<script src="radio-panel.js?v=20260927-21" defer></script>
+<script src="radio-panel.js?v=20260927-22" defer></script>
 <script src="config.js?v=20260927-18"></script>
 <script src="script.js?v=20260927-33" defer></script>
 </body>

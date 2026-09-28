@@ -4,10 +4,12 @@
  const stop = document.getElementById('detenerRadio');
  const close = document.getElementById('cerrarRadio');
  const minimize = document.getElementById('minimizarRadio');
+ const toggle = document.getElementById('alternarRadio');
  const title = document.getElementById('tituloPanelRadio');
  const thumbnail = document.getElementById('miniaturaRadioPanel');
  const defaultTitle = title.textContent;
  let nowPlaying = '';
+ let playbackPaused = false;
  let frame;
  const dragKey='redmusica:radio-panel-position:v1';
  function clampPosition(left,top){const rect=panel.getBoundingClientRect(),margin=8;return{left:Math.max(margin,Math.min(left,innerWidth-rect.width-margin)),top:Math.max(margin,Math.min(top,innerHeight-rect.height-margin))};}
@@ -30,7 +32,7 @@
   if (open && !frame) {
    frame = document.createElement('iframe');
    frame.title = 'Radio RedMusica: reproductor, búsqueda y cola';
-   frame.src = 'radio.html?panel=1&v=20260927-19';
+   frame.src = 'radio.html?panel=1&v=20260927-22';
    frame.allow = 'autoplay; fullscreen';
    panel.append(frame);
   }
@@ -50,12 +52,15 @@
   panel.classList.remove('minimizado');
   button.setAttribute('aria-expanded', 'false');
   if (frame) frame.contentWindow.postMessage({type:'radio-stop'}, location.origin);
+  playbackPaused=true;toggle.hidden=true;updateToggle();
   button.focus();
  }
  button.addEventListener('click', () => setOpen(panel.hidden || panel.classList.contains('minimizado')));
  minimize.addEventListener('click', () => panel.classList.contains('minimizado') ? setOpen(true) : minimizePanel());
  close.addEventListener('click', minimizePanel);
  stop.addEventListener('click', stopRadio);
+ function updateToggle(){toggle.textContent=playbackPaused?'▶':'Ⅱ';toggle.setAttribute('aria-label',playbackPaused?'Reanudar radio solo para ti':'Pausar radio solo para ti');toggle.title=toggle.getAttribute('aria-label');}
+ toggle.addEventListener('click',()=>{if(!frame)return;frame.contentWindow.postMessage({type:'radio-toggle-playback'},location.origin);});
  document.addEventListener('keydown', e => { if(e.key==='Escape' && !panel.hidden && !panel.classList.contains('minimizado')) minimizePanel(); });
  window.addEventListener('message', e => {
   if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-now-playing' && typeof e.data.title==='string') {
@@ -64,6 +69,7 @@
    else{thumbnail.hidden=true;thumbnail.removeAttribute('src');thumbnail.alt='';}
    title.textContent=panel.classList.contains('minimizado') ? '♫ '+nowPlaying : (nowPlaying ? '♫ '+nowPlaying : defaultTitle);
   }
+  if(frame && !panel.hidden && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-playback' && typeof e.data.paused==='boolean') {playbackPaused=e.data.paused;toggle.hidden=false;updateToggle();}
   if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-close') minimizePanel();
  });
 })();

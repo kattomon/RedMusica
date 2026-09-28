@@ -6,7 +6,7 @@
  const config = window.REDMUSICA_CONFIG;
  const db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
  let queue = [], offset = 0, session = null, player = null, loaded = null, joined = false, ready = false, updating = false;
- let busy = false, authRevision = 0, continuePlaying = false, panelActive = true, resumingFromBackground = false;
+ let busy = false, authRevision = 0, continuePlaying = false, panelActive = true, resumingFromBackground = false, userPaused = false;
  const omitted = new Set(), blockedVideos = new Set();
  let playingSong = null, playerFailure = false;
  let roomRevision = null, roomPaused = false;
@@ -27,6 +27,14 @@
  }
  function upcoming() { return queue.find(s=>Date.parse(s.starts_at)>Date.now()+offset && Date.parse(s.ends_at)>Date.now()+offset && !omitted.has(s.id) && !blockedVideos.has(s.video_id)); }
  function announce(title,videoId=null) { if(embedded) window.parent.postMessage({type:'radio-now-playing',title,videoId:/^[A-Za-z0-9_-]{11}$/.test(videoId||'')?videoId:null},location.origin); }
+ function reportPlayback(paused) { if(embedded) window.parent.postMessage({type:'radio-playback',paused:Boolean(paused)},location.origin); }
+ function togglePlayback() {
+  if(!ready || !joined) return;
+  userPaused=!userPaused;
+  if(userPaused){player.pauseVideo();$('radioPlayback').textContent='Pausada solo para ti. La sala sigue en vivo para las demás personas.';reportPlayback(true);return;}
+  $('radioPlayback').textContent='Retomando la canción en vivo…';
+  const song=playable();if(song)load(song,true);else advance();reportPlayback(false);
+ }
  function updateScheduleStatus() {
   const next=upcoming();
   if(next) {
@@ -36,7 +44,7 @@
   } else $('radioProximo').textContent=queue.length ? 'No hay otra canción programada todavía.' : 'La sala espera el próximo pedido.';
  }
  function advance() {
-  if (!panelActive || document.hidden || !ready || playerFailure || roomPaused) return;
+  if (!panelActive || document.hidden || !ready || playerFailure || roomPaused || userPaused) return;
   const song=playable();
   if(song) load(song,continuePlaying);
   else {
@@ -48,9 +56,10 @@
  }
  window.addEventListener('message', e => {
   if(embedded && e.source===window.parent && e.origin===location.origin && e.data?.type==='radio-stop') {
-   panelActive=false;joined=false;continuePlaying=false;if(ready)player.pauseVideo();
+   panelActive=false;joined=false;continuePlaying=false;userPaused=false;if(ready)player.pauseVideo();
   }
   if(embedded && e.source===window.parent && e.origin===location.origin && e.data?.type==='radio-open') {panelActive=true;refresh();}
+  if(embedded && e.source===window.parent && e.origin===location.origin && e.data?.type==='radio-toggle-playback') togglePlayback();
  });
  document.addEventListener('keydown', e => {
   if(embedded && e.key==='Escape') window.parent.postMessage({type:'radio-close'},location.origin);
@@ -87,8 +96,8 @@
   });
   $('radioColaEstado').textContent=queue.length ? 'La cola se actualiza automáticamente.' : 'Todavía no hay canciones. Haz el primer pedido.';
   if(roomPaused){loaded=null;if(ready)player.stopVideo();$('radioActual').textContent='Radio pausada por administración.';$('radioPlayback').textContent='La sala se reanudará cuando administración vuelva a activarla.';return;}
-  if(joined&&ready&&active&&resumingFromBackground) { if(!omitted.has(active.id)&&!blockedVideos.has(active.video_id)){if(loaded!==active.id)load(active,true);else player.playVideo();}resumingFromBackground=false; }
-  else if(joined&&ready&&active&&loaded!==active.id&&!omitted.has(active.id)&&!blockedVideos.has(active.video_id)) load(active,true);
+  if(joined&&ready&&active&&resumingFromBackground) { if(!userPaused&&!omitted.has(active.id)&&!blockedVideos.has(active.video_id)){if(loaded!==active.id)load(active,true);else player.playVideo();}resumingFromBackground=false; }
+  else if (joined && ready && active && loaded!==active.id && !userPaused && !omitted.has(active.id) && !blockedVideos.has(active.video_id)) load(active,true);
   else if (joined && !loaded) advance();
  }
  function load(song, autoplay) {
@@ -133,12 +142,12 @@
  $('radioEscuchar').addEventListener('click',()=>{
   joined=true;$('radioReproductor').hidden=false;
   if(roomPaused){$('radioPlayback').textContent='La radio está pausada por administración.';return;}
-  if (ready) { playerFailure=false;const s=playable();if(s) load(s,true);else advance();return; }
+  if (ready) { playerFailure=false;userPaused=false;reportPlayback(false);const s=playable();if(s) load(s,true);else advance();return; }
   $('radioEscuchar').disabled=true;
   window.onYouTubeIframeAPIReady=()=>{
    player=new YT.Player('youtubePlayer',{width:'100%',height:'360',playerVars:{playsinline:1,origin:location.origin},events:{
-    onReady:()=>{ready=true;applyVolume();$('radioEscuchar').disabled=false;$('radioEscuchar').textContent='Volver a la canción de la sala';const s=playable();if(s)load(s,false);},
-    onStateChange:event=>{if(event.data===0 && loaded)next();},
+    onReady:()=>{ready=true;applyVolume();$('radioEscuchar').disabled=false;$('radioEscuchar').textContent='Volver a la canción de la sala';const s=playable();if(s)load(s,false);reportPlayback(userPaused);},
+    onStateChange:event=>{if(event.data===0 && loaded)next();else if(event.data===1)reportPlayback(false);else if(event.data===2)reportPlayback(true);},
     onAutoplayBlocked:()=>{$('radioPlayback').textContent='Tu navegador pide un toque: pulsa reproducir en el video.';},
     onError:playbackError
    }});

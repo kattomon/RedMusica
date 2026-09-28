@@ -67,20 +67,24 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   await feed.getByRole('button',{name:'Minimizar sin detener la radio'}).click();
   assert.match(await feed.locator('#tituloPanelRadio').innerText(),/La que suena al volver/,'the minimized radio should display the current track');
   assert.equal(await feed.locator('#miniaturaRadioPanel').isVisible(),true,'the minimized radio shows the current YouTube thumbnail');assert.match(await feed.locator('#miniaturaRadioPanel').getAttribute('src'),/i\.ytimg\.com\/vi\/ponmlkjihgf\/mqdefault\.jpg/);
+  const toggle=feed.getByRole('button',{name:'Pausar radio solo para ti'});await toggle.waitFor();await toggle.click();await feed.getByRole('button',{name:'Reanudar radio solo para ti'}).waitFor();
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'the floating control pauses playback only for this listener');
   assert.equal(await feed.locator('#panelRadio').isVisible(),true);
   assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),true);
   assert.equal(await feed.frameLocator('#panelRadio iframe').locator('#radioReproductor').isVisible(),true);
-  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),0,'minimizing must not pause the YouTube player');
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'minimizing must preserve an intentional personal pause');assert.equal(await room.locator('body').evaluate(()=>window.playCalls),0,'refreshing or reopening does not undo a personal pause');
+  await feed.getByRole('button',{name:'Reanudar radio solo para ti'}).click();await feed.getByRole('button',{name:'Pausar radio solo para ti'}).waitFor();assert.equal(await room.locator('body').evaluate(()=>window.playerCalls.at(-1).videoId),'ponmlkjihgf','resume rejoins the current live track');
   await feed.getByRole('button',{name:'Expandir radio'}).click();
   assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),false);
   await feed.getByRole('button',{name:'Cerrar la ventana y mantener la radio'}).click();
   assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),true);
-  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),0,'closing the panel must minimize without pausing');
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'closing the panel must not pause playback');
   await feed.getByRole('button',{name:'Expandir radio'}).click();
   await feed.getByRole('button',{name:'Detener la radio',exact:true}).click();
   assert.equal(await feed.locator('#panelRadio').isVisible(),false);
   await room.locator('body').evaluate(()=>new Promise(resolve=>setTimeout(resolve,0)));
-  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'the explicit stop control must pause the player');
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),2,'the explicit stop control must pause the player');
+  assert.equal(await feed.locator('#alternarRadio').isHidden(),true,'stopping hides the personal playback control until listening starts again');
   await feed.getByRole('button',{name:'Radio ♫'}).click();
   assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).getAttribute('placeholder'),'Nombre del artista');
   assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).evaluate(e=>e.value),'Mi artista');
@@ -90,7 +94,7 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   await feed.screenshot({path:'../../outputs/radio-panel-'+engine.name()+'.png',fullPage:false});
   await room.getByRole('searchbox',{name:'Artista',exact:true}).press('Escape');
   await feed.waitForFunction(()=>document.querySelector('#panelRadio').classList.contains('minimizado'));
-  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'Escape should minimize without pausing');
+  assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),2,'Escape should minimize without pausing');
   await browser.close();console.log('PASS '+engine.name()+': radio flow, floating panel, minimize/restore, explicit stop, Escape, preserved feed, no new tab, mobile');
  }
  server.close();
