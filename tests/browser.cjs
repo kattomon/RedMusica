@@ -142,6 +142,7 @@ const server=http.createServer((req,res)=>{
     else throw Error('Unexpected request '+method+' '+url);
     await route.fulfill({status,headers,body:data===null?'':JSON.stringify(data)});
    });
+   await ctx.route('**/functions/v1/radio',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({now:new Date().toISOString(),queue:[]})}));
    const page=await ctx.newPage();page.errors=[];page.blockedTestRequests=[];page.on('pageerror',e=>{if(e.message.includes('due to access control checks.'))page.blockedTestRequests.push(e.message);else page.errors.push(e.message);});await page.goto('http://127.0.0.1:4174/'+start);await page.locator('#tituloFeed').waitFor({state:'attached'});return page;
   }
   async function login(page,email){await page.locator('#modoAcceso').selectOption('login');await page.locator('#correoUsuario').fill(email);await page.locator('#claveUsuario').fill('test-password-123');await page.locator('#botonAcceso').click();await page.locator('#sesionPerfil').waitFor({state:'attached'});await page.waitForFunction(()=>document.querySelector('#nombrePerfil').textContent.startsWith('Publicas como'));}

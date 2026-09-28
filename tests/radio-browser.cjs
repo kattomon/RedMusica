@@ -1,6 +1,6 @@
 const {chromium,webkit,devices}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
-const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),new URL(req.url,'http://localhost').pathname);if(!fs.existsSync(file)){res.writeHead(404).end();return;}res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file));});
+const server=http.createServer((req,res)=>{let file=path.resolve(process.cwd(),'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(process.cwd()+path.sep)){res.writeHead(403).end();return;}if(fs.existsSync(file)&&fs.statSync(file).isDirectory())file=path.join(file,'index.html');if(!fs.existsSync(file)){res.writeHead(404).end();return;}res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file));});
 (async()=>{
  await new Promise(r=>server.listen(4180,'127.0.0.1',r));
  for(const engine of [chromium,webkit]){
@@ -48,7 +48,7 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   const cancelPage=await ctx.newPage();await cancelPage.goto('http://127.0.0.1:4180/radio.html');await cancelPage.getByRole('button',{name:'Cancelar mi pedido'}).click();await cancelPage.getByText('Todavía no hay canciones. Haz el primer pedido.').waitFor();
   queue=[{id:'live-one',video_id:'lmnopqrstuv',title:'Canción de la sala',channel:'Canal',duration:180,starts_at:new Date(Date.now()-1000).toISOString(),ends_at:new Date(Date.now()+179000).toISOString()}];
   const live=await ctx.newPage();await live.goto('http://127.0.0.1:4180/radio.html');await live.getByRole('button',{name:'Entrar a escuchar'}).click();await live.getByRole('button',{name:'Volver a la canción de la sala'}).waitFor();
-  queue=[{id:'live-two',video_id:'ponmlkjihgf',title:'La que suena al volver',channel:'Canal',duration:180,starts_at:new Date(Date.now()-1000).toISOString(),ends_at:new Date(Date.now()+179000).toISOString()}];
+  queue=[{id:'live-two',video_id:'ponmlkjihgf',title:'La que suena al volver',channel:'Canal',duration:180,starts_at:new Date(Date.now()-1000).toISOString(),ends_at:new Date(Date.now()+179000).toISOString(),username:'Ana'}];
   await live.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
   assert.equal(await live.evaluate(()=>window.pauseCalls),0,'the app must not pause playback when the tab is hidden');
   await live.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
@@ -56,6 +56,7 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);assert.deepEqual(errors,[]);
   await ctx.route('**/script.js?*',r=>r.fulfill({contentType:'text/javascript',body:''}));
   const feed=await ctx.newPage();await feed.goto('http://127.0.0.1:4180/index.html?seccion=musica');await feed.locator('#crearPublicacion').evaluate(element=>element.hidden=false);
+  await feed.waitForFunction(()=>document.querySelector('#radioTituloEnVivo')?.textContent==='La que suena al volver');assert.equal(await feed.locator('#radioEstadoEnVivo').getAttribute('data-status'),'live');assert.match(await feed.locator('#radioDetalleEnVivo').innerText(),/@Ana/);assert.match(await feed.locator('#radioCuentaAtrasEnVivo').innerText(),/Termina en/);assert.equal(await feed.locator('#radioPortadaEnVivo').isVisible(),true,'the live status widget shows the current song thumbnail');
   await feed.locator('#buscarAlbum').fill('Mi búsqueda sin perder');
   const pages=ctx.pages().length;
   await feed.getByRole('button',{name:'Radio ♫'}).click();

@@ -497,6 +497,19 @@ hr { border-top-color: var(--rm-line); }
 #navegacion a:hover { background: #eae5dd; }
 #navegacion a[aria-current="page"] { background: var(--rm-accent-soft); border-bottom: 0; color: #44372e; font-weight: 700; }
 #navegacion button { min-height: 42px; padding: 7px 12px; }
+.radio-en-vivo { display: grid; grid-template-columns: auto 76px minmax(0,1fr) minmax(140px,.65fr) auto; align-items: center; gap: 13px; width: min(100%, 1060px); margin: -8px auto 22px; padding: 11px 14px; border: 1px solid var(--rm-line); border-radius: 10px; background: linear-gradient(115deg,#fff 0%,#f4f1ec 100%); box-shadow: var(--rm-shadow); }
+.radio-en-vivo-estado { display: inline-flex; align-items: center; gap: 7px; color: var(--rm-muted); font-size: .82rem; font-weight: 700; white-space: nowrap; }
+.radio-en-vivo-punto { width: 9px; height: 9px; border-radius: 50%; background: #a59e94; box-shadow: 0 0 0 3px #a59e941c; }
+.radio-en-vivo-estado[data-status="live"] .radio-en-vivo-punto { background: #5f8b64; box-shadow: 0 0 0 3px #5f8b6422; animation: radio-pulso 2s ease-in-out infinite; }
+.radio-en-vivo-estado[data-status="paused"] .radio-en-vivo-punto { background: #c19043; }
+.radio-en-vivo-portada { display: block; width: 76px; height: 54px; border-radius: 6px; background: #e6e1d9; object-fit: cover; }
+.radio-en-vivo-cancion, .radio-en-vivo-proximo { display: grid; min-width: 0; gap: 2px; }
+.radio-en-vivo-cancion > span:first-child, .radio-en-vivo-proximo > span { color: var(--rm-muted); font-size: .76rem; }
+.radio-en-vivo-cancion strong, .radio-en-vivo-proximo strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radio-en-vivo-cancion > span:last-child, .radio-en-vivo-proximo small { overflow: hidden; color: var(--rm-muted); font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+.radio-en-vivo-proximo { padding-left: 13px; border-left: 1px solid var(--rm-line); }
+.radio-en-vivo > button { min-height: 42px; padding: 7px 13px; white-space: nowrap; }
+@keyframes radio-pulso { 50% { box-shadow: 0 0 0 6px #5f8b6410; } }
 #cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas, #seccionAmigos, #chatComunitario, #notificaciones,
 #perfilPublico, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionListas, #seccionBlackjack {
     margin: 16px 0 24px; padding: clamp(16px, 2.5vw, 24px); border: 1px solid var(--rm-line); border-radius: var(--rm-radius); background: var(--rm-surface); box-shadow: var(--rm-shadow);
@@ -541,6 +554,10 @@ img, video { max-width: 100%; }
 #estadoInstalacion, #estadoConexion { width: fit-content; max-width: 100%; margin: 0 0 14px; padding: 9px 12px; border: 1px solid var(--rm-line); border-radius: 7px; background: #fff; color: var(--rm-ink); }
 #estadoConexion { border-color: #b68b55; background: #fff8e9; }
 @media (max-width: 700px) {
+    .radio-en-vivo { grid-template-columns: auto 58px minmax(0,1fr) auto; gap: 9px; margin: -10px auto 16px; padding: 9px; }
+    .radio-en-vivo-portada { width: 58px; height: 48px; }
+    .radio-en-vivo-proximo { grid-column: 2 / 4; grid-row: 2; grid-template-columns: auto minmax(0,1fr) auto; align-items: baseline; gap: 7px; padding: 6px 0 0; border-top: 1px solid var(--rm-line); border-left: 0; }
+    .radio-en-vivo > button { grid-column: 4; grid-row: 1 / 3; align-self: stretch; white-space: normal; }
     body > main { width: min(100% - 24px, 620px); padding-top: 16px; padding-bottom: calc(32px + env(safe-area-inset-bottom)); }
     #abrirRadio { z-index: 70; }
     #navegacion { position: sticky; top: env(safe-area-inset-top, 0px); margin: 12px -2px 18px; width: calc(100% + 4px); padding: 5px; border-radius: 8px; scroll-snap-type: x proximity; }
@@ -557,6 +574,11 @@ img, video { max-width: 100%; }
     .blackjack-fieltro { overflow: hidden; }
 }
 @media (max-width: 520px) {
+    .radio-en-vivo { grid-template-columns: auto 48px minmax(0,1fr); }
+    .radio-en-vivo-estado { grid-column: 1 / 4; }
+    .radio-en-vivo-portada { width: 48px; height: 48px; }
+    .radio-en-vivo-proximo { grid-column: 2 / 4; }
+    .radio-en-vivo > button { grid-column: 1 / 4; grid-row: auto; width: 100%; min-height: 44px; }
     body > main { width: calc(100% - 20px); }
     body > main > h1 { font-size: 1.8rem; }
     #cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas, #seccionAmigos, #chatComunitario, #notificaciones,
