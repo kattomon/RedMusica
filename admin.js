@@ -7,7 +7,9 @@
  <details id="adminAjustes"><summary>Ajustes del sitio</summary><form id="adminSettings">
  <label for="adminTitle">Nombre del sitio</label><input id="adminTitle" maxlength="60" required>
  <label for="adminDescription">Descripción</label><textarea id="adminDescription" maxlength="300"></textarea>
- <label><input id="adminPosts" type="checkbox"> Permitir nuevas publicaciones</label><button>Guardar ajustes</button></form></details>
+ <label><input id="adminPosts" type="checkbox"> Permitir nuevas publicaciones</label>
+ <label for="adminGiphyKey">Clave API pública de GIPHY</label><input id="adminGiphyKey" type="password" maxlength="200" autocomplete="new-password" placeholder="Pega aquí la clave beta de GIPHY">
+ <p id="adminGiphyStatus">La clave configurada se usa en el navegador para buscar GIFs y es visible para los usuarios.</p><button>Guardar ajustes</button></form></details>
  <details open><summary>Moderación y usuarios</summary><form id="adminFilter" class="fila-controles"><select id="adminKind" aria-label="Administrar"><option value="posts">Publicaciones</option><option value="comments">Comentarios</option><option value="users">Usuarios</option><option value="audit">Registro de acciones</option></select><input id="adminQuery" placeholder="Buscar texto o usuario" aria-label="Buscar en administración" maxlength="100"><button>Buscar / Actualizar</button></form><div id="adminList"></div><button id="adminPrev" type="button">Anterior</button> <button id="adminNext" type="button">Siguiente</button></details>
  <details open><summary>Cabina de radio</summary><p>Dirige la selección musical de toda la sala. Los oyentes recibirán los cambios en hasta 15 segundos. No incluye micrófono ni mezcla de audio.</p><div class="acciones"><button id="adminRadioRefresh" type="button">Actualizar cola</button><button id="adminSkip" type="button">Saltar para todos</button><button id="adminRadioToggle" type="button">Pausar radio</button></div><div id="adminQueue"></div></details>`;
  document.getElementById('cuenta').after(panel);
@@ -24,6 +26,7 @@
  async function settings(){const {data,error}=await db.from('site_settings').select('*').eq('id',1).maybeSingle();if(error||!data||typeof data.title!=='string')return;
   document.querySelector('main > h1').textContent=data.title;document.querySelector('main > p').textContent=data.description;
   $('adminTitle').value=data.title;$('adminDescription').value=data.description;$('adminPosts').checked=data.accept_posts;
+  const gifSetting=await db.from('site_gif_settings').select('api_key').eq('id',true).maybeSingle();$('adminGiphyStatus').textContent=gifSetting.data?.api_key?'Hay una clave pública de GIPHY configurada.':'Todavía no hay una clave de GIPHY; la búsqueda de GIFs permanecerá desactivada.';
  }
  async function list(){const ticket=revision;const kind=$('adminKind').value;const result=await call('list',{kind,offset:page*30,query:$('adminQuery').value});if(ticket!==revision)return;
   $('adminList').replaceChildren();$('adminPrev').disabled=page===0;$('adminNext').disabled=result.items.length<30;
@@ -57,7 +60,7 @@
  $('adminRadioRefresh').addEventListener('click',()=>action(radio));
  $('adminSkip').addEventListener('click',()=>action(async()=>{if(!confirm('¿Saltar la canción para todos?'))return;await call('skip');await radio();}));
  $('adminRadioToggle').addEventListener('click',()=>action(async()=>{await call('radio_toggle',{enabled:paused});await radio();}));
- $('adminSettings').addEventListener('submit',e=>{e.preventDefault();action(async()=>{await call('settings',{title:$('adminTitle').value,description:$('adminDescription').value,accept_posts:$('adminPosts').checked});await settings();});});
+ $('adminSettings').addEventListener('submit',e=>{e.preventDefault();action(async()=>{await call('settings',{title:$('adminTitle').value,description:$('adminDescription').value,accept_posts:$('adminPosts').checked});const key=$('adminGiphyKey').value.trim();if(key){const {error}=await db.rpc('set_giphy_api_key',{p_key:key});if(error)throw error;$('adminGiphyKey').value='';}await settings();});});
  async function sync(){const ticket=++revision;toggle.hidden=true;panel.hidden=true;toggle.setAttribute('aria-expanded','false');$('adminList').replaceChildren();$('adminQueue').replaceChildren();
   try{const me=await call('me');if(ticket!==revision)return;role=me.role;toggle.hidden=!['owner','admin'].includes(role);toggle.textContent='Administración · '+role;$('adminRango').textContent='Tu rango: '+role;$('adminAjustes').hidden=role!=='owner';}catch{role='member';}
  }

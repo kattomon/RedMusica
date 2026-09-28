@@ -20,7 +20,7 @@ alter table public.posts add constraint posts_content_type_check check (
    and film_wikidata_id is null and film_title is null and film_director is null and film_year is null and film_poster is null and film_rating is null)
   or
   (post_type='meme' and album_id is null and album_title is null and album_artist is null
-   and image_path is not null and image_path ~ ('^'||user_id::text||'/[0-9a-f-]{36}\.jpg$')
+   and image_path is not null and image_path ~ ('^'||user_id::text||'/[0-9a-f-]{36}\.(jpg|gif)$')
    and film_wikidata_id is null and film_title is null and film_director is null and film_year is null and film_poster is null and film_rating is null)
   or
   (post_type='film' and album_id is null and album_title is null and album_artist is null and image_path is null
@@ -34,9 +34,9 @@ grant insert(post_type,image_path) on public.posts to authenticated;
 grant insert(film_wikidata_id,film_title,film_director,film_year,film_poster,film_rating) on public.posts to authenticated;
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
- values('post-images','post-images',true,1048576,array['image/jpeg']);
+ values('post-images','post-images',true,1048576,array['image/jpeg','image/gif']);
 create policy post_images_insert_self on storage.objects for insert to authenticated with check (
- bucket_id='post-images' and name ~ ('^'||(select auth.uid())::text||'/[0-9a-f-]{36}\.jpg$')
+ bucket_id='post-images' and name ~ ('^'||(select auth.uid())::text||'/[0-9a-f-]{36}\.(jpg|gif)$')
  and exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)
 );
 create policy post_images_delete_self on storage.objects for delete to authenticated using (
@@ -221,7 +221,7 @@ alter table public.posts add constraint posts_content_type_check check (
    and film_wikidata_id is null and film_tmdb_id is null and film_title is null and film_director is null and film_year is null and film_poster is null and film_rating is null)
   or
   (post_type='meme' and album_id is null and album_title is null and album_artist is null and image_path is not null
-   and image_path ~ ('^'||user_id::text||'/[0-9a-f-]{36}\.jpg$') and film_wikidata_id is null and film_tmdb_id is null
+   and image_path ~ ('^'||user_id::text||'/[0-9a-f-]{36}\.(jpg|gif)$') and film_wikidata_id is null and film_tmdb_id is null
    and film_title is null and film_director is null and film_year is null and film_poster is null and film_rating is null)
   or
   (post_type='film' and album_id is null and album_title is null and album_artist is null and image_path is null

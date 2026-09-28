@@ -17,6 +17,16 @@
     let presenceChannel = null;
     let presenceOwner = null;
     const presenciaEnLinea = new Set();
+    const dialogoGif=document.getElementById('selectorGif');
+    let formularioGifActivo=null;
+    let giphyApiKey='';
+    async function cargarClaveGiphy(){if(giphyApiKey)return giphyApiKey;try{const {data,error}=await db.from('site_gif_settings').select('api_key').eq('id',true).maybeSingle();if(!error)giphyApiKey=data?.api_key||'';}catch{}return giphyApiKey;}
+    function urlGifPermitida(value){try{const url=new URL(value);return url.protocol==='https:'&&(/\.giphy\.com$|\.giphyusercontent\.com$/.test(url.hostname))&&/\.gif$/i.test(url.pathname);}catch{return false;}}
+    function pintarTextoConGif(container,value){const text=String(value||''),match=text.match(/(?:\r?\n)?\[GIF\]\s*(https:\/\/\S+)\s*$/);container.textContent=match?text.slice(0,match.index).trimEnd():text;if(match&&urlGifPermitida(match[1])){const image=document.createElement('img');image.className='gif-compartido';image.src=match[1];image.alt='GIF de GIPHY';image.loading='lazy';image.referrerPolicy='no-referrer';container.append(document.createElement('br'),image);}}
+    function prepararCuerpo(form,input,limit){const text=input.value.trim(),gif=form.querySelector('.url-gif-adjunto')?.value||'',body=text+(gif?(text?'\n':'')+'[GIF] '+gif:'');if(body.length>limit)throw Error('El texto más el GIF supera el límite del mensaje. Acorta el texto.');return body;}
+    function adjuntarGif(form,url){if(!form||!urlGifPermitida(url))return;let field=form.querySelector('.url-gif-adjunto');if(!field){field=document.createElement('input');field.type='hidden';field.className='url-gif-adjunto';form.append(field);}field.value=url;let preview=form.querySelector('.gif-vista-previa');if(!preview){preview=document.createElement('img');preview.className='gif-vista-previa';preview.alt='GIF seleccionado';preview.loading='lazy';preview.width=200;preview.height=112;form.append(preview);}preview.src=url;}
+    document.addEventListener('click',async event=>{const button=event.target.closest('.abrir-selector-gif');if(!button)return;formularioGifActivo=button.closest('form');const status=document.getElementById('estadoSelectorGif');if(!dialogoGif.open)dialogoGif.showModal();status.textContent='Conectando con GIPHY…';document.getElementById('textoBuscarGifs').focus();status.textContent=await cargarClaveGiphy()?'Busca y toca un GIF para añadirlo.':'La búsqueda está desactivada. La cuenta owner puede configurar una clave pública de GIPHY en Administración.';});
+    document.getElementById('buscarGifs').addEventListener('submit',async event=>{event.preventDefault();const status=document.getElementById('estadoSelectorGif'),results=document.getElementById('resultadosGifs'),query=document.getElementById('textoBuscarGifs').value.trim();if(!await cargarClaveGiphy()){status.textContent='La cuenta owner puede configurar la clave pública de GIPHY en Administración.';return;}status.textContent='Buscando…';results.replaceChildren();try{const url=new URL('https://api.giphy.com/v1/gifs/search');url.searchParams.set('api_key',giphyApiKey);url.searchParams.set('q',query);url.searchParams.set('limit','18');url.searchParams.set('rating','g');url.searchParams.set('lang','es');const response=await fetch(url,{signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const payload=await response.json();for(const gif of payload.data||[]){const full=gif.images?.original?.url,thumb=gif.images?.fixed_width_small?.url;if(!urlGifPermitida(full)||!thumb)continue;const item=document.createElement('button');item.type='button';item.className='gif-resultado';const image=document.createElement('img');image.src=thumb;image.alt=gif.title||'GIF';image.loading='lazy';image.referrerPolicy='no-referrer';item.append(image);item.addEventListener('click',()=>{adjuntarGif(formularioGifActivo,full);dialogoGif.close();formularioGifActivo?.querySelector('input:not([type=hidden])')?.focus();});results.append(item);}status.textContent=results.childElementCount?'Toca un GIF para adjuntarlo.':'No encontramos GIFs para esa búsqueda.';}catch{status.textContent='No se pudieron cargar los GIFs. Inténtalo de nuevo en un momento.';}});
     let revisionAmigos = 0;
     let canalMensajesPrivados = null, propietarioMensajesPrivados = null;
     let amigoChatActivo = null, mensajesPrivadosCargados = new Set();
@@ -343,7 +353,7 @@
         const name=row.profiles?.username || perfilesChat.get(row.user_id)?.username || 'Usuario';
         author.append(enlaceUsuario(row.user_id,name));
         if(row.profiles?.role) author.append(document.createTextNode(' '),rangoPerfil(row.profiles.role));
-        const body=document.createElement('p'); body.textContent=row.body;
+        const body=document.createElement('p'); pintarTextoConGif(body,row.body);
         const time=document.createElement('time'); time.dateTime=row.created_at; time.textContent=new Date(row.created_at).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
         item.append(author,body,time); listaChat.append(item);
         while(listaChat.children.length>80){const old=listaChat.firstElementChild;mensajesChat.delete(old.dataset.messageId);old.remove();}
@@ -368,10 +378,11 @@
     }
     document.getElementById('formularioChat').addEventListener('submit',e=>{
         e.preventDefault();const input=document.getElementById('textoChat'),button=document.getElementById('enviarChat');
-        if(!exigirCuenta()||!input.value.trim())return;
+        const form=e.currentTarget;let body;try{body=prepararCuerpo(form,input,500);}catch(error){estadoChat.textContent=error.message;return;}
+        if(!exigirCuenta()||!body)return;
         accion(button,estadoChat,async()=>{
-            const row=resultado(await db.from('chat_messages').insert({body:input.value.trim()}).select('id,user_id,body,created_at').single());
-            row.profiles=perfil;renderMensajeChat(row);input.value='';estadoChat.textContent='Mensaje enviado.';
+            const row=resultado(await db.from('chat_messages').insert({body}).select('id,user_id,body,created_at').single());
+            row.profiles=perfil;renderMensajeChat(row);input.value='';form.querySelector('.url-gif-adjunto').value='';form.querySelector('.gif-vista-previa')?.remove();estadoChat.textContent='Mensaje enviado.';
         });
     });
     document.addEventListener('visibilitychange',()=>{if(usuario&&!document.hidden)cargarChat();});
@@ -714,7 +725,7 @@
         if(!((row.sender_id===usuario?.id&&row.recipient_id===amigoChatActivo.id)||(row.recipient_id===usuario?.id&&row.sender_id===amigoChatActivo.id)))return;
         mensajesPrivadosCargados.add(row.id);
         const item=document.createElement('article');item.className='mensaje-privado'+(row.sender_id===usuario.id?' propio':'');item.dataset.messageId=row.id;
-        const body=document.createElement('p');body.textContent=row.body;
+        const body=document.createElement('p');pintarTextoConGif(body,row.body);
         const time=document.createElement('time');time.dateTime=row.created_at;time.textContent=new Date(row.created_at).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
         item.append(body,time);listaPrivada.append(item);while(listaPrivada.children.length>50){mensajesPrivadosCargados.delete(listaPrivada.firstElementChild.dataset.messageId);listaPrivada.firstElementChild.remove();}
         listaPrivada.scrollTop=listaPrivada.scrollHeight;
@@ -764,11 +775,11 @@
         }).subscribe();
     }
     document.getElementById('formularioChatPrivado').addEventListener('submit',event=>{
-        event.preventDefault();const input=document.getElementById('textoChatPrivado'),button=document.getElementById('enviarChatPrivado'),body=input.value.trim();
+        event.preventDefault();const form=event.currentTarget,input=document.getElementById('textoChatPrivado'),button=document.getElementById('enviarChatPrivado');let body;try{body=prepararCuerpo(form,input,1000);}catch(error){document.getElementById('estadoChatPrivado').textContent=error.message;return;}
         if(!body||!amigoChatActivo||!exigirCuenta())return;
         accion(button,document.getElementById('estadoChatPrivado'),async()=>{
             const row=resultado(await db.from('dm_messages').insert({recipient_id:amigoChatActivo.id,body}).select('id,sender_id,recipient_id,body,created_at').single());
-            pintarMensajePrivado(row);input.value='';
+            pintarMensajePrivado(row);input.value='';form.querySelector('.url-gif-adjunto').value='';form.querySelector('.gif-vista-previa')?.remove();
         });
     });
     document.getElementById('minimizarChatAmigo').addEventListener('click',event=>{
@@ -998,7 +1009,7 @@
         puntuacion.textContent=esPelicula?'★'.repeat(Math.floor(post.film_rating))+(post.film_rating%1?'½':'')+' · '+Number(post.film_rating).toLocaleString('es-CL',{minimumFractionDigits:post.film_rating%1?1:0,maximumFractionDigits:1})+'/5':'';
         const texto = document.createElement("p");
         texto.className = "opinion";
-        texto.textContent = post.body;
+        pintarTextoConGif(texto,post.body);
         const mensaje = document.createElement("p");
         mensaje.setAttribute("role", "status");
         const acciones = document.createElement("div");
@@ -1040,13 +1051,15 @@
         const formulario = document.createElement("form");
         formulario.className = "fila-controles";
         const entrada = document.createElement("input");
-        entrada.required = true;
+        entrada.required = false;
         entrada.maxLength = 1000;
         entrada.placeholder = "Escribe un comentario";
         entrada.setAttribute("aria-label", "Escribe un comentario");
+        const gifButton=crearBoton('GIF');gifButton.type='button';gifButton.className='abrir-selector-gif';gifButton.dataset.gifTarget='comentario';
+        const gifField=document.createElement('input');gifField.type='hidden';gifField.className='url-gif-adjunto';
         const enviar = crearBoton("Enviar");
         enviar.type = "submit";
-        formulario.append(entrada, enviar);
+        formulario.append(entrada,gifField,gifButton, enviar);
         const masComentarios = crearBoton("Ver más comentarios");
         masComentarios.hidden = true;
         let comentariosCargados = 0;
@@ -1060,8 +1073,7 @@
                 const comentarios = resultado(await db.from("comments").select("id,user_id,body,created_at,profiles:profiles!comments_user_id_fkey(username)").eq("post_id", post.id).order("created_at", { ascending: false }).order("id", { ascending: false }).range(desde, desde + 49));
                 if (reiniciar) lista.textContent = "";
                 comentarios.forEach(function (comentario) {
-                    const p = document.createElement("p");
-                    p.append(enlaceUsuario(comentario.user_id, comentario.profiles.username), ": " + comentario.body);
+                    const p = document.createElement("p");const author=enlaceUsuario(comentario.user_id, comentario.profiles.username);p.append(author,document.createTextNode(': '));const content=document.createElement('span');pintarTextoConGif(content,comentario.body);p.append(content);
                     lista.appendChild(p);
                 });
                 comentariosCargados = desde + comentarios.length;
@@ -1078,10 +1090,12 @@
         });
         formulario.addEventListener("submit", function (evento) {
             evento.preventDefault();
-            if (!exigirCuenta() || !entrada.value.trim()) return;
+            if (!exigirCuenta()) return;
             accion(enviar, estadoComentarios, async function () {
-                resultado(await db.from("comments").insert({ post_id: post.id, body: entrada.value.trim() }));
+                const body=prepararCuerpo(formulario,entrada,1000);if(!body)return;
+                resultado(await db.from("comments").insert({ post_id: post.id, body }));
                 entrada.value = "";
+                gifField.value='';formulario.querySelector('.gif-vista-previa')?.remove();
                 await cargarComentarios(true);
                 estadoComentarios.textContent = "Comentario enviado.";
             });
@@ -1317,8 +1331,9 @@
     });
 
     async function prepararImagenMeme(file) {
-        if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Elige una imagen JPG, PNG o WebP.');
+        if(!file||!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type))throw Error('Elige una imagen JPG, PNG, WebP o GIF.');
         if(file.size>10*1024*1024)throw Error('La imagen no puede superar 10 MB.');
+        if(file.type==='image/gif'){if(file.size>1048576)throw Error('El GIF no puede superar 1 MB para cuidar el espacio de almacenamiento.');return file;}
         const url=URL.createObjectURL(file);
         try{
             const img=new Image();img.src=url;await img.decode();
@@ -1339,8 +1354,8 @@
         accion(button,status,async()=>{
             status.textContent='Preparando imagen…';
             const blob=await prepararImagenMeme(document.getElementById('imagenMeme').files[0]);
-            const path=usuario.id+'/'+crypto.randomUUID()+'.jpg';
-            resultado(await db.storage.from('post-images').upload(path,blob,{upsert:false,contentType:'image/jpeg',cacheControl:'31536000'}));
+            const isGif=document.getElementById('imagenMeme').files[0].type==='image/gif';const path=usuario.id+'/'+crypto.randomUUID()+(isGif?'.gif':'.jpg');
+            resultado(await db.storage.from('post-images').upload(path,blob,{upsert:false,contentType:isGif?'image/gif':'image/jpeg',cacheControl:'31536000'}));
             try{
                 resultado(await db.from('posts').insert({post_type:'meme',image_path:path,body:document.getElementById('textoMeme').value.trim()}).select('id').single());
             }catch(error){await db.storage.from('post-images').remove([path]);throw error;}
