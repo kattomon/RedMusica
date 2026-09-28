@@ -9,7 +9,7 @@
     <link rel="manifest" href="site.webmanifest?v=20260928-1">
     <link rel="apple-touch-icon" href="app-icon-192.png">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260928-42">
+    <link rel="stylesheet" href="style.css?v=20260928-43">
 </head>
 <body>
 <main>
@@ -19,7 +19,7 @@
     <p id="estadoInstalacion" role="status" hidden></p>
     <p id="estadoConexion" role="status" hidden>Estás sin conexión. La app puede abrir, pero la radio, el chat, las búsquedas y las publicaciones necesitan internet.</p>
     <nav id="navegacion" aria-label="Navegación principal" hidden>
-        <a id="inicioNav" href="./">Inicio</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="peliculasNav" href="?seccion=peliculas">Películas</a><a id="memesNav" href="?seccion=memes">Memes</a><a id="blackjackNav" href="?seccion=blackjack">Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
+        <a id="inicioNav" href="./">Inicio</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="peliculasNav" href="?seccion=peliculas">Películas</a><a id="librosNav" href="?seccion=libros" hidden>Libros</a><a id="memesNav" href="?seccion=memes">Memes</a><a id="blackjackNav" href="?seccion=blackjack">Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
     </nav>
     <aside id="radioEnVivo" class="radio-en-vivo" aria-label="Estado de la radio en vivo">
         <span id="radioEstadoEnVivo" class="radio-en-vivo-estado" data-status="loading"><span class="radio-en-vivo-punto" aria-hidden="true"></span><span id="radioEstadoEnVivoTexto">Conectando</span></span>
@@ -41,9 +41,33 @@
         <div id="fotoPerfilPublico"></div><div id="rangoPerfilPublico"></div>
         <h2 id="tituloPerfilPublico">Cargando perfil…</h2>
         <p id="fechaPerfilPublico"></p>
-        <nav class="secciones-perfil" aria-label="Secciones del perfil"><a href="#sobrePerfil">Presentación</a><a href="#mediosPerfil">Fotos y álbumes</a><a href="#muroPersonal">Muro personal</a></nav>
+        <nav class="secciones-perfil" aria-label="Secciones del perfil"><a href="#sobrePerfil">Presentación</a><a href="#mediosPerfil">Fotos y álbumes</a><a href="#conciertosPerfil">Conciertos</a><a href="#muroPersonal">Muro personal</a></nav>
         <section id="sobrePerfil" class="bloque-perfil"><h3>Presentación</h3><p id="estadoBrevePublico" class="estado-breve-publico" hidden></p><p id="bioPerfilPublico"></p></section>
         <section id="mediosPerfil" class="bloque-perfil"><h3>Fotos y álbumes</h3><p id="estadoMediosPerfil" role="status"></p><div id="albumesPerfil" class="albumes-perfil"></div></section>
+        <section id="conciertosPerfil" class="bloque-perfil conciertos-perfil"><h3>Conciertos que viví</h3><p>Guarda y encuentra conciertos en el catálogo de la comunidad. Cada concierto se comparte una sola vez y cada persona lo añade a su propio perfil.</p>
+            <form id="formularioBusquedaConciertos" class="busqueda-conciertos" role="search">
+                <label for="buscarArtistaConcierto">Artista o banda</label><input id="buscarArtistaConcierto" maxlength="120" placeholder="Ej.: Los Bunkers">
+                <label for="buscarLugarConcierto">Sala o recinto</label><input id="buscarLugarConcierto" maxlength="120" placeholder="Ej.: Teatro Caupolicán">
+                <label for="buscarCiudadConcierto">Ciudad</label><input id="buscarCiudadConcierto" maxlength="80" placeholder="Ej.: Santiago">
+                <label for="buscarFechaConcierto">Fecha</label><input id="buscarFechaConcierto" type="date">
+                <button type="submit">Buscar conciertos</button>
+            </form>
+            <p id="estadoBusquedaConciertos" role="status" aria-live="polite"></p><div id="resultadosConciertos" class="lista-conciertos"></div>
+            <details id="agregarConciertoCaja" class="agregar-concierto-caja"><summary>¿No aparece? Añadir concierto al catálogo</summary>
+                <form id="formularioAgregarConcierto" class="formulario-concierto">
+                    <label for="artistaConcierto">Artista o banda</label><input id="artistaConcierto" maxlength="120" required placeholder="Nombre tal como lo buscaría otra persona">
+                    <label for="fechaConcierto">Fecha del concierto</label><input id="fechaConcierto" type="date" required>
+                    <label for="recintoConcierto">Sala, recinto o festival</label><input id="recintoConcierto" maxlength="120" required placeholder="Ej.: Movistar Arena">
+                    <label for="ciudadConcierto">Ciudad</label><input id="ciudadConcierto" maxlength="80" required>
+                    <label for="paisConcierto">País</label><input id="paisConcierto" maxlength="80" placeholder="Chile">
+                    <label for="giraConcierto">Gira o festival (opcional)</label><input id="giraConcierto" maxlength="120">
+                    <label for="enlaceConcierto">Enlace de referencia / setlist (opcional)</label><input id="enlaceConcierto" type="url" inputmode="url" maxlength="500" placeholder="https://…">
+                    <label for="recuerdoConcierto">Un recuerdo breve (opcional)</label><textarea id="recuerdoConcierto" maxlength="500" rows="2" placeholder="¿Qué fue lo que más recuerdas?"></textarea>
+                    <button type="submit">Añadir a mi perfil</button>
+                </form>
+            </details>
+            <h4 id="tituloListaConciertos">Conciertos del perfil</h4><p id="estadoListaConciertos" role="status"></p><div id="listaConciertosPerfil" class="lista-conciertos"></div>
+        </section>
         <section id="muroPersonal" class="bloque-perfil"><h3>Muro personal</h3><p id="resumenPerfilPublico" role="status"></p></section>
         <p id="presenciaPerfil" class="indicador-presencia" data-user-id=""></p>
         <p id="conteoSeguidores"></p><button id="seguirPerfil" type="button" hidden></button>
@@ -77,14 +101,17 @@
     </section>
     <section id="seccionJuegos" aria-labelledby="tituloJuegos" hidden>
         <h2 id="tituloJuegos">Juegos recomendados</h2>
-        <p>Recomienda un juego de PC, consola o móvil y cuéntanos por qué vale la pena.</p>
-        <details id="crearJuegoCaja"><summary>Recomendar un juego</summary>
+        <p>Busca en el catálogo compartido de RedMusica y recomienda juegos de cualquier plataforma.</p>
+        <form id="formularioBusquedaJuegos" class="busqueda-juegos" role="search"><label for="buscarJuegoCatalogo">Buscar juego</label><div class="fila-controles"><input id="buscarJuegoCatalogo" type="search" maxlength="120" placeholder="Título del juego, saga o plataforma"><button type="submit">Buscar juegos</button></div></form>
+        <p id="estadoBusquedaJuegos" role="status"></p><div id="resultadosBusquedaJuegos" class="lista-eventos"></div>
+        <details id="crearJuegoCaja"><summary>No está en el catálogo: recomendar un juego</summary>
             <form id="formularioJuego" class="formulario-evento">
                 <label for="nombreJuego">Nombre del juego</label><input id="nombreJuego" maxlength="100" required>
-                <label for="plataformaJuego">Plataforma</label><input id="plataformaJuego" maxlength="60" required placeholder="PC, PlayStation 5, Switch, Android…">
+                <label for="plataformaJuego">Plataforma(s)</label><input id="plataformaJuego" maxlength="120" required placeholder="PC, PS5, Xbox, Switch, Android…">
                 <label for="generoJuego">Género (opcional)</label><input id="generoJuego" maxlength="50" placeholder="RPG, aventura, ritmo…">
+                <label for="enlaceJuego">Enlace de referencia (opcional)</label><input id="enlaceJuego" type="url" inputmode="url" maxlength="500" placeholder="https://…">
                 <label for="motivoJuego">¿Por qué lo recomiendas?</label><textarea id="motivoJuego" maxlength="700" rows="3" required></textarea>
-                <button id="publicarJuego" type="submit">Publicar recomendación</button>
+                <button id="publicarJuego" type="submit">Añadir al catálogo y recomendar</button>
             </form>
         </details>
         <p id="estadoJuegos" role="status"></p><div id="listaJuegos" class="lista-eventos"></div>
@@ -290,6 +317,26 @@
         </section>
         <div class="atribucion-catalogo"><h3>Créditos del catálogo</h3><a href="https://www.themoviedb.org/" target="_blank" rel="noopener"><img class="logo-tmdb" src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_2-d537fb228cf3ded904ef09b136fe3fec72548ebc1fea3fbbd1ad9e36364db38b.svg" alt="The Movie Database (TMDb)"></a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p></div>
     </section>
+    <section id="seccionLibros" aria-labelledby="tituloLibros" hidden>
+        <h2 id="tituloLibros">Libros de la comunidad</h2>
+        <p>Busca por título o autor, elige un libro, puntúalo y comparte tu reseña.</p>
+        <form id="formularioBusquedaLibros">
+            <label for="buscarLibro">Título, autor o ISBN</label>
+            <div class="fila-controles"><input id="buscarLibro" type="search" maxlength="160" placeholder="Ej.: La amortajada, María Luisa Bombal" required><button id="buscarLibros" type="submit">Buscar</button></div>
+        </form>
+        <p id="estadoBusquedaLibros" role="status" aria-live="polite"></p><div id="resultadosLibros" class="resultados-libros"></div>
+        <section id="reseñaLibro" aria-labelledby="tituloResenaLibro" hidden>
+            <div id="portadaSeleccionLibro"></div><h3 id="tituloResenaLibro"></h3><p id="datosLibro"></p>
+            <button id="cambiarLibro" type="button">Elegir otro libro</button>
+            <form id="formularioResenaLibro">
+                <label for="notaLibro">Tu puntuación (de ½ a 5 estrellas)</label>
+                <select id="notaLibro" required><option value="0.5">½ estrella</option><option value="1">1 estrella</option><option value="1.5">1½ estrellas</option><option value="2">2 estrellas</option><option value="2.5">2½ estrellas</option><option value="3">3 estrellas</option><option value="3.5" selected>3½ estrellas</option><option value="4">4 estrellas</option><option value="4.5">4½ estrellas</option><option value="5">5 estrellas</option></select>
+                <label for="opinionLibro">Tu reseña</label><textarea id="opinionLibro" maxlength="5000" rows="5" placeholder="¿Qué te dejó este libro?" required></textarea>
+                <button id="publicarResenaLibro" type="submit">Publicar reseña</button>
+            </form><p id="estadoResenaLibro" role="status"></p>
+        </section>
+        <p class="atribucion-catalogo">Catálogo e imágenes: <a href="https://books.google.com/" target="_blank" rel="noopener noreferrer">Google Books</a>.</p>
+    </section>
     <h2 id="tituloFeed">Publicaciones</h2>
     <p id="feedVacio">Todavía no hay publicaciones. Comparte el primer álbum.</p>
     <div id="feed"></div>
@@ -333,7 +380,7 @@
 </dialog>
 <script src="radio-panel.js?v=20260928-1" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20260928-4" defer></script>
+<script src="script.js?v=20260928-5" defer></script>
 <script src="pwa.js?v=20260928-1" defer></script>
 </body>
 </html>

@@ -144,6 +144,39 @@
 #notaPelicula { display: block; width: 100%; margin-bottom: 12px; }
 #opinionPelicula { display: block; width: 100%; min-height: 120px; margin-bottom: 12px; resize: vertical; }
 @media(max-width:520px) { .tarjeta-pelicula { grid-template-columns: minmax(0,1fr); } .tarjeta-pelicula h3, .tarjeta-pelicula p, .tarjeta-pelicula a, .tarjeta-pelicula button, .tarjeta-pelicula .marco-afiche-resultado { grid-column: 1; } .tarjeta-pelicula .marco-afiche-resultado { grid-row: auto; width: min(220px,100%); } #navegacion { gap: 12px; } .publicacion-pelicula { grid-template-columns: 72px minmax(0,1fr); gap: 3px 10px; padding: 10px; } .publicacion-pelicula > .poster-pelicula { width: 72px; height: 108px; } }
+
+/* Concert history, searchable community game catalogue, and book reviews. */
+.busqueda-conciertos { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px 10px; align-items:end; margin:12px 0; }
+.busqueda-conciertos label { font-size:.88rem; font-weight:650; }
+.busqueda-conciertos input { width:100%; min-width:0; }
+.busqueda-conciertos button { grid-column:1/-1; justify-self:start; }
+.formulario-concierto { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:7px 12px; max-width:760px; }
+.formulario-concierto input,.formulario-concierto textarea { width:100%; min-width:0; }
+.formulario-concierto textarea,.formulario-concierto button { grid-column:1/-1; }
+.lista-conciertos { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr)); gap:10px; margin:10px 0; }
+.tarjeta-concierto,.tarjeta-juego-catalogo { min-width:0; padding:12px; border:1px solid var(--rm-line,#ded8cf); border-radius:7px; background:#fff; }
+.tarjeta-concierto h4,.tarjeta-juego-catalogo h3 { margin:0 0 5px; }
+.tarjeta-concierto p,.tarjeta-juego-catalogo p { margin:5px 0; overflow-wrap:anywhere; }
+.detalle-concierto { color:#625e58; font-size:.94rem; }
+.recuerdo-concierto { padding:8px; border-left:3px solid #9a8064; background:#f8f6f2; }
+.quitar-concierto,.anadir-concierto { margin-top:8px; }
+.resultados-libros { display:grid; gap:10px; margin:12px 0; }
+.tarjeta-libro { display:grid; grid-template-columns:84px minmax(0,1fr); grid-template-rows:auto 1fr auto auto; gap:5px 12px; align-items:start; padding:10px; border:1px solid var(--rm-line,#ded8cf); border-radius:7px; background:#fff; }
+.tarjeta-libro > :not(.miniatura-libro) { grid-column:2; margin:0; }
+.miniatura-libro { grid-column:1; grid-row:1/5; width:84px; aspect-ratio:2/3; }
+.portada-libro-resultado,.poster-libro { display:block; width:100%; height:100%; object-fit:cover; border-radius:4px; background:#eee9e1; }
+.portada-libro-vacia { display:flex; align-items:center; justify-content:center; width:100%; min-height:120px; padding:10px; border-radius:4px; color:#f9f5ee; background:linear-gradient(145deg,#716658,#252523 65%,#a88e68); font-family:Georgia,serif; font-weight:700; text-align:center; overflow-wrap:anywhere; }
+#portadaSeleccionLibro { width:min(190px,100%); aspect-ratio:2/3; margin:10px 0; }
+.publicacion-libro { display:grid; grid-template-columns:78px minmax(0,1fr); gap:3px 12px; align-items:start; padding:12px; }
+.publicacion-libro > .autor-publicacion,.publicacion-libro > .acciones,.publicacion-libro > [role="status"],.publicacion-libro > .zona-comentarios,.publicacion-libro > form { grid-column:1/-1; }
+.publicacion-libro > .poster-libro,.publicacion-libro > .portada-libro-vacia { grid-column:1; grid-row:2/span 5; width:78px; height:117px; }
+.publicacion-libro > h3 { grid-column:2; grid-row:2; margin:0; }
+.publicacion-libro > h3 + p { grid-column:2; grid-row:3; margin:0; }
+.publicacion-libro > .nota-pelicula { grid-column:2; grid-row:4; margin:0; color:#815d12; font-weight:700; }
+.publicacion-libro > .fuente-pelicula { grid-column:2; grid-row:5; }
+.publicacion-libro > .opinion { grid-column:2; grid-row:6; margin:0; }
+.publicacion-libro > .acciones { padding-top:8px; }
+@media(max-width:680px){.busqueda-conciertos{grid-template-columns:repeat(2,minmax(0,1fr));}.busqueda-conciertos button{grid-column:1/-1}.tarjeta-libro{grid-template-columns:68px minmax(0,1fr);gap:5px 9px}.miniatura-libro{width:68px}.publicacion-libro{grid-template-columns:68px minmax(0,1fr);padding:10px}.publicacion-libro>.poster-libro,.publicacion-libro>.portada-libro-vacia{width:68px;height:102px}.formulario-concierto{grid-template-columns:minmax(0,1fr)}}
 [hidden] { display: none !important; }
 body { margin: 0; background: #f7f7f7; color: #222222; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; }
 main { max-width: 960px; margin: 0 auto; padding: 24px; }
