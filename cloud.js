@@ -8,6 +8,7 @@
     let viendoMemes = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'memes';
     let viendoPeliculas = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'peliculas';
     let viendoLibros = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'libros';
+    let viendoDiario = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'diario';
     let viendoAmigos = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'amigos';
     let viendoActividad = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'actividad';
     let viendoGuardados = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'guardados';
@@ -38,7 +39,9 @@
     document.getElementById("navegacion").hidden = false;
     document.getElementById("perfilPublico").hidden = !viendoPerfil;
     document.getElementById("crearPublicacion").hidden = !viendoMusica;
-    document.getElementById('compositorMuro').hidden = viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || viendoMusica || viendoBlackjack;
+    document.getElementById('compositorMuro').hidden = viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoDiario || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || viendoMusica || viendoBlackjack;
+    document.getElementById('seccionDiario').hidden = !viendoDiario;
+    document.getElementById('compositorDiario').hidden = !viendoDiario;
     document.getElementById('crearMeme').hidden = !viendoMemes;
     document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
     document.getElementById('librosNav').hidden = false;
@@ -52,7 +55,7 @@
     document.getElementById('peliculasNav').setAttribute('aria-current',viendoPeliculas?'page':'false');
     document.getElementById('amigosNav').hidden = !viendoAmigos;
     document.getElementById('seccionAmigos').hidden = !viendoAmigos;
-    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoLibros&&!viendoAmigos&&!viendoEventos&&!viendoMusica?'page':'false');
+    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoLibros&&!viendoDiario&&!viendoAmigos&&!viendoEventos&&!viendoMusica?'page':'false');
     document.getElementById('musicaNav').setAttribute('aria-current',viendoMusica?'page':'false');
     if(viendoAmigos)document.title='Amigos · RedMusica';
     if (viendoPerfil) {
@@ -71,6 +74,10 @@
         document.getElementById('tituloFeed').textContent='Reseñas de libros';
         document.getElementById('feedVacio').textContent='Todavía no hay reseñas de libros. ¡Comparte la primera!';
         document.title='Libros · RedMusica';
+    } else if(viendoDiario) {
+        document.getElementById('tituloFeed').textContent='Diarios de la comunidad';
+        document.getElementById('feedVacio').textContent='Todavía no hay entradas. Escribe la primera.';
+        document.title='Diario · RedMusica';
     }
     function fotoPerfil(id, datos) {
         const caja = document.createElement('span'); caja.className = 'avatar';
@@ -207,13 +214,14 @@
     let revisionSesion = 0;
     let revisionFeed = 0;
     let desplazamiento = 0;
+    let filtroDiario = '';
     const porPagina = 20;
-    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,post_type,image_path,link_url,film_wikidata_id,film_tmdb_id,film_title,film_director,film_year,film_poster,film_rating,book_google_id,book_title,book_authors,book_year,book_cover,book_rating,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
+    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,post_type,image_path,link_url,film_wikidata_id,film_tmdb_id,film_title,film_director,film_year,film_poster,film_rating,book_google_id,book_title,book_authors,book_year,book_cover,book_rating,blog_title,blog_tags,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
     const destinoCorreo = location.origin + location.pathname;
     const estadoPerfil = document.getElementById("estadoPerfil");
 
     function actualizarVisibilidadCuenta(){
-        const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoLibros&&!viendoAmigos&&!viendoActividad&&!viendoGuardados&&!viendoListas&&!viendoEventos&&!viendoVideos&&!viendoJuegos&&!viendoMusica&&!viendoBlackjack;
+        const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoLibros&&!viendoDiario&&!viendoAmigos&&!viendoActividad&&!viendoGuardados&&!viendoListas&&!viendoEventos&&!viendoVideos&&!viendoJuegos&&!viendoMusica&&!viendoBlackjack;
         const recuperacion=Boolean(usuario&&recuperando&&inicio);
         cuenta.hidden=!(inicio&&(!usuario||recuperacion));
         const sesion=document.getElementById('sesionPerfil');
@@ -268,11 +276,14 @@
         document.getElementById('musicaNav').hidden = !usuario;
         document.getElementById('videosNav').hidden = !usuario;
         document.getElementById('juegosNav').hidden = !usuario;
+        document.getElementById('diarioNav').hidden = !usuario;
         document.getElementById('memesNav').hidden = sesionLista&&!usuario;
         document.getElementById('peliculasNav').hidden = sesionLista&&!usuario;
         document.getElementById('blackjackNav').hidden = sesionLista&&!usuario;
         document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack;
-        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || viendoMusica || viendoBlackjack;
+        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoDiario || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || viendoMusica || viendoBlackjack;
+        document.getElementById('seccionDiario').hidden = !viendoDiario;
+        document.getElementById('compositorDiario').hidden = !usuario || !viendoDiario;
         document.getElementById('dockAmigos').hidden = !usuario;
         document.getElementById('abrirDockAmigos').hidden = !usuario;
         actualizarVisibilidadCuenta();
@@ -693,6 +704,14 @@
             await cargarConciertosPerfil(usuario.id,true);document.getElementById('formularioBusquedaConciertos').requestSubmit();
         });
     });
+    async function cargarIndiceDiarioPerfil(profileId){
+        const box=document.getElementById('listaBlogPerfil'),status=document.getElementById('estadoBlogPerfil');box.replaceChildren();status.textContent='';
+        try{
+            const rows=resultado(await db.from('posts').select('id,blog_title,blog_tags,created_at').eq('user_id',profileId).eq('post_type','blog').order('created_at',{ascending:false}).limit(12));
+            if(!rows.length){status.textContent='Todavía no hay entradas en este diario.';return;}
+            rows.forEach(row=>{const item=document.createElement('article');item.className='enlace-entrada-blog';const link=document.createElement('a');link.href='#'+row.id;link.textContent=row.blog_title;link.addEventListener('click',event=>{event.preventDefault();history.pushState(null,'',link.href);document.getElementById(row.id)?.scrollIntoView({behavior:'smooth',block:'start'});});item.append(link);if(row.blog_tags){const tags=document.createElement('p');tags.textContent=row.blog_tags;item.append(tags);}const date=document.createElement('time');date.dateTime=row.created_at;date.textContent=new Date(row.created_at).toLocaleDateString('es-CL',{dateStyle:'medium'});item.append(date);box.append(item);});
+        }catch{status.textContent='No se pudieron cargar las entradas de este diario.';}
+    }
     document.getElementById('formularioAlbumFotos').addEventListener('submit',event=>{
         event.preventDefault();if(!exigirCuenta())return;
         const form=event.currentTarget,button=form.querySelector('button'),status=document.getElementById('estadoEdicionPerfil'),albumName=document.getElementById('nombreAlbumFotos').value.trim(),caption=document.getElementById('descripcionFotos').value.trim(),files=[...document.getElementById('fotosPerfil').files];
@@ -1145,6 +1164,7 @@
                 const statusNode=document.getElementById('estadoBrevePublico');statusNode.textContent=publico.status_text||'';statusNode.hidden=!publico.status_text;
                 await cargarFotosPerfil(perfilSolicitado,Boolean(usuario&&usuario.id===perfilSolicitado));
                 await cargarConciertosPerfil(perfilSolicitado,Boolean(usuario&&usuario.id===perfilSolicitado));
+                await cargarIndiceDiarioPerfil(perfilSolicitado);
                 document.title = "@" + publico.username + " · RedMusica";
                 document.getElementById('presenciaPerfil').dataset.userId=perfilSolicitado;actualizarIndicadoresPresencia();
                 objetivoSeguir=perfilSolicitado;const followButton=document.getElementById('seguirPerfil');
@@ -1187,7 +1207,8 @@
                 let consulta=db.from('posts').select(seleccionPosts,viendoPerfil?{count:'exact'}:{});
                 if(viendoPerfil)consulta=consulta.eq('user_id',perfilSolicitado);
                 else if(friendAuthors)consulta=consulta.in('user_id',friendAuthors);
-                else consulta=consulta.eq('post_type',viendoMemes?'meme':viendoPeliculas?'film':viendoLibros?'book':viendoMusica?'album':'status');
+                else consulta=consulta.eq('post_type',viendoMemes?'meme':viendoPeliculas?'film':viendoLibros?'book':viendoDiario?'blog':viendoMusica?'album':'status');
+                if(viendoDiario&&filtroDiario){const term=filtroDiario.replace(/[^\p{L}\p{N}_ -]/gu,' ').trim();if(term)consulta=consulta.or('blog_title.ilike.%'+term+'%,blog_tags.ilike.%'+term+'%');}
                 respuesta=await consulta.order('created_at',{ascending:false}).order('id',{ascending:false}).range(inicio,inicio+porPagina-1);datos=resultado(respuesta);rowsEnFuente=datos.length;
             }
             let propios=[],guardados=[];
@@ -1222,6 +1243,7 @@
         viendoMemes = !viendoPerfil && params.get('seccion') === 'memes';
         viendoPeliculas = !viendoPerfil && params.get('seccion') === 'peliculas';
         viendoLibros = !viendoPerfil && params.get('seccion') === 'libros';
+        viendoDiario = !viendoPerfil && params.get('seccion') === 'diario';
         viendoAmigos = !viendoPerfil && params.get('seccion') === 'amigos';
         viendoActividad = !viendoPerfil && params.get('seccion') === 'actividad';
         viendoGuardados = !viendoPerfil && params.get('seccion') === 'guardados';
@@ -1231,11 +1253,14 @@
         viendoVideos = !viendoPerfil && params.get('seccion') === 'videos';
         viendoJuegos = !viendoPerfil && params.get('seccion') === 'juegos';
         viendoMusica = !viendoPerfil && params.get('seccion') === 'musica';
+        if(!viendoDiario){filtroDiario='';document.getElementById('buscarDiario').value='';}
         listaActualId=params.get('lista');
         idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || '');
         document.getElementById('perfilPublico').hidden = !viendoPerfil;
         document.getElementById('crearPublicacion').hidden = !viendoMusica;
-        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || viendoMusica || viendoBlackjack;
+        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoDiario || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || viendoMusica || viendoBlackjack;
+        document.getElementById('seccionDiario').hidden = !viendoDiario;
+        document.getElementById('compositorDiario').hidden = !usuario || !viendoDiario;
         document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
         document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
         document.getElementById('seccionLibros').hidden = !viendoLibros;
@@ -1254,6 +1279,7 @@
         document.getElementById('juegosNav').setAttribute('aria-current',viendoJuegos?'page':'false');
         document.getElementById('musicaNav').setAttribute('aria-current',viendoMusica?'page':'false');
         document.getElementById('blackjackNav').setAttribute('aria-current',viendoBlackjack?'page':'false');
+        document.getElementById('diarioNav').setAttribute('aria-current',viendoDiario?'page':'false');
         actualizarVisibilidadCuenta();
         document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack;
         ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack;});
@@ -1261,10 +1287,10 @@
         document.getElementById('memesNav').setAttribute('aria-current', viendoMemes ? 'page' : 'false');
         document.getElementById('peliculasNav').setAttribute('aria-current', viendoPeliculas ? 'page' : 'false');
         document.getElementById('librosNav').setAttribute('aria-current',viendoLibros?'page':'false');
-        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoLibros && !viendoAmigos && !viendoActividad && !viendoGuardados && !viendoListas && !viendoEventos && !viendoVideos && !viendoJuegos && !viendoMusica && !viendoBlackjack ? 'page' : 'false');
-        document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : viendoLibros ? 'Reseñas de libros' : viendoMusica ? 'Publicaciones de música' : viendoActividad ? 'Actividad de tus amigos' : viendoGuardados ? 'Guardados' : viendoListas ? 'Mis listas' : 'Publicaciones del muro';
-        document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : viendoLibros ? 'Todavía no hay reseñas de libros. ¡Comparte la primera!' : viendoMusica ? 'Todavía no hay álbumes reseñados. ¡Comparte el primero!' : viendoActividad ? 'Agrega amigos para ver sus publicaciones aquí.' : viendoGuardados ? 'Todavía no guardas publicaciones.' : viendoListas ? 'Esta lista todavía no tiene publicaciones.' : 'Todavía no hay publicaciones. Comparte algo en el muro.';
-        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoLibros ? 'Libros · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : viendoActividad ? 'Actividad de amigos · RedMusica' : viendoGuardados ? 'Guardados · RedMusica' : viendoListas ? 'Mis listas · RedMusica' : viendoBlackjack ? 'Blackjack · RedMusica' : viendoEventos ? 'Eventos · RedMusica' : viendoVideos ? 'Videos · RedMusica' : viendoJuegos ? 'Juegos · RedMusica' : viendoMusica ? 'Música · RedMusica' : 'RedMusica';
+        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoLibros && !viendoDiario && !viendoAmigos && !viendoActividad && !viendoGuardados && !viendoListas && !viendoEventos && !viendoVideos && !viendoJuegos && !viendoMusica && !viendoBlackjack ? 'page' : 'false');
+        document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : viendoLibros ? 'Reseñas de libros' : viendoDiario ? 'Diarios de la comunidad' : viendoMusica ? 'Publicaciones de música' : viendoActividad ? 'Actividad de tus amigos' : viendoGuardados ? 'Guardados' : viendoListas ? 'Mis listas' : 'Publicaciones del muro';
+        document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : viendoLibros ? 'Todavía no hay reseñas de libros. ¡Comparte la primera!' : viendoDiario ? 'Todavía no hay entradas. Escribe la primera.' : viendoMusica ? 'Todavía no hay álbumes reseñados. ¡Comparte el primero!' : viendoActividad ? 'Agrega amigos para ver sus publicaciones aquí.' : viendoGuardados ? 'Todavía no guardas publicaciones.' : viendoListas ? 'Esta lista todavía no tiene publicaciones.' : 'Todavía no hay publicaciones. Comparte algo en el muro.';
+        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoLibros ? 'Libros · RedMusica' : viendoDiario ? 'Diario · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : viendoActividad ? 'Actividad de amigos · RedMusica' : viendoGuardados ? 'Guardados · RedMusica' : viendoListas ? 'Mis listas · RedMusica' : viendoBlackjack ? 'Blackjack · RedMusica' : viendoEventos ? 'Eventos · RedMusica' : viendoVideos ? 'Videos · RedMusica' : viendoJuegos ? 'Juegos · RedMusica' : viendoMusica ? 'Música · RedMusica' : 'RedMusica';
         if (!viendoPerfil) {
             document.getElementById('fotoPerfilPublico').replaceChildren();
             document.getElementById('rangoPerfilPublico').replaceChildren();
@@ -1286,12 +1312,25 @@
         if (!anchor || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || anchor.target || anchor.hasAttribute('download')) return;
         const destination = new URL(anchor.href, location.href);
         if (destination.origin !== location.origin || destination.pathname !== location.pathname) return;
+        if(destination.search===location.search&&destination.hash){event.preventDefault();history.pushState(null,'',destination.href);requestAnimationFrame(()=>document.getElementById(decodeURIComponent(destination.hash.slice(1)))?.scrollIntoView({behavior:'smooth',block:'start'}));return;}
         event.preventDefault();
         if (destination.href !== location.href) history.pushState(null, '', destination.href);
         aplicarRuta();
         window.scrollTo({ top: 0, behavior: 'instant' });
     });
     window.addEventListener('popstate', aplicarRuta);
+
+    document.getElementById('formularioBusquedaDiario').addEventListener('submit',event=>{
+        event.preventDefault();if(!exigirCuenta())return;filtroDiario=document.getElementById('buscarDiario').value.trim();cargarFeed(true);
+    });
+    document.getElementById('formularioDiario').addEventListener('submit',event=>{
+        event.preventDefault();if(!exigirCuenta()||!viendoDiario)return;
+        const form=event.currentTarget,title=document.getElementById('tituloDiarioEntrada').value.trim(),body=document.getElementById('textoDiario').value.trim(),status=document.getElementById('estadoDiario'),button=document.getElementById('publicarDiario');
+        const tags=[...new Set(document.getElementById('etiquetasDiario').value.split(',').map(tag=>tag.trim()).filter(Boolean))].slice(0,8).join(', ');
+        if(!title||!body){status.textContent='Escribe un título y el contenido de la entrada.';return;}
+        if(tags.length>180){status.textContent='Las etiquetas no pueden superar 180 caracteres.';return;}
+        accion(button,status,async()=>{resultado(await db.from('posts').insert({post_type:'blog',blog_title:title,blog_tags:tags,body}));form.reset();status.textContent='Entrada publicada en el diario.';await cargarFeed(true);});
+    });
 
     function crearPublicacion(post, meGusta, estaGuardada=false) {
         const articulo = document.createElement("article");
@@ -1304,6 +1343,7 @@
         const esMeme = post.post_type === 'meme';
         const esPelicula = post.post_type === 'film';
         const esLibro = post.post_type === 'book';
+        const esDiario = post.post_type === 'blog';
         const esEstado = post.post_type === 'status';
         let portada = document.createElement("img");
         portada.loading = "lazy";
@@ -1318,18 +1358,19 @@
             if(posterUrl){portada.src=posterUrl;activarRespaldoAfiche(portada,{title:post.film_title,year:post.film_year,poster:post.film_poster,tmdb_id:post.film_tmdb_id},600);}
             else {portada=crearAficheAlternativo(post.film_title,post.film_year);recuperarAfichePublicacion(portada,{title:post.film_title,year:post.film_year,tmdb_id:post.film_tmdb_id},600);}
         } else if(esLibro){portada.className='poster-libro';portada.alt='Portada de '+post.book_title;const src=portadaLibroSegura(post.book_cover);if(src){portada.src=src;portada.onerror=()=>{const fallback=document.createElement('div');fallback.className='portada-libro-vacia';fallback.textContent=post.book_title;portada.replaceWith(fallback);};}else {const fallback=document.createElement('div');fallback.className='portada-libro-vacia';fallback.textContent=post.book_title;portada=fallback;}}
-        else if (!esEstado) asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
+        else if (!esEstado&&!esDiario) asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
         else if (post.image_path) { portada.className='imagen-muro';portada.alt='Imagen compartida por @'+post.profiles.username;portada.src=config.supabaseUrl+'/storage/v1/object/public/post-images/'+post.image_path.split('/').map(encodeURIComponent).join('/'); }
         const titulo = document.createElement("h3");
-        titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : esPelicula ? post.film_title : esLibro ? post.book_title : esEstado ? 'Publicación' : post.album_title;
+        titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : esPelicula ? post.film_title : esLibro ? post.book_title : esDiario ? post.blog_title : esEstado ? 'Publicación' : post.album_title;
         const artista = document.createElement("p");
-        artista.hidden=esMeme||esEstado; artista.textContent = esPelicula ? [post.film_director,post.film_year].filter(Boolean).join(' · ') : esLibro ? [post.book_authors,post.book_year].filter(Boolean).join(' · ') : post.album_artist || '';
+        artista.hidden=esMeme||esEstado||esDiario; artista.textContent = esPelicula ? [post.film_director,post.film_year].filter(Boolean).join(' · ') : esLibro ? [post.book_authors,post.book_year].filter(Boolean).join(' · ') : post.album_artist || '';
         const puntuacion=document.createElement('p');
         puntuacion.className='nota-pelicula';puntuacion.hidden=!esPelicula&&!esLibro;
         const rating=esLibro?post.book_rating:post.film_rating;puntuacion.textContent=esPelicula||esLibro?'★'.repeat(Math.floor(rating))+(rating%1?'½':'')+' · '+Number(rating).toLocaleString('es-CL',{minimumFractionDigits:rating%1?1:0,maximumFractionDigits:1})+'/5':'';
         const texto = document.createElement("p");
         texto.className = "opinion";
         pintarTextoConGif(texto,post.body);
+        const etiquetasDiario=document.createElement('p');etiquetasDiario.className='etiquetas-diario';(post.blog_tags||'').split(',').map(tag=>tag.trim()).filter(Boolean).forEach(tag=>{const item=document.createElement('span');item.textContent=tag;etiquetasDiario.append(item);});
         const mensaje = document.createElement("p");
         mensaje.setAttribute("role", "status");
         const acciones = document.createElement("div");
@@ -1514,8 +1555,10 @@
         }
         articulo.classList.toggle('publicacion-pelicula',esPelicula);
         articulo.classList.toggle('publicacion-libro',esLibro);
+        articulo.classList.toggle('publicacion-diario',esDiario);
         if(esPelicula){const source=document.createElement('a');source.href=post.film_tmdb_id?'https://www.themoviedb.org/movie/'+encodeURIComponent(post.film_tmdb_id):'https://www.wikidata.org/wiki/'+encodeURIComponent(post.film_wikidata_id||'');source.target='_blank';source.rel='noopener';source.textContent=post.film_tmdb_id?'Ficha en TMDb':'Ficha en Wikidata';source.className='fuente-pelicula';articulo.prepend(autor,portada,titulo,artista,puntuacion,source,texto,acciones,mensaje,zona);}
         else if(esLibro){const source=document.createElement('a');source.href='https://books.google.com/books?id='+encodeURIComponent(post.book_google_id);source.target='_blank';source.rel='noopener noreferrer';source.textContent='Ficha de Google Books';source.className='fuente-pelicula';articulo.prepend(autor,portada,titulo,artista,puntuacion,source,texto,acciones,mensaje,zona);}
+        else if(esDiario){const elements=[autor,titulo];if(etiquetasDiario.childElementCount)elements.push(etiquetasDiario);elements.push(texto,acciones,mensaje,zona);articulo.prepend(...elements);}
         else if(esEstado){
             const elements=[autor,titulo];if(post.image_path)elements.push(portada);if(post.body.trim())elements.push(texto);
             if(post.link_url){try{const url=new URL(post.link_url);if(url.protocol==='https:'){const link=document.createElement('a');link.className='enlace-muro';link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent=url.hostname+url.pathname;elements.push(link);}}catch{}}
