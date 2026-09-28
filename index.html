@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-26">
+    <link rel="stylesheet" href="style.css?v=20260927-27">
 </head>
 <body>
 <main>
@@ -62,10 +62,16 @@
         <div id="blackjackMesa" hidden>
             <div class="blackjack-cabecera-sala"><h3>Sala <span id="blackjackCodigo"></span></h3><button id="compartirSalaBlackjack" type="button">Copiar invitación</button></div>
             <p id="blackjackEstadoSala"></p>
-            <section aria-labelledby="tituloJugadoresBlackjack"><h3 id="tituloJugadoresBlackjack">Jugadores</h3><ol id="blackjackJugadores"></ol></section>
             <section id="blackjackTablero" aria-label="Mesa de blackjack" hidden>
-                <div class="blackjack-crupier"><h3>Crupier · bot</h3><div id="manoCrupierBlackjack" class="blackjack-cartas"></div><p id="totalCrupierBlackjack"></p></div>
-                <div id="blackjackManos"></div>
+                <div class="blackjack-fieltro">
+                    <div class="blackjack-rotulo-mesa"><span>REDMUSICA</span><strong>BLACKJACK <b>21</b></strong></div>
+                    <div class="blackjack-crupier">
+                        <div class="blackjack-crupier-pixel" role="img" aria-label="Crupier bot en estilo pixel art"><i class="pixel-sombrero"></i><i class="pixel-cara"></i><i class="pixel-ojos"></i><i class="pixel-corbata"></i><i class="pixel-traje"></i></div>
+                        <div class="blackjack-zona-crupier"><h3>El crupier</h3><div id="manoCrupierBlackjack" class="blackjack-cartas" aria-label="Cartas del crupier"></div><p id="totalCrupierBlackjack"></p><p id="estadoCrupierBlackjack" class="blackjack-frase-crupier" aria-live="polite"></p></div>
+                    </div>
+                    <section class="blackjack-zona-jugadores" aria-labelledby="tituloJugadoresBlackjack"><h3 id="tituloJugadoresBlackjack">Jugadores en la mesa</h3><ol id="blackjackJugadores"></ol></section>
+                    <div class="blackjack-letrero-fieltro" aria-hidden="true">BUENA SUERTE · BUENAS CANCIONES</div>
+                </div>
             </section>
             <p id="resultadoBlackjack" role="status"></p>
             <div class="blackjack-acciones"><button id="iniciarRondaBlackjack" type="button" hidden>Repartir (100 fichas)</button><button id="pedirCartaBlackjack" type="button" hidden>Pedir carta</button><button id="plantarseBlackjack" type="button" hidden>Plantarse</button><button id="salirSalaBlackjack" type="button">Salir de la sala</button></div>

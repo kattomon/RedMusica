@@ -659,6 +659,24 @@
     }
     const ventanaPrivada=document.getElementById('ventanaChatAmigo');
     const listaPrivada=document.getElementById('mensajesPrivados');
+    let audioAvisoPrivado=null;
+    function prepararAudioAviso(){
+        const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+        if(!AudioContextClass)return;
+        try{if(!audioAvisoPrivado)audioAvisoPrivado=new AudioContextClass();if(audioAvisoPrivado.state==='suspended')audioAvisoPrivado.resume().catch(()=>{});}catch{}
+    }
+    function sonarMensajePrivado(){
+        if(!audioAvisoPrivado||audioAvisoPrivado.state!=='running')return;
+        const now=audioAvisoPrivado.currentTime;
+        [[880,0],[1175,.12]].forEach(([frequency,delay])=>{
+            const oscillator=audioAvisoPrivado.createOscillator(),gain=audioAvisoPrivado.createGain();
+            oscillator.type='sine';oscillator.frequency.value=frequency;
+            gain.gain.setValueAtTime(.0001,now+delay);gain.gain.exponentialRampToValueAtTime(.075,now+delay+.015);gain.gain.exponentialRampToValueAtTime(.0001,now+delay+.16);
+            oscillator.connect(gain);gain.connect(audioAvisoPrivado.destination);oscillator.start(now+delay);oscillator.stop(now+delay+.17);
+        });
+    }
+    document.addEventListener('pointerdown',prepararAudioAviso,{once:true});
+    document.addEventListener('keydown',prepararAudioAviso,{once:true});
     function pintarMensajePrivado(row){
         if(!row||mensajesPrivadosCargados.has(row.id)||!amigoChatActivo)return;
         if(!((row.sender_id===usuario?.id&&row.recipient_id===amigoChatActivo.id)||(row.recipient_id===usuario?.id&&row.sender_id===amigoChatActivo.id)))return;
@@ -693,6 +711,7 @@
         canalMensajesPrivados=db.channel('redmusica-dms-'+owner).on('postgres_changes',{event:'INSERT',schema:'public',table:'dm_messages'},payload=>{
             const row=payload.new;
             if(usuario?.id!==owner)return;
+            if(row.recipient_id===owner)sonarMensajePrivado();
             if(amigoChatActivo&&((row.sender_id===owner&&row.recipient_id===amigoChatActivo.id)||(row.recipient_id===owner&&row.sender_id===amigoChatActivo.id)))pintarMensajePrivado(row);
             else if(row.recipient_id===owner){const friend=document.querySelector('.amigo-dock[data-user-id="'+CSS.escape(row.sender_id)+'"] .boton-chat-amigo');if(friend)friend.textContent='Chat · nuevo';}
         }).subscribe();

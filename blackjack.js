@@ -5,41 +5,59 @@
  if(!section)return;
  const config=window.REDMUSICA_CONFIG;
  let db=null,user=null,roomCode='',room=null,busy=false,poll=null;
+ const playerSeats=new Map();
  const suitsRed=new Set(['♥','♦']);
  if(config&&window.supabase)db=window.redmusicaClient||window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey);
  function status(message){$('estadoBlackjack').textContent=message;}
  function labelState(value){return ({lobby:'Esperando jugadores',playing:'Ronda en curso',finished:'Ronda terminada',waiting:'Esperando la próxima ronda',stood:'Se plantó',bust:'Se pasó',won:'Ganó',lost:'Perdió',push:'Empató'})[value]||value||'';}
  function handValue(hand){let total=0,aces=0;for(const card of hand||[]){if(card.hidden)continue;if(card.rank==='A'){total+=11;aces++;}else total+=['J','Q','K'].includes(card.rank)?10:Number(card.rank);}while(total>21&&aces){total-=10;aces--;}return total;}
- function makeCard(card){const el=document.createElement('span');el.className='blackjack-carta';if(card.hidden){el.classList.add('oculta');el.textContent='RM';el.setAttribute('aria-label','Carta boca abajo');return el;}el.textContent=card.rank+card.suit;if(suitsRed.has(card.suit))el.classList.add('roja');el.setAttribute('aria-label',card.rank+' de '+({ '♠':'picas','♥':'corazones','♦':'diamantes','♣':'tréboles'}[card.suit]));return el;}
- function renderHand(container,hand){container.replaceChildren(...(hand||[]).map(makeCard));}
+ function makeCard(card){const el=document.createElement('span');el.className='blackjack-carta';el.dataset.cardKey=card.hidden?'hidden':card.rank+card.suit;if(card.hidden){el.classList.add('oculta');el.textContent='RM';el.setAttribute('aria-label','Carta boca abajo');return el;}if(suitsRed.has(card.suit))el.classList.add('roja');el.setAttribute('aria-label',card.rank+' de '+({ '♠':'picas','♥':'corazones','♦':'diamantes','♣':'tréboles'}[card.suit]));const corner=document.createElement('span');corner.className='blackjack-esquina';corner.textContent=card.rank;const face=document.createElement('span');face.className='blackjack-figura';face.textContent=card.suit;el.append(corner,face);return el;}
+ function renderHand(container,hand){const cards=hand||[],old=[...container.children],next=cards.map((card,index)=>old[index]?.dataset.cardKey===(card.hidden?'hidden':card.rank+card.suit)?old[index]:makeCard(card));if(old.length!==next.length||next.some((card,index)=>card!==old[index]))container.replaceChildren(...next);}
+ function createPlayerSeat(){
+  const item=document.createElement('li');item.className='blackjack-jugador blackjack-asiento';
+  const header=document.createElement('div');header.className='blackjack-asiento-cabecera';
+  const name=document.createElement('strong');name.className='blackjack-nombre-jugador';
+  const turn=document.createElement('span');turn.className='blackjack-turno';turn.textContent='Tu turno';turn.hidden=true;header.append(name,turn);
+  const details=document.createElement('div');details.className='blackjack-fichas-jugador';
+  const chips=document.createElement('span');chips.className='blackjack-pila-fichas';chips.setAttribute('aria-hidden','true');chips.textContent='◉';
+  const balance=document.createElement('span');details.append(chips,balance);
+  const hand=document.createElement('div');hand.className='blackjack-mano';
+  const cards=document.createElement('div');cards.className='blackjack-cartas';
+  const total=document.createElement('span');total.className='blackjack-total-jugador';hand.append(cards,total);
+  const result=document.createElement('span');result.className='blackjack-resultado-jugador';
+  item.append(header,details,hand,result);return {item,name,turn,balance,hand,cards,total,result};
+ }
  function setButton(button,visible,disabled){button.hidden=!visible;button.disabled=Boolean(disabled);}
  function render(data){
   room=data.room||null;
   if(!room){leaveView();return;}
   roomCode=room.code;$('blackjackEntrada').hidden=true;$('blackjackMesa').hidden=false;$('blackjackCodigo').textContent=roomCode;
-  $('blackjackEstadoSala').textContent=room.status==='lobby'?'Comparte el código: cuando estén listos, quien creó la sala puede repartir.':room.status==='playing'?'Los turnos se comparten con todos en la mesa.':'La mesa sigue abierta; quien la creó puede repartir otra ronda.';
+  $('blackjackEstadoSala').textContent=room.status==='lobby'?'Comparte el código y espera a que se sumen tus amigos.':room.status==='playing'?'Los turnos se comparten con todos en la mesa.':'La mesa sigue abierta; quien la creó puede repartir otra ronda.';
   const players=room.players||[];
-  $('blackjackJugadores').replaceChildren(...players.map(player=>{
-   const item=document.createElement('li');item.className='blackjack-jugador';
-   const name=document.createElement('strong');name.textContent='@'+player.username+(player.user_id===user?.id?' (tú)':'');item.append(name);
-   const details=document.createElement('span');details.textContent=player.chips+' fichas · '+labelState(player.status);item.append(' ',details);
-   if(player.user_id===room.current_player_id){item.classList.add('es-mi-turno');const turn=document.createElement('span');turn.className='blackjack-turno';turn.textContent='Turno';item.append(' ',turn);}
-   if(room.status!=='lobby'&&player.hand?.length){const hand=document.createElement('div');hand.className='blackjack-mano';renderHand(hand,player.hand);const total=document.createElement('span');total.textContent='Total: '+handValue(player.hand);hand.append(total);item.append(hand);}
-   if(player.result){const result=document.createElement('span');result.className='blackjack-resultado-jugador';result.textContent=player.result;item.append(' ',result);}
-   return item;
+  const roster=$('blackjackJugadores');roster.replaceChildren(...players.map(player=>{
+   let seat=playerSeats.get(player.user_id);if(!seat){seat=createPlayerSeat();playerSeats.set(player.user_id,seat);}
+   seat.item.classList.toggle('es-mi-turno',player.user_id===room.current_player_id);
+   seat.item.classList.toggle('se-paso',player.status==='bust');
+   seat.name.textContent='@'+player.username+(player.user_id===user?.id?' (tú)':'');
+   seat.turn.hidden=player.user_id!==room.current_player_id;
+   seat.balance.textContent=player.chips+' fichas · '+labelState(player.status);
+   seat.hand.hidden=room.status==='lobby'||!player.hand?.length;
+   if(!seat.hand.hidden){renderHand(seat.cards,player.hand);seat.total.textContent='Total: '+handValue(player.hand);}
+   seat.result.hidden=!player.result;seat.result.textContent=player.result||'';
+   return seat.item;
   }));
-  const board=$('blackjackTablero');board.hidden=room.status==='lobby';
-  if(!board.hidden){
-   renderHand($('manoCrupierBlackjack'),room.dealer?.hand||[]);
-   $('totalCrupierBlackjack').textContent=room.dealer?.hidden?'Carta oculta hasta que termine la ronda.':(room.dealer?.hand?.length?'Total: '+handValue(room.dealer.hand):'');
-   const hands=$('blackjackManos');hands.replaceChildren();
-  }
+  for(const id of playerSeats.keys())if(!players.some(player=>player.user_id===id))playerSeats.delete(id);
+  const board=$('blackjackTablero');board.hidden=false;board.classList.toggle('ronda-en-curso',room.status==='playing');board.classList.toggle('ronda-terminada',room.status==='finished');
+  renderHand($('manoCrupierBlackjack'),room.dealer?.hand||[]);
+  $('totalCrupierBlackjack').textContent=room.dealer?.hidden?'Carta oculta hasta que termine la ronda.':(room.dealer?.hand?.length?'Total: '+handValue(room.dealer.hand):'El bot espera para repartir.');
+  const current=players.find(player=>player.user_id===room.current_player_id);
+  $('estadoCrupierBlackjack').textContent=room.status==='lobby'?'¿Listos para jugar?':room.status==='playing'?(current?.user_id===user?.id?'El crupier espera tu jugada.':'Ahora juega @'+(current?.username||'otro jugador')+'.'):room.result||'Ronda terminada.';
   $('resultadoBlackjack').textContent=room.result||'';
   const own=players.find(p=>p.user_id===user?.id),host=room.host_id===user?.id,turn=room.current_player_id===user?.id&&own?.status==='playing';
   setButton($('iniciarRondaBlackjack'),host&&['lobby','finished'].includes(room.status),!players.some(p=>p.chips>=100));
   setButton($('pedirCartaBlackjack'),room.status==='playing'&&turn,false);setButton($('plantarseBlackjack'),room.status==='playing'&&turn,false);
   $('salirSalaBlackjack').disabled=room.status==='playing';
-  status(room.status==='playing'?(turn?'Es tu turno.':'Turno de @'+(players.find(p=>p.user_id===room.current_player_id)?.username||'otro jugador')+'.'):room.status==='lobby'?'Sala lista para jugar a solas o invitar hasta cinco personas.':'Partida actualizada. Puedes repartir otra ronda.');
+  status(room.status==='playing'?(turn?'Es tu turno.':'Turno de @'+(current?.username||'otro jugador')+'.'):room.status==='lobby'?'Sala lista para jugar a solas o invitar hasta cinco personas.':'Partida actualizada. Puedes repartir otra ronda.');
  }
  function leaveView(){room=null;roomCode='';$('blackjackEntrada').hidden=false;$('blackjackMesa').hidden=true;clearInterval(poll);poll=null;}
  async function request(action,code=roomCode){
