@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "RedMusica",
+  "short_name": "RedMusica",
+  "description": "Un lugar para compartir lo que escuchamos.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f5f3",
+  "theme_color": "#313131",
+  "icons": [
+    {
+      "src": "app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ const server=http.createServer((req,res)=>{
  const pathname=new URL(req.url,'http://localhost').pathname;
  const file=path.join(root,pathname==='/'?'index.html':pathname);
  if(!fs.existsSync(file)){res.writeHead(404);res.end();return;}
- res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file));
+ res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.webmanifest')?'application/manifest+json':'text/html');res.end(fs.readFileSync(file));
 });
 (async()=>{
  await new Promise(r=>server.listen(4174,'127.0.0.1',r));
@@ -25,6 +25,7 @@ const server=http.createServer((req,res)=>{
     Object.defineProperty(document,'hidden',{configurable:true,get:()=>window.__testHidden});
     class TestAudioContext{constructor(){this.state='running';this.currentTime=0;this.destination={};}resume(){return Promise.resolve();}createOscillator(){return{frequency:{value:0},connect(){},start(){window.__beepCount++;},stop(){}};}createGain(){return{gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}};}}
     class TestNotification{static permission='granted';static requestPermission(){return Promise.resolve('granted');}constructor(title,options){this.title=title;this.options=options;window.__browserNotices.push({title,body:options.body});}close(){}}
+    const registration={showNotification:async(title,options)=>window.__browserNotices.push({title,body:options.body})};Object.defineProperty(navigator,'serviceWorker',{value:{register:async()=>registration,ready:Promise.resolve(registration)},configurable:true});
     Object.defineProperty(window,'AudioContext',{value:TestAudioContext,configurable:true});Object.defineProperty(window,'Notification',{value:TestNotification,configurable:true});
     Object.defineProperty(window,'redmusicaClient',{configurable:true,set(client){Object.defineProperty(window,'redmusicaClient',{value:client,configurable:true,writable:true});const channel=client.channel.bind(client);client.channel=(...args)=>{const instance=channel(...args),on=instance.on.bind(instance);instance.on=(event,filter,callback)=>{if(event==='postgres_changes'&&filter?.table==='dm_messages')window.__dmRealtimeCallback=callback;if(event==='postgres_changes'&&filter?.table==='chat_messages')window.__chatRealtimeCallback=callback;return on(event,filter,callback);};return instance;}}});
    });

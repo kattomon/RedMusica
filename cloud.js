@@ -527,16 +527,25 @@
         const box=document.getElementById('notificaciones');box.hidden=!notificacionesAbiertas;
         document.getElementById('abrirNotificaciones').setAttribute('aria-expanded',String(notificacionesAbiertas));if(notificacionesAbiertas)cargarNotificaciones(true);
     });
+    let registroAvisosNavegador=null;
+    async function registrarAvisosNavegador(){
+        if(!('serviceWorker' in navigator))return false;
+        try{registroAvisosNavegador=await navigator.serviceWorker.register('./service-worker.js');await navigator.serviceWorker.ready;return true;}catch{return false;}
+    }
     const activarAvisosNavegador=document.getElementById('activarNotificacionesNavegador');
     if(!('Notification' in window)){
         activarAvisosNavegador.hidden=true;
     }else{
-        if(Notification.permission==='granted')activarAvisosNavegador.textContent='Avisos del navegador activados';
+        if(Notification.permission==='granted'){activarAvisosNavegador.textContent='Avisos del navegador activados';registrarAvisosNavegador();}
         activarAvisosNavegador.addEventListener('click',async()=>{
             try{
+                const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+                const instalada=navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
+                if(ios&&!instalada){document.getElementById('estadoNotificaciones').textContent='En iPhone o iPad, usa Compartir → Añadir a pantalla de inicio. Abre RedMusica desde ese icono y activa los avisos.';return;}
                 const permission=Notification.permission==='default'?await Notification.requestPermission():Notification.permission;
+                const preparado=permission==='granted'?await registrarAvisosNavegador():false;
                 activarAvisosNavegador.textContent=permission==='granted'?'Avisos del navegador activados':permission==='denied'?'Avisos bloqueados en el navegador':'Avisos no activados';
-                document.getElementById('estadoNotificaciones').textContent=permission==='granted'?'Te avisaremos cuando llegue un mensaje mientras RedMusica esté abierta.':permission==='denied'?'El navegador bloqueó los avisos. Puedes permitirlos desde la configuración del sitio.':'No se activó el permiso de avisos.';
+                document.getElementById('estadoNotificaciones').textContent=permission==='granted'?(preparado?'Te avisaremos cuando llegue un mensaje mientras RedMusica esté abierta.':'El navegador permitirá avisos mientras RedMusica siga abierta en esta pestaña.') :permission==='denied'?'El navegador bloqueó los avisos. Puedes permitirlos desde la configuración del sitio.':'No se activó el permiso de avisos.';
             }catch{document.getElementById('estadoNotificaciones').textContent='No se pudo activar el permiso de avisos.';}
         });
     }
@@ -721,7 +730,9 @@
         avisosMensajesProcesados.add(row.id);if(avisosMensajesProcesados.size>300)avisosMensajesProcesados.delete(avisosMensajesProcesados.values().next().value);
         sonarAvisoMensaje();
         if(document.hidden&&'Notification' in window&&Notification.permission==='granted'){
-            try{const body=tipo==='private'?'Tienes un nuevo mensaje privado.':'Hay un mensaje nuevo en el chat comunitario.';const notice=new Notification('Nuevo mensaje · RedMusica',{body,tag:'redmusica-mensaje-'+row.id});notice.onclick=()=>{window.focus();notice.close();};}catch{}
+            const body=tipo==='private'?'Tienes un nuevo mensaje privado.':'Hay un mensaje nuevo en el chat comunitario.';
+            if(registroAvisosNavegador?.showNotification)registroAvisosNavegador.showNotification('Nuevo mensaje · RedMusica',{body,tag:'redmusica-mensaje-'+row.id}).catch(()=>{});
+            else try{const notice=new Notification('Nuevo mensaje · RedMusica',{body,tag:'redmusica-mensaje-'+row.id});notice.onclick=()=>{window.focus();notice.close();};}catch{}
         }
     }
     async function abrirChatPrivado(person){
