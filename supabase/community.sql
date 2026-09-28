@@ -64,6 +64,7 @@ create table public.chat_messages (
  id uuid primary key default gen_random_uuid(),
  user_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
  body text not null check(char_length(btrim(body)) between 1 and 500),
+ hidden boolean not null default false,
  created_at timestamptz not null default now()
 );
 create index chat_messages_recent_idx on public.chat_messages(created_at desc,id desc);
@@ -75,6 +76,7 @@ grant insert(body) on public.chat_messages to authenticated;
 grant delete on public.chat_messages to authenticated;
 grant all on public.chat_messages to service_role;
 create policy chat_read on public.chat_messages for select to anon,authenticated using(true);
+create policy chat_visible on public.chat_messages as restrictive for select to anon,authenticated using(not hidden);
 create policy chat_insert_self on public.chat_messages for insert to authenticated with check(
  user_id=(select auth.uid()) and exists(select 1 from public.profiles where id=user_id and not suspended)
 );

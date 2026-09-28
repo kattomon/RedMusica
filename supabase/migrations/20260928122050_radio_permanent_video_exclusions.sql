@@ -1,48 +1,15 @@
--- Run after schema.sql and radio.sql. Roles are server-managed, never user metadata.
-alter table public.profiles add column role text not null default 'member' check(role in ('member','admin','owner'));
-alter table public.profiles add column suspended boolean not null default false;
-alter table public.posts add column hidden boolean not null default false;
-alter table public.comments add column hidden boolean not null default false;
-alter table public.radio_queue add column cancelled boolean not null default false;
-create table public.site_settings (
- id integer primary key check(id=1),
- title text not null default 'RedMusica' check(length(btrim(title)) between 1 and 60),
- description text not null default 'Un lugar para compartir lo que escuchamos.' check(length(description)<=300),
- accept_posts boolean not null default true,
- radio_enabled boolean not null default true,
- paused_at timestamptz,
- radio_revision integer not null default 0
-);
-insert into public.site_settings(id) values(1);
-
-create table public.site_gif_settings (
- id boolean primary key default true check(id),
- api_key text not null default '' check(char_length(api_key)<=200)
-);
-insert into public.site_gif_settings(id) values(true);
-alter table public.site_gif_settings enable row level security;
-revoke all on public.site_gif_settings from anon,authenticated;
-grant select on public.site_gif_settings to anon,authenticated;
-create policy gif_settings_read on public.site_gif_settings for select to anon,authenticated using(true);
-
-create or replace function public.set_giphy_api_key(p_key text) returns void
-language plpgsql security definer set search_path='' as $$
-declare v_role text;
-begin
- select role into v_role from public.profiles where id=(select auth.uid()) and not suspended;
- if v_role is distinct from 'owner' then raise exception 'Solo la cuenta owner puede cambiar la clave de GIPHY.'; end if;
- if char_length(coalesce(p_key,''))>200 then raise exception 'La clave es demasiado larga.'; end if;
- update public.site_gif_settings set api_key=btrim(coalesce(p_key,'')) where id=true;
-end $$;
-revoke all on function public.set_giphy_api_key(text) from public,anon,authenticated;
-grant execute on function public.set_giphy_api_key(text) to authenticated;
-create table public.admin_audit (
- id bigint generated always as identity primary key,
- actor uuid references public.profiles(id) on delete set null,
- action text not null, target uuid, created_at timestamptz not null default now()
-);
-create index admin_audit_actor_idx on public.admin_audit(actor);
-create table public.radio_blocklist (
+-- Persist owner moderation decisions and keep excluded videos out of all radio paths.
+-- Add soft moderation to every public, user-generated surface.
+alter table public.events add column if not exists hidden boolean not null default false;
+alter table public.game_recommendations add column if not exists hidden boolean not null default false;
+alter table public.chat_messages add column if not exists hidden boolean not null default false;
+drop policy if exists events_visible on public.events;
+create policy events_visible on public.events as restrictive for select to authenticated using (not hidden);
+drop policy if exists game_recommendations_visible on public.game_recommendations;
+create policy game_recommendations_visible on public.game_recommendations as restrictive for select to authenticated using (not hidden);
+drop policy if exists chat_visible on public.chat_messages;
+create policy chat_visible on public.chat_messages as restrictive for select to anon,authenticated using (not hidden);
+create table if not exists public.radio_blocklist (
  video_id text primary key check(video_id ~ '^[A-Za-z0-9_-]{11}$'),
  title text not null check(length(title) between 1 and 300),
  channel text not null default '' check(length(channel)<=200),
@@ -50,48 +17,17 @@ create table public.radio_blocklist (
  blocked_by uuid references public.profiles(id) on delete set null,
  created_at timestamptz not null default now()
 );
-create index radio_blocklist_created_idx on public.radio_blocklist(created_at desc);
+create index if not exists radio_blocklist_created_idx on public.radio_blocklist(created_at desc);
 alter table public.radio_blocklist enable row level security;
-revoke all on public.radio_blocklist from anon,authenticated;
-grant all on public.radio_blocklist to service_role;
-create policy radio_blocklist_server on public.radio_blocklist to service_role using(true) with check(true);
 create or replace function public.radio_video_blocked(p_video text) returns boolean
 language sql stable security definer set search_path=''
 as $$ select exists(select 1 from public.radio_blocklist where video_id=p_video) $$;
 revoke all on function public.radio_video_blocked(text) from public;
 grant execute on function public.radio_video_blocked(text) to anon,authenticated,service_role;
-alter table public.site_settings enable row level security;
-alter table public.admin_audit enable row level security;
-revoke all on public.site_settings,public.admin_audit from anon,authenticated;
-grant select on public.site_settings to anon,authenticated;
-grant all on public.site_settings,public.admin_audit,public.profiles,public.posts,public.comments,public.likes to service_role;
-grant usage,select on sequence public.admin_audit_id_seq to service_role;
-create policy settings_read on public.site_settings for select to anon,authenticated using(true);
-create policy settings_server on public.site_settings to service_role using(true) with check(true);
-create policy audit_server on public.admin_audit to service_role using(true) with check(true);
-
--- Restrictive policies also apply to existing owner-write policies.
-create policy posts_active_insert on public.posts as restrictive for insert to authenticated with check(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)
- and (select accept_posts from public.site_settings where id=1));
-create policy posts_active_update on public.posts as restrictive for update to authenticated using(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)) with check(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended));
-create policy posts_active_delete on public.posts as restrictive for delete to authenticated using(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended));
-create policy likes_active_insert on public.likes as restrictive for insert to authenticated with check(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)
- and exists(select 1 from public.posts where id=post_id));
-create policy likes_active_delete on public.likes as restrictive for delete to authenticated using(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended));
-create policy comments_active_insert on public.comments as restrictive for insert to authenticated with check(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)
- and exists(select 1 from public.posts where id=post_id));
-create policy comments_active_delete on public.comments as restrictive for delete to authenticated using(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended));
-create policy posts_visible on public.posts as restrictive for select to anon,authenticated using(not hidden);
-create policy comments_visible on public.comments as restrictive for select to anon,authenticated using(not hidden and exists(select 1 from public.posts where id=post_id));
-
+revoke all on public.radio_blocklist from anon,authenticated;
+grant all on public.radio_blocklist to service_role;
+drop policy if exists radio_blocklist_server on public.radio_blocklist;
+create policy radio_blocklist_server on public.radio_blocklist to service_role using(true) with check(true);
 create or replace function public.radio_state() returns jsonb
 language plpgsql security invoker set search_path='' as $$
 declare v_song public.radio_queue; v_last text; v_now timestamptz:=now(); v_rows jsonb; cfg public.site_settings;
@@ -119,6 +55,7 @@ begin
  return jsonb_build_object('now',v_now,'queue',v_rows,'paused',not cfg.radio_enabled,'revision',cfg.radio_revision);
 end $$;
 
+
 create or replace function public.radio_enqueue(p_user uuid,p_video text,p_title text,p_channel text,p_duration integer) returns uuid
 language plpgsql security invoker set search_path='' as $$
 declare v_start timestamptz; v_id uuid; v_role text;
@@ -138,7 +75,8 @@ begin
 end $$;
 
 -- The Edge Function supplies p_actor from auth.getUser, never from request JSON.
-create function public.site_manage(p_actor uuid,p_action text,p_data jsonb default '{}') returns jsonb
+
+create or replace function public.site_manage(p_actor uuid,p_action text,p_data jsonb default '{}') returns jsonb
 language plpgsql security invoker set search_path='' as $$
 declare actor_role text; target_id uuid; target_role text; v_rows jsonb; v_kind text;
  v_offset int:=greatest(0,least(100000,coalesce((p_data->>'offset')::int,0)));

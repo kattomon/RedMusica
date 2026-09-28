@@ -963,7 +963,8 @@
         try{
             const friendship=await obtenerAmistad(person.id);
             if(!friendship||friendship.status!=='accepted'){document.getElementById('estadoDockAmigos').textContent='El chat solo está disponible entre amigos.';return;}
-            amigoChatActivo=person;mensajesPrivadosCargados.clear();listaPrivada.replaceChildren();
+            const mobileDockWasOpen=window.matchMedia('(max-width: 700px)').matches&&dock?.classList.contains('abierto');
+            amigoChatActivo=person;if(mobileDockWasOpen){ventanaPrivada.dataset.returnToFriends='true';dock.classList.remove('abierto');document.body.classList.remove('dock-amigos-visible');dockButton?.setAttribute('aria-expanded','false');}else ventanaPrivada.dataset.returnToFriends='false';mensajesPrivadosCargados.clear();listaPrivada.replaceChildren();
             document.getElementById('tituloChatAmigo').textContent='@'+person.username;
             const toggleMinimize=document.getElementById('minimizarChatAmigo');toggleMinimize.textContent='−';toggleMinimize.setAttribute('aria-label','Minimizar chat');
             document.getElementById('estadoChatPrivado').textContent='Cargando conversación…';
@@ -999,9 +1000,9 @@
         button.textContent=collapsed?'□':'−';button.setAttribute('aria-label',collapsed?'Restaurar chat':'Minimizar chat');
         if(!collapsed)document.getElementById('textoChatPrivado').focus();
     });
-    document.getElementById('cerrarChatAmigo').addEventListener('click',()=>{ventanaPrivada.hidden=true;amigoChatActivo=null;});
+    document.getElementById('cerrarChatAmigo').addEventListener('click',()=>{ventanaPrivada.hidden=true;amigoChatActivo=null;document.body.classList.remove('dock-amigos-visible');if(ventanaPrivada.dataset.returnToFriends==='true'){dock.classList.add('abierto');document.body.classList.add('dock-amigos-visible');dockButton.setAttribute('aria-expanded','true');}ventanaPrivada.dataset.returnToFriends='false';});
     const dockButton=document.getElementById('abrirDockAmigos'),dock=document.getElementById('dockAmigos');
-    dockButton.addEventListener('click',()=>{const open=dock.classList.toggle('abierto');dockButton.setAttribute('aria-expanded',String(open));});
+    dockButton.addEventListener('click',()=>{const open=dock.classList.toggle('abierto');document.body.classList.toggle('dock-amigos-visible',open);dockButton.setAttribute('aria-expanded',String(open));});
     document.getElementById('actualizarDockAmigos').addEventListener('click',cargarAmigosDock);
     async function actualizarConteoSolicitudesAmistad(){
         if(!usuario)return;

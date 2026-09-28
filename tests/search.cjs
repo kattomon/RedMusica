@@ -15,7 +15,7 @@ const server = http.createServer((req, res) => {
     for (const engine of [chromium, webkit]) {
         const browser = await engine.launch();
         try {
-            const page = await browser.newPage(engine === webkit ? devices['iPhone 13'] : {});
+            const page = await browser.newPage(engine === webkit ? { ...devices['iPhone 13'], serviceWorkers: 'block' } : { serviceWorkers: 'block' });
             const errors = [], requests = [];
             page.on('pageerror', error => errors.push(error.message));
             await page.route('**/config.js?*', route => route.fulfill({ contentType: 'text/javascript', body: 'window.REDMUSICA_CONFIG={};' }));

@@ -21,6 +21,14 @@ async function youtube(path: string, params: Record<string,string>) {
  if (!response.ok) throw new Error(response.status === 403 ? 'YouTube no permite más consultas en este momento. Prueba mañana.' : 'YouTube no responde. Inténtalo de nuevo.');
  return await response.json();
 }
+async function removeBlocked(songs: any[]) {
+ if (!songs.length) return songs;
+ const ids=songs.map(item=>item.video_id).filter(Boolean);
+ const {data,error}=await db.from('radio_blocklist').select('video_id').in('video_id',ids);
+ if(error) throw new Error('No se pudo comprobar la lista de canciones retiradas.');
+ const blocked=new Set((data||[]).map((item:any)=>item.video_id));
+ return songs.filter(item=>!blocked.has(item.video_id));
+}
 function song(item: any) {
  const m = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(item.contentDetails?.duration || '');
  const duration = m ? Number(m[1] || 0)*3600+Number(m[2] || 0)*60+Number(m[3] || 0) : 0;
@@ -49,14 +57,14 @@ Deno.serve(async req => {
    if (query.length<2 || query.length>160) return reply({ error:'Escribe el artista y/o la canción (2 a 160 caracteres).' },400);
    const cacheKey = query.toLocaleLowerCase('es');
    const limit = await rpc('radio_limit',{ p_user:user.id,p_action:'search',p_query:cacheKey });
-   if (limit.cached) return reply({ songs:limit.cached });
+   if (limit.cached) return reply({ songs:await removeBlocked(limit.cached) });
    const found = await youtube('search',{ part:'snippet',q:query,type:'video',videoEmbeddable:'true',videoSyndicated:'true',regionCode:'CL',maxResults:'10' });
    const ids = found.items.map((v:any)=>v.id.videoId).filter(Boolean).join(',');
    const videos = ids ? await youtube('videos',{ part:'snippet,contentDetails,status',id:ids }) : { items:[] };
    const songs = videos.items.map(song).filter(Boolean);
    const saved = await db.from('radio_cache').upsert({ query:cacheKey,result:songs,expires_at:new Date(Date.now()+86400000).toISOString() });
    if (saved.error) throw new Error('No se pudo guardar la búsqueda.');
-   return reply({ songs });
+   return reply({ songs:await removeBlocked(songs) });
   }
   if (typeof input.video_id!=='string' || !/^[A-Za-z0-9_-]{11}$/.test(input.video_id)) return reply({ error:'Canción no válida.' },400);
   await rpc('radio_limit',{ p_user:user.id,p_action:'request' });
@@ -67,7 +75,7 @@ Deno.serve(async req => {
   return reply(await rpc('radio_state'));
  } catch (error) {
   const message = error instanceof Error ? error.message : '';
-  const safe = /^(Límite|Inicia|Ya tienes|Esta canción|La cola|YouTube|La búsqueda|No se pudo)/.test(message) ? message : 'No se pudo completar la solicitud. Inténtalo de nuevo.';
+  const safe = /^(Límite|Inicia|Ya tienes|Esta canción|Este video|La cola|YouTube|La búsqueda|No se pudo)/.test(message) ? message : 'No se pudo completar la solicitud. Inténtalo de nuevo.';
   return reply({ error:safe },400);
  }
 });

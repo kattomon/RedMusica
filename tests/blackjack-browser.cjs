@@ -1,10 +1,10 @@
 const {chromium,webkit,devices}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
 const root=process.cwd();
-const server=http.createServer((req,res)=>{const file=path.join(root,new URL(req.url,'http://localhost').pathname);if(!fs.existsSync(file)){res.writeHead(404).end();return;}res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file));});
+const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);const file=path.resolve(root,pathname==='/'?'index.html':'.'+pathname);if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404).end();return;}res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file));});
 (async()=>{
  await new Promise(r=>server.listen(4182,'127.0.0.1',r));
  for(const engine of (process.env.TEST_WEBKIT_ONLY?[webkit]:[chromium,webkit])){
-  const browser=await engine.launch();const ctx=await browser.newContext(engine===webkit?{...devices['iPhone 13']}:{viewport:{width:1200,height:900}});
+  const browser=await engine.launch();const ctx=await browser.newContext(engine===webkit?{...devices['iPhone 13'],serviceWorkers:'block'}:{viewport:{width:1200,height:900},serviceWorkers:'block'});
   let room=null;const errors=[];
   await ctx.route('**/vendor/supabase-2.117.2.js',r=>r.fulfill({contentType:'text/javascript',body:'window.supabase={createClient:()=>({})};'}));
   await ctx.route('**/script.js?*',r=>r.fulfill({contentType:'text/javascript',body:''}));
