@@ -355,6 +355,7 @@
         chatChannel=db.channel('redmusica-chat-general').on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},payload=>{
             const row=payload.new;
             if(row.user_id===usuario?.id && perfil) row.profiles=perfil;
+            if(row.user_id!==usuario?.id)avisarNuevoMensaje(row,'community');
             renderMensajeChat(row);
             if(!perfilesChat.has(row.user_id)) db.from('profiles').select('username,role').eq('id',row.user_id).maybeSingle().then(r=>{
                 if(r.data){perfilesChat.set(row.user_id,r.data);const link=listaChat.querySelector(`[data-message-id="${CSS.escape(row.id)}"] a`);if(link)link.textContent='@'+r.data.username;}
@@ -526,6 +527,19 @@
         const box=document.getElementById('notificaciones');box.hidden=!notificacionesAbiertas;
         document.getElementById('abrirNotificaciones').setAttribute('aria-expanded',String(notificacionesAbiertas));if(notificacionesAbiertas)cargarNotificaciones(true);
     });
+    const activarAvisosNavegador=document.getElementById('activarNotificacionesNavegador');
+    if(!('Notification' in window)){
+        activarAvisosNavegador.hidden=true;
+    }else{
+        if(Notification.permission==='granted')activarAvisosNavegador.textContent='Avisos del navegador activados';
+        activarAvisosNavegador.addEventListener('click',async()=>{
+            try{
+                const permission=Notification.permission==='default'?await Notification.requestPermission():Notification.permission;
+                activarAvisosNavegador.textContent=permission==='granted'?'Avisos del navegador activados':permission==='denied'?'Avisos bloqueados en el navegador':'Avisos no activados';
+                document.getElementById('estadoNotificaciones').textContent=permission==='granted'?'Te avisaremos cuando llegue un mensaje mientras RedMusica esté abierta.':permission==='denied'?'El navegador bloqueó los avisos. Puedes permitirlos desde la configuración del sitio.':'No se activó el permiso de avisos.';
+            }catch{document.getElementById('estadoNotificaciones').textContent='No se pudo activar el permiso de avisos.';}
+        });
+    }
     document.getElementById('masNotificaciones').addEventListener('click',()=>cargarNotificaciones(false));
     document.getElementById('marcarLeidas').addEventListener('click',async()=>{
         if(!usuario)return;const button=document.getElementById('marcarLeidas');button.disabled=true;
@@ -660,12 +674,21 @@
     const ventanaPrivada=document.getElementById('ventanaChatAmigo');
     const listaPrivada=document.getElementById('mensajesPrivados');
     let audioAvisoPrivado=null;
+    const avisosMensajesProcesados=new Set();
+    function desbloquearAudioAviso(){
+        if(!audioAvisoPrivado||audioAvisoPrivado.state!=='running'||audioAvisoPrivado.__desbloqueado)return;
+        try{const oscillator=audioAvisoPrivado.createOscillator(),gain=audioAvisoPrivado.createGain();gain.gain.setValueAtTime(0,audioAvisoPrivado.currentTime);oscillator.connect(gain);gain.connect(audioAvisoPrivado.destination);oscillator.start();oscillator.stop(audioAvisoPrivado.currentTime+.01);audioAvisoPrivado.__desbloqueado=true;}catch{}
+    }
     function prepararAudioAviso(){
         const AudioContextClass=window.AudioContext||window.webkitAudioContext;
         if(!AudioContextClass)return;
-        try{if(!audioAvisoPrivado)audioAvisoPrivado=new AudioContextClass();if(audioAvisoPrivado.state==='suspended')audioAvisoPrivado.resume().catch(()=>{});}catch{}
+        try{
+            if(!audioAvisoPrivado)audioAvisoPrivado=new AudioContextClass();
+            if(audioAvisoPrivado.state==='suspended')audioAvisoPrivado.resume().then(desbloquearAudioAviso).catch(()=>{});
+            else desbloquearAudioAviso();
+        }catch{}
     }
-    function sonarMensajePrivado(){
+    function sonarAvisoMensaje(){
         if(!audioAvisoPrivado||audioAvisoPrivado.state!=='running')return;
         const now=audioAvisoPrivado.currentTime;
         [[880,0],[1175,.12]].forEach(([frequency,delay])=>{
@@ -687,6 +710,20 @@
         item.append(body,time);listaPrivada.append(item);while(listaPrivada.children.length>50){mensajesPrivadosCargados.delete(listaPrivada.firstElementChild.dataset.messageId);listaPrivada.firstElementChild.remove();}
         listaPrivada.scrollTop=listaPrivada.scrollHeight;
     }
+    function procesarAvisoPrivado(row,owner){
+        if(!row||row.recipient_id!==owner||usuario?.id!==owner)return;
+        avisarNuevoMensaje(row,'private');
+        if(amigoChatActivo&&row.sender_id===amigoChatActivo.id)pintarMensajePrivado(row);
+        else{const friend=document.querySelector('.amigo-dock[data-user-id="'+CSS.escape(row.sender_id)+'"] .boton-chat-amigo');if(friend)friend.textContent='Chat · nuevo';}
+    }
+    function avisarNuevoMensaje(row,tipo){
+        if(!row?.id||avisosMensajesProcesados.has(row.id))return;
+        avisosMensajesProcesados.add(row.id);if(avisosMensajesProcesados.size>300)avisosMensajesProcesados.delete(avisosMensajesProcesados.values().next().value);
+        sonarAvisoMensaje();
+        if(document.hidden&&'Notification' in window&&Notification.permission==='granted'){
+            try{const body=tipo==='private'?'Tienes un nuevo mensaje privado.':'Hay un mensaje nuevo en el chat comunitario.';const notice=new Notification('Nuevo mensaje · RedMusica',{body,tag:'redmusica-mensaje-'+row.id});notice.onclick=()=>{window.focus();notice.close();};}catch{}
+        }
+    }
     async function abrirChatPrivado(person){
         if(!exigirCuenta())return;
         try{
@@ -707,13 +744,12 @@
         if(!usuario){if(canalMensajesPrivados){db.removeChannel(canalMensajesPrivados);canalMensajesPrivados=null;}propietarioMensajesPrivados=null;amigoChatActivo=null;ventanaPrivada.hidden=true;return;}
         if(canalMensajesPrivados&&propietarioMensajesPrivados===usuario.id)return;
         if(canalMensajesPrivados)db.removeChannel(canalMensajesPrivados);
-        const owner=usuario.id;propietarioMensajesPrivados=owner;
+        const owner=usuario.id;propietarioMensajesPrivados=owner;avisosMensajesProcesados.clear();
         canalMensajesPrivados=db.channel('redmusica-dms-'+owner).on('postgres_changes',{event:'INSERT',schema:'public',table:'dm_messages'},payload=>{
             const row=payload.new;
             if(usuario?.id!==owner)return;
-            if(row.recipient_id===owner)sonarMensajePrivado();
-            if(amigoChatActivo&&((row.sender_id===owner&&row.recipient_id===amigoChatActivo.id)||(row.recipient_id===owner&&row.sender_id===amigoChatActivo.id)))pintarMensajePrivado(row);
-            else if(row.recipient_id===owner){const friend=document.querySelector('.amigo-dock[data-user-id="'+CSS.escape(row.sender_id)+'"] .boton-chat-amigo');if(friend)friend.textContent='Chat · nuevo';}
+            if(row.recipient_id===owner)procesarAvisoPrivado(row,owner);
+            else if(amigoChatActivo&&row.sender_id===owner&&row.recipient_id===amigoChatActivo.id)pintarMensajePrivado(row);
         }).subscribe();
     }
     document.getElementById('formularioChatPrivado').addEventListener('submit',event=>{

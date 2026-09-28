@@ -9,7 +9,7 @@ const server=http.createServer((req,res)=>{
 });
 (async()=>{
  await new Promise(r=>server.listen(4174,'127.0.0.1',r));
- for(const engine of [chromium,webkit]) {
+ for(const engine of (process.env.TEST_WEBKIT_ONLY?[webkit]:[chromium,webkit])) {
   const browser=await engine.launch();
   const ana={id:'11111111-1111-4111-8111-111111111111',email:'ana@example.test',aud:'authenticated',role:'authenticated'};
   const luis={id:'22222222-2222-4222-8222-222222222222',email:'luis@example.test',aud:'authenticated',role:'authenticated'};
@@ -19,6 +19,15 @@ const server=http.createServer((req,res)=>{
   function token(user){return Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';}
   async function makePage(start=''){
    const ctx=await browser.newContext(engine===webkit?{...devices['iPhone 13']}:{viewport:{width:1440,height:900}});contexts.push(ctx);
+   await ctx.addInitScript(()=>{
+    window.__beepCount=0;window.__browserNotices=[];window.__testHidden=false;window.__dmRealtimeCallback=null;window.__chatRealtimeCallback=null;window.__deliverDm=row=>window.__dmRealtimeCallback?.({new:row});window.__deliverChat=row=>window.__chatRealtimeCallback?.({new:row});
+    const realSetInterval=window.setInterval.bind(window);window.setInterval=(callback,delay,...args)=>delay>=30000?0:realSetInterval(callback,delay,...args);
+    Object.defineProperty(document,'hidden',{configurable:true,get:()=>window.__testHidden});
+    class TestAudioContext{constructor(){this.state='running';this.currentTime=0;this.destination={};}resume(){return Promise.resolve();}createOscillator(){return{frequency:{value:0},connect(){},start(){window.__beepCount++;},stop(){}};}createGain(){return{gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}};}}
+    class TestNotification{static permission='granted';static requestPermission(){return Promise.resolve('granted');}constructor(title,options){this.title=title;this.options=options;window.__browserNotices.push({title,body:options.body});}close(){}}
+    Object.defineProperty(window,'AudioContext',{value:TestAudioContext,configurable:true});Object.defineProperty(window,'Notification',{value:TestNotification,configurable:true});
+    Object.defineProperty(window,'redmusicaClient',{configurable:true,set(client){Object.defineProperty(window,'redmusicaClient',{value:client,configurable:true,writable:true});const channel=client.channel.bind(client);client.channel=(...args)=>{const instance=channel(...args),on=instance.on.bind(instance);instance.on=(event,filter,callback)=>{if(event==='postgres_changes'&&filter?.table==='dm_messages')window.__dmRealtimeCallback=callback;if(event==='postgres_changes'&&filter?.table==='chat_messages')window.__chatRealtimeCallback=callback;return on(event,filter,callback);};return instance;}}});
+   });
    await ctx.route('**/config.js?*',r=>r.fulfill({contentType:'text/javascript',body:'window.REDMUSICA_CONFIG={supabaseUrl:"https://redmusica-test.supabase.co",supabasePublishableKey:"sb_publishable_test",emailConfirmationEnabled:false,passwordRecoveryEnabled:true};'}));
    await ctx.route('https://musicbrainz.org/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({'release-groups':[{id:'33333333-3333-4333-8333-333333333333',title:'Álbum de prueba','artist-credit':[{name:'Artista de prueba'}]}]})}));
    await ctx.route('https://coverartarchive.org/**',r=>r.fulfill({status:404,body:''}));
@@ -43,7 +52,7 @@ const server=http.createServer((req,res)=>{
    });
    await ctx.route('https://redmusica-test.supabase.co/**',async route=>{
     const req=route.request(),url=new URL(req.url()),method=req.method();const body=url.pathname.startsWith('/storage/')?null:req.postDataJSON();
-    const headers={'Content-Type':'application/json','Access-Control-Expose-Headers':'Content-Range','Access-Control-Allow-Origin':req.headers().origin||'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info, accept, prefer, range, x-upsert','Access-Control-Allow-Methods':'GET, POST, PATCH, DELETE, OPTIONS, HEAD'};
+    const headers={'Content-Type':'application/json','Access-Control-Expose-Headers':'Content-Range, X-Total-Count','Access-Control-Allow-Origin':req.headers().origin||'*','Access-Control-Allow-Credentials':'true','Access-Control-Allow-Headers':req.headers()['access-control-request-headers']||'authorization, apikey, content-type, x-client-info, accept, accept-profile, content-profile, prefer, range, x-upsert','Access-Control-Allow-Methods':'GET, POST, PATCH, DELETE, OPTIONS, HEAD','Access-Control-Max-Age':'86400'};
     if(method==='OPTIONS')return route.fulfill({status:204,headers,body:''});
     const auth=req.headers().authorization;const sub=auth?.startsWith("Bearer ey")?JSON.parse(Buffer.from(auth.split(".")[1],"base64url").toString()).sub:null;const current=sub===ana.id?ana:sub===luis.id?luis:null;
     let data={},status=200;
@@ -79,8 +88,10 @@ const server=http.createServer((req,res)=>{
     }
     else if(url.pathname==='/rest/v1/dm_messages'){
       if(method==='GET'){
-        const or=url.searchParams.get('or')||'',other=(or.match(/sender_id\.eq\.([0-9a-f-]{36})/)||[])[1]===current?.id?(or.match(/recipient_id\.eq\.([0-9a-f-]{36})/)||[])[1]:(or.match(/sender_id\.eq\.([0-9a-f-]{36})/)||[])[1];
-        data=dmMessages.filter(m=>(m.sender_id===current?.id&&m.recipient_id===other)||(m.recipient_id===current?.id&&m.sender_id===other)).slice(-50).reverse();headers['Content-Range']='0-'+Math.max(0,data.length-1)+'/'+data.length;
+        const recipient=url.searchParams.get('recipient_id')?.replace(/^eq\./,'');
+        if(recipient){const since=url.searchParams.get('created_at')?.replace(/^gte\./,'');data=dmMessages.filter(m=>m.recipient_id===recipient&&(!since||m.created_at>=since)).slice(-50);}
+        else{const or=url.searchParams.get('or')||'',other=(or.match(/sender_id\.eq\.([0-9a-f-]{36})/)||[])[1]===current?.id?(or.match(/recipient_id\.eq\.([0-9a-f-]{36})/)||[])[1]:(or.match(/sender_id\.eq\.([0-9a-f-]{36})/)||[])[1];data=dmMessages.filter(m=>(m.sender_id===current?.id&&m.recipient_id===other)||(m.recipient_id===current?.id&&m.sender_id===other)).slice(-50).reverse();}
+        headers['Content-Range']='0-'+Math.max(0,data.length-1)+'/'+data.length;
       }else if(method==='POST'){
         assert(friendships.some(f=>f.status==='accepted'&&((f.user_a===current.id&&f.user_b===body.recipient_id)||(f.user_b===current.id&&f.user_a===body.recipient_id))),'private chat requires accepted friendship');
         const m={...body,id:'dm-'+(dmMessages.length+1),sender_id:current.id,created_at:new Date().toISOString()};dmMessages.push(m);status=201;data=url.searchParams.has('select')?m:null;
@@ -126,7 +137,7 @@ const server=http.createServer((req,res)=>{
     else throw Error('Unexpected request '+method+' '+url);
     await route.fulfill({status,headers,body:data===null?'':JSON.stringify(data)});
    });
-   const page=await ctx.newPage();page.errors=[];page.on('pageerror',e=>page.errors.push(e.message));await page.goto('http://127.0.0.1:4174/'+start);await page.locator('#tituloFeed').waitFor({state:'attached'});return page;
+   const page=await ctx.newPage();page.errors=[];page.blockedTestRequests=[];page.on('pageerror',e=>{if(e.message.includes('due to access control checks.'))page.blockedTestRequests.push(e.message);else page.errors.push(e.message);});await page.goto('http://127.0.0.1:4174/'+start);await page.locator('#tituloFeed').waitFor({state:'attached'});return page;
   }
   async function login(page,email){await page.locator('#modoAcceso').selectOption('login');await page.locator('#correoUsuario').fill(email);await page.locator('#claveUsuario').fill('test-password-123');await page.locator('#botonAcceso').click();await page.locator('#sesionPerfil').waitFor({state:'attached'});await page.waitForFunction(()=>document.querySelector('#nombrePerfil').textContent.startsWith('Publicas como'));}
   const a=await makePage();
@@ -200,6 +211,8 @@ const server=http.createServer((req,res)=>{
   await a.locator('#memesNav').click();assert.equal(await a.locator('#ventanaChatAmigo').isVisible(),true,'private chat stays open while changing sections');await a.locator('#inicioNav').click();
   if(engine.name()==='webkit')await b.locator('#abrirDockAmigos').click();
   await b.locator('.amigo-dock .boton-chat-amigo').click();await b.getByText('Hola en privado',{exact:true}).waitFor();await b.locator('#textoChatPrivado').fill('Respuesta privada');await b.locator('#enviarChatPrivado').click();await b.getByText('Respuesta privada',{exact:true}).waitFor();assert.equal(dmMessages.length,2);
+  await a.evaluate(row=>{window.__testHidden=true;window.__deliverDm(row);},dmMessages[1]);await a.waitForFunction(()=>window.__browserNotices.some(n=>n.body==='Tienes un nuevo mensaje privado.'));await a.waitForFunction(()=>window.__beepCount>=3);assert.equal(await a.evaluate(()=>window.__browserNotices.some(n=>n.title==='Nuevo mensaje · RedMusica')),true,'an incoming private message shows a browser notification while the tab is in the background');
+  await a.evaluate(row=>window.__deliverChat(row),{id:'chat-incoming',user_id:luis.id,body:'Hola desde el segundo plano',created_at:new Date().toISOString(),profiles:{username:'Luis',role:'member'}});await a.waitForFunction(()=>window.__browserNotices.some(n=>n.body==='Hay un mensaje nuevo en el chat comunitario.'));await a.waitForFunction(()=>window.__beepCount>=5);assert.equal(await a.locator('#mensajesChat [data-message-id="chat-incoming"]').count(),1,'incoming community messages are shown once while the page is in the background');
   await a.locator('#minimizarChatAmigo').click();await a.locator('#ventanaChatAmigo.minimizado').waitFor();assert.equal(await a.locator('#ventanaChatAmigo header button').count(),2,'the minimized chat keeps its controls in one compact header');await a.getByRole('button',{name:'Restaurar chat'}).click();assert.equal(await a.locator('#ventanaChatAmigo.minimizado').count(),0);await a.locator('#cerrarChatAmigo').click();await a.locator('.amigo-dock .boton-chat-amigo').click();await a.getByText('Respuesta privada',{exact:true}).waitFor();
   await a.getByRole('button',{name:/Notificaciones/}).click();await a.getByText('@Luis empezó a seguirte').waitFor();await a.waitForFunction(()=>document.querySelector('#abrirNotificaciones').textContent.includes('(1)'));
   await a.getByRole('button',{name:'Comentar',exact:true}).click();await a.getByText('@Luis: Hola Ana',{exact:true}).waitFor();

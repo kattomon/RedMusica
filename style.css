@@ -41,48 +41,72 @@
 .blackjack-cabecera-sala, .blackjack-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .blackjack-cabecera-sala h3 { margin-right: auto; }
 #blackjackTablero { margin: 18px 0; }
-.blackjack-fieltro { position: relative; isolation: isolate; overflow: hidden; padding: clamp(18px,4vw,38px); border: 9px solid #493522; border-radius: 46px; background: radial-gradient(ellipse at 50% 42%,#347b60 0,#205640 55%,#173f32 100%); color: #fff8e9; box-shadow: inset 0 0 0 2px #bd9e69, inset 0 0 30px #09271e99, 0 8px 20px #0002; }
+.blackjack-fieltro { position: relative; isolation: isolate; overflow: hidden; padding: clamp(18px,4vw,38px); border: 9px solid #493522; border-radius: 46px; background: radial-gradient(ellipse at 50% 42%,#398363 0,#24634a 38%,#205640 68%,#173f32 100%); color: #fff8e9; box-shadow: inset 0 0 0 2px #bd9e69, inset 0 0 30px #09271e99, 0 8px 20px #0002; }
 .blackjack-fieltro::before { position: absolute; z-index: -1; inset: 10px; border: 1px solid #d5bd804d; border-radius: 34px; content: ""; pointer-events: none; }
 .blackjack-rotulo-mesa { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #e5d3a9; font-size: .78rem; letter-spacing: .16em; }
 .blackjack-rotulo-mesa strong { padding: 6px 12px; border: 1px solid #e2c17c88; border-radius: 4px; color: #f6e8c7; letter-spacing: .1em; }
 .blackjack-rotulo-mesa b { color: #e6bd6b; }
-.blackjack-crupier { display: flex; justify-content: center; align-items: center; gap: clamp(16px,4vw,42px); min-height: 180px; margin: 18px auto 28px; text-align: center; }
-.blackjack-crupier-pixel { position: relative; flex: 0 0 78px; width: 78px; height: 96px; image-rendering: pixelated; filter: drop-shadow(3px 4px 0 #102f27); animation: blackjack-crupier-flota 3.2s ease-in-out infinite; }
-.blackjack-crupier-pixel i { position: absolute; display: block; }
-.pixel-sombrero { top: 1px; left: 11px; width: 56px; height: 18px; border-bottom: 5px solid #d4b36d; background: #262521; box-shadow: 9px 18px 0 -4px #262521; }
-.pixel-cara { top: 22px; left: 22px; width: 36px; height: 34px; background: #e6b891; box-shadow: -5px 13px 0 -2px #c88d70, 5px 13px 0 -2px #c88d70; }
-.pixel-ojos { top: 34px; left: 30px; width: 5px; height: 5px; background: #262521; box-shadow: 15px 0 #262521, 5px 11px #8d504c; }
-.pixel-corbata { top: 61px; left: 34px; width: 12px; height: 9px; background: #d4b36d; clip-path: polygon(50% 0,100% 30%,70% 100%,30% 100%,0 30%); }
-.pixel-traje { top: 59px; left: 15px; width: 50px; height: 36px; background: #252c32; clip-path: polygon(18% 0,38% 0,50% 15%,62% 0,82% 0,100% 100%,0 100%); }
+.blackjack-crupier { display: flex; justify-content: center; align-items: center; gap: clamp(20px,5vw,48px); min-height: 210px; margin: 18px auto 28px; text-align: center; }
+.blackjack-crupier-pixel { position: relative; flex: 0 0 clamp(92px,15vw,132px); width: clamp(92px,15vw,132px); height: clamp(118px,20vw,164px); filter: drop-shadow(5px 7px 0 #102f2780) drop-shadow(0 0 14px #e5c87933); animation: blackjack-crupier-flota 3.4s ease-in-out infinite; }
+.blackjack-crupier-pixel::before { position: absolute; z-index: -1; inset: 8% 0 0; border-radius: 50%; background: radial-gradient(ellipse,#e9d2971f,transparent 70%); content: ""; }
+.blackjack-crupier-pixel svg { display: block; width: 100%; height: 100%; overflow: visible; image-rendering: pixelated; }
+.crupier-parpado { transform-box: fill-box; transform-origin: center; animation: blackjack-crupier-parpadea 4.3s step-end infinite; }
+.crupier-brazo-reparto { transform-box: fill-box; transform-origin: 8% 65%; transition: transform .35s ease; }
+.blackjack-crupier-pixel.animacion-accion .crupier-brazo-reparto { animation: blackjack-crupier-reparte .62s cubic-bezier(.2,.8,.3,1); }
+.blackjack-crupier-pixel.animacion-accion { animation: blackjack-crupier-saluda .7s ease-out; }
 .blackjack-zona-crupier h3 { margin: 0 0 3px; color: #fff1d0; font-size: 1.2rem; }
 .blackjack-zona-crupier p { margin: 5px 0 0; }
-.blackjack-frase-crupier { color: #f1d696; font-size: .92rem; }
+.blackjack-frase-crupier { display: inline-block; min-height: 28px; padding: 3px 12px; border: 1px solid #e2c17c44; border-radius: 999px; background: #0f3527a3; color: #f1d696; font-size: .92rem; }
 #blackjackTablero .blackjack-cartas { justify-content: center; min-height: 91px; margin: 8px auto 3px; }
 .blackjack-zona-jugadores > h3 { margin: 0 0 12px; color: #f1d696; font-size: .95rem; text-align: center; text-transform: uppercase; letter-spacing: .13em; }
 #blackjackJugadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; padding-left: 0; list-style: none; }
-.blackjack-jugador { min-width: 0; padding: 14px; border: 1px solid #e3d5b466; border-radius: 12px; background: linear-gradient(155deg,#f9f5e9f2,#e8e0cff2); color: #282721; box-shadow: 0 5px 12px #09271e40; transition: transform .2s ease,box-shadow .2s ease,border-color .2s ease; }
-.blackjack-jugador.es-mi-turno { transform: translateY(-3px); border-color: #e6bd6b; box-shadow: 0 0 0 3px #e6bd6b77,0 8px 18px #09271e55; }
+.blackjack-listo { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid #9c7a454d; border-radius: 999px; background: #362e2233; color: #e8b65e; font-size: .76rem; font-weight: 800; white-space: nowrap; }
+.blackjack-listo::before { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; content: ""; }
+.blackjack-listo.confirmado { border-color: #91c99b77; background: #1d503477; color: #a7edb6; }
+.blackjack-marcar-listo { min-height: 34px; padding: 5px 10px; border: 1px solid #e8b65e; border-radius: 7px; background: linear-gradient(#43533e,#26382c); color: #fff1ce; font: inherit; font-size: .82rem; font-weight: 800; cursor: pointer; box-shadow: inset 0 1px #ffffff25,0 2px 0 #15271e; }
+.blackjack-marcar-listo:hover { background: #394c37; }
+.blackjack-marcar-listo:focus-visible { outline: 3px solid #f4d188; outline-offset: 2px; }
+.blackjack-jugador { min-width: 0; padding: 14px; border: 1px solid #e3d5b466; border-radius: 12px; background: linear-gradient(155deg,#fff9ecf5 0,#f2e8d4f2 58%,#e7d6b8f5 100%); color: #282721; box-shadow: 0 5px 12px #09271e40,inset 0 1px #fff; transition: transform .24s ease,box-shadow .24s ease,border-color .24s ease; }
+.blackjack-jugador.es-mi-turno { transform: translateY(-4px); border-color: #f5d37d; box-shadow: 0 0 0 3px #e6bd6b77,0 8px 22px #09271e66; }
 .blackjack-asiento-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.blackjack-nombre-jugador { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.blackjack-nombre-jugador { flex: 1 1 auto; min-width: 4ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .blackjack-fichas-jugador { display: flex; align-items: center; gap: 7px; margin-top: 8px; color: #5d5140; font-size: .9rem; }
-.blackjack-pila-fichas { color: #a2453b; font-size: 1.35rem; text-shadow: 1px 1px #fff; }
+.blackjack-pila-fichas { position: relative; display: inline-flex; width: 27px; height: 23px; align-items: flex-end; }
+.blackjack-pila-fichas i { position: absolute; bottom: calc(var(--ficha,0)*4px); left: calc(var(--ficha,0)*2px); width: 17px; height: 7px; border: 2px dashed #f3d99c; border-radius: 50%; background: linear-gradient(90deg,#a7433c,#d36c56); box-shadow: 0 2px 1px #493522; }
+.blackjack-pila-fichas i:nth-child(1) { --ficha: 0; }.blackjack-pila-fichas i:nth-child(2) { --ficha: 1; }.blackjack-pila-fichas i:nth-child(3) { --ficha: 2; }
 .blackjack-turno { display: inline-flex; flex: 0 0 auto; padding: 3px 9px; border: 1px solid #98773d; border-radius: 999px; background: #f4e4b9; color: #594626; font-size: .78rem; font-weight: 800; }
 .blackjack-mano { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 12px; }
 .blackjack-cartas { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-height: 58px; margin-top: 8px; }
-.blackjack-carta { position: relative; display: inline-flex; flex: 0 0 auto; flex-direction: column; justify-content: space-between; width: 55px; height: 78px; padding: 5px 6px; overflow: hidden; border: 1px solid #d4d0c7; border-radius: 7px; background: linear-gradient(145deg,#fff 0,#f5f2ea 100%); color: #262521; box-shadow: 1px 3px 0 #b8ac98,0 5px 9px #102f2744; font-weight: 800; animation: blackjack-carta-reparte .32s cubic-bezier(.2,.8,.25,1) both; }
-.blackjack-esquina { align-self: flex-start; font-size: .86rem; line-height: 1; }
-.blackjack-figura { align-self: center; font-size: 1.55rem; line-height: 1; }
+.blackjack-carta { position: relative; display: inline-flex; flex: 0 0 auto; flex-direction: column; justify-content: space-between; width: 62px; height: 88px; padding: 6px 7px; overflow: hidden; border: 1px solid #d4d0c7; border-radius: 8px; background: linear-gradient(145deg,#fff 0,#f9f6ef 46%,#eee7d9 100%); color: #262521; box-shadow: 1px 3px 0 #b8ac98,0 5px 9px #102f2744,inset 0 0 0 2px #fff; font-weight: 800; animation: blackjack-carta-reparte .5s cubic-bezier(.18,.75,.22,1) both; animation-delay: calc(var(--orden-reparto,0)*65ms); transform-origin: 50% 90%; backface-visibility: hidden; }
+.blackjack-carta::after { position: absolute; right: 6px; bottom: 5px; content: attr(data-rank) " " attr(data-suit); transform: rotate(180deg); font-size: .73rem; line-height: 1; }
+.blackjack-esquina { display: flex; flex-direction: column; align-items: center; align-self: flex-start; line-height: .92; }
+.blackjack-esquina b { font-size: .82rem; }.blackjack-esquina i { font-size: .65rem; font-style: normal; }
+.blackjack-arte-carta { display: grid; flex: 1; grid-template-columns: repeat(2,1fr); grid-auto-flow: row; align-items: center; justify-items: center; align-self: center; width: 80%; padding: 2px 0; font-size: .88rem; line-height: 1; }
+.blackjack-arte-carta i { font-style: normal; text-shadow: 0 1px #fff8; }
+.blackjack-arte-carta.figura { position: relative; grid-template-columns: 1fr; align-content: center; width: 78%; margin: 4px 0; border: 2px solid currentColor; border-radius: 45% 45% 38% 38%; background: repeating-linear-gradient(135deg,#d8bd8544 0 4px,transparent 4px 8px); }
+.blackjack-retrato { display: grid; place-items: center; width: 30px; height: 38px; border: 2px solid #4a3e32; border-radius: 8px 8px 3px 3px; background: linear-gradient(#f3d6af 0 47%,#42516a 48%); color: #342e27; font-family: Georgia,serif; font-size: 1.05rem; text-shadow: 1px 1px #fff; }
+.blackjack-arte-carta.figura > i { position: absolute; right: 1px; bottom: 1px; font-size: .67rem; }
 .blackjack-carta.roja { color: #a13e38; }
-.blackjack-carta.oculta { display: grid; place-items: center; border: 2px solid #e5c879; background: repeating-linear-gradient(45deg,#234d64 0 5px,#2c6270 5px 10px); color: #f4df9b; font-size: .75rem; letter-spacing: .1em; }
+.blackjack-carta.oculta { display: grid; place-items: center; border: 2px solid #e5c879; outline: 2px solid #f4df9b55; outline-offset: -6px; background: repeating-linear-gradient(45deg,#234d64 0 5px,#2c6270 5px 10px); color: #f4df9b; font-size: .75rem; letter-spacing: .1em; }
+.blackjack-carta.revelada { animation: blackjack-carta-voltea .62s cubic-bezier(.2,.8,.25,1) both; }
 .blackjack-total-jugador { flex-basis: 100%; color: #514735; font-size: .86rem; font-weight: 750; }
 .blackjack-resultado-jugador { display: inline-block; margin-top: 7px; color: #62451d; font-size: .87rem; font-weight: 800; }
 .blackjack-jugador.se-paso .blackjack-resultado-jugador { color: #a13e38; }
-.blackjack-letrero-fieltro { margin-top: 22px; color: #cbb98e; font-size: .69rem; text-align: center; letter-spacing: .2em; }
-.blackjack-acciones { margin: 16px 0; }
-@keyframes blackjack-carta-reparte { from { opacity: 0; transform: translate(18px,-28px) rotate(9deg) scale(.82); } to { opacity: 1; transform: translate(0,0) rotate(0) scale(1); } }
-@keyframes blackjack-crupier-flota { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-@media(prefers-reduced-motion:reduce) { .blackjack-carta,.blackjack-crupier-pixel { animation: none; } .blackjack-jugador { transition: none; } }
-@media(max-width:520px) { .blackjack-cabecera-sala { align-items: stretch; } .blackjack-cabecera-sala h3 { width: 100%; } .blackjack-acciones button { flex: 1 1 42%; min-height: 44px; } .blackjack-fieltro { padding: 16px 12px; border-width: 6px; border-radius: 30px; } .blackjack-fieltro::before { inset: 6px; border-radius: 22px; } .blackjack-crupier { gap: 12px; min-height: 150px; } .blackjack-crupier-pixel { transform: scale(.82); transform-origin: center; } .blackjack-carta { width: 48px; height: 69px; } #blackjackJugadores { grid-template-columns: repeat(auto-fit,minmax(min(100%,155px),1fr)); gap: 8px; } .blackjack-jugador { padding: 10px; } .blackjack-turno { padding: 3px 6px; font-size: .7rem; } }
+@keyframes blackjack-carta-reparte { 0% { opacity: 0; transform: translate(70px,-95px) rotate(24deg) scale(.72); } 62% { opacity: 1; transform: translate(-4px,3px) rotate(-3deg) scale(1.04); } 100% { opacity: 1; transform: translate(0,0) rotate(0) scale(1); } }
+@keyframes blackjack-carta-voltea { 0% { transform: perspective(400px) rotateY(90deg) scale(.92); } 60% { transform: perspective(400px) rotateY(-12deg) scale(1.06); } 100% { transform: perspective(400px) rotateY(0) scale(1); } }
+@keyframes blackjack-crupier-flota { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes blackjack-crupier-parpadea { 0%,45%,48%,100% { transform: scaleY(1); } 46%,47% { transform: scaleY(.12); } }
+@keyframes blackjack-crupier-reparte { 0%,100% { transform: rotate(0); } 45% { transform: rotate(-15deg) translate(-3px,-2px); } 75% { transform: rotate(7deg) translate(2px,1px); } }
+@keyframes blackjack-crupier-saluda { 0%,100% { filter: drop-shadow(5px 7px 0 #102f2780) drop-shadow(0 0 14px #e5c87933); } 45% { filter: drop-shadow(5px 7px 0 #102f2780) drop-shadow(0 0 22px #e5c879aa); } }
+.blackjack-acciones-mesa { justify-content: center; margin: 24px 0 0; padding: 13px; border: 1px solid #dfbd6b77; border-radius: 12px; background: linear-gradient(180deg,#102f27aa,#0d291fdd); box-shadow: inset 0 1px #fff2,0 5px 12px #09271e55; }
+.blackjack-acciones-mesa button { min-width: 138px; border: 1px solid #f0d18a; background: linear-gradient(#f0d28f,#c6a65d); color: #2c271c; font-weight: 800; box-shadow: 0 3px 0 #80633b; transition: transform .15s ease,filter .15s ease; }
+.blackjack-acciones-mesa button:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.08); }
+.blackjack-acciones-mesa button:active:not(:disabled) { transform: translateY(1px); }
+.blackjack-acciones-mesa button:disabled { opacity: .55; }
+.blackjack-acciones-mesa #salirSalaBlackjack { border-color: #e1d5bd; background: linear-gradient(#eee7dc,#cfc4b1); color: #39342b; box-shadow: 0 3px 0 #837765; }
+#blackjackTablero.mi-turno .blackjack-acciones-mesa { border-color: #f1d185; box-shadow: 0 0 0 2px #e6bd6b33,0 5px 16px #09271e66; }
+@media(prefers-reduced-motion:reduce) { .blackjack-carta,.blackjack-crupier-pixel { animation: none; } .blackjack-jugador,.blackjack-acciones-mesa button { transition: none; } }
+@media(max-width:520px) { .blackjack-cabecera-sala { align-items: stretch; } .blackjack-cabecera-sala h3 { width: 100%; } .blackjack-acciones button { flex: 1 1 42%; min-height: 44px; } .blackjack-fieltro { padding: 16px 12px; border-width: 6px; border-radius: 30px; } .blackjack-fieltro::before { inset: 6px; border-radius: 22px; } .blackjack-crupier { gap: 12px; min-height: 155px; } .blackjack-crupier-pixel { flex-basis: 86px; width: 86px; height: 116px; } .blackjack-carta { width: 53px; height: 77px; } #blackjackJugadores { grid-template-columns: repeat(auto-fit,minmax(min(100%,155px),1fr)); gap: 8px; } .blackjack-jugador { padding: 10px; } .blackjack-turno { padding: 3px 6px; font-size: .7rem; } .blackjack-acciones-mesa { gap: 10px 7px; margin-top: 18px; padding: 10px 7px; } .blackjack-acciones-mesa button { flex: 1 1 42%; min-width: 0; padding: 10px 8px; } }
 .tarjeta-pelicula { display: grid; grid-template-columns: minmax(100px, 150px) minmax(0,1fr); grid-template-rows: auto 1fr auto auto; gap: 6px 14px; align-items: start; }
 .tarjeta-pelicula h3, .tarjeta-pelicula p, .tarjeta-pelicula a, .tarjeta-pelicula button { grid-column: 2; margin: 0; }
 .tarjeta-pelicula .marco-afiche-resultado { grid-column: 1; grid-row: 1 / 5; width: 100%; aspect-ratio: 2 / 3; }

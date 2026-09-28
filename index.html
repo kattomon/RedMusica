@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-27">
+    <link rel="stylesheet" href="style.css?v=20260927-29">
 </head>
 <body>
 <main>
@@ -15,6 +15,7 @@
     </nav>
     <section id="notificaciones" aria-labelledby="tituloNotificaciones" hidden>
         <h2 id="tituloNotificaciones">Notificaciones</h2><p id="estadoNotificaciones" role="status"></p>
+        <button id="activarNotificacionesNavegador" type="button">Activar avisos en el navegador</button>
         <button id="marcarLeidas" type="button">Marcar todas como leídas</button>
         <div id="listaNotificaciones" aria-live="polite"></div>
         <button id="masNotificaciones" type="button" hidden>Ver anteriores</button>
@@ -66,15 +67,28 @@
                 <div class="blackjack-fieltro">
                     <div class="blackjack-rotulo-mesa"><span>REDMUSICA</span><strong>BLACKJACK <b>21</b></strong></div>
                     <div class="blackjack-crupier">
-                        <div class="blackjack-crupier-pixel" role="img" aria-label="Crupier bot en estilo pixel art"><i class="pixel-sombrero"></i><i class="pixel-cara"></i><i class="pixel-ojos"></i><i class="pixel-corbata"></i><i class="pixel-traje"></i></div>
+                        <div id="blackjackCrupierArte" class="blackjack-crupier-pixel" role="img" aria-label="Crupier de blackjack estilo arcade de 32 bits">
+                            <svg viewBox="0 0 128 160" aria-hidden="true" focusable="false" shape-rendering="crispEdges">
+                                <defs><linearGradient id="trajeCrupier" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#44536b"/><stop offset=".55" stop-color="#29384d"/><stop offset="1" stop-color="#18283b"/></linearGradient><linearGradient id="pielCrupier" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f6d1aa"/><stop offset="1" stop-color="#d89b75"/></linearGradient><linearGradient id="sombreroCrupier" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#354052"/><stop offset="1" stop-color="#151d2a"/></linearGradient></defs>
+                                <ellipse cx="64" cy="151" rx="45" ry="6" fill="#092d25" opacity=".55"/>
+                                <path d="M22 149 29 105l18-12h34l18 12 8 44z" fill="url(#trajeCrupier)" stroke="#152538" stroke-width="4"/>
+                                <path d="m47 96 17 20 17-20-7-8H54z" fill="#f1e7d0"/><path d="m64 110 10 7-6 21h-8l-6-21z" fill="#bd5361" stroke="#e1b56c" stroke-width="3"/>
+                                <path d="m36 110 13-9 10 14-8 12-15-6zm56 0-13-9-10 14 8 12 15-6z" fill="#37465b" stroke="#9b8054" stroke-width="2"/>
+                                <g class="crupier-brazo-reparto"><path d="m94 111 15 8 7-13 8 4-5 22-15 5-15-12z" fill="#e8bd92" stroke="#b37e60" stroke-width="3"/><path d="m113 104 8-4 5 5-3 7-8 1z" fill="#f2cfaa"/><path d="m113 94 12-2 2 17-13 2z" fill="#f8f2e5" stroke="#d9c59a" stroke-width="2"/></g>
+                                <path d="M44 49q0-24 20-25 23 0 23 27l-5 26q-4 16-19 18-17-2-21-20z" fill="url(#pielCrupier)" stroke="#805946" stroke-width="3"/>
+                                <path d="M45 60q-8-5-7 7 2 10 9 7m39-14q8-5 7 7-2 10-9 7" fill="#d99b77" stroke="#805946" stroke-width="3"/>
+                                <path d="M52 60h8m16 0h8" stroke="#332a27" stroke-width="4"/><path d="M59 80q6 5 12 0" fill="none" stroke="#9c514d" stroke-width="3"/><path class="crupier-parpado" d="M51 57h10m15 0h10" stroke="#f5d8b8" stroke-width="2"/>
+                                <path d="M38 46q4-30 26-30 27 0 29 31l-11-9-10-3-15 6-12-1z" fill="#252b36" stroke="#101720" stroke-width="4"/><path d="M32 45h68v10H32z" fill="#d2ad68" stroke="#f0d595" stroke-width="2"/><path d="M47 16h34V7H47z" fill="url(#sombreroCrupier)" stroke="#101720" stroke-width="3"/>
+                                <path d="M64 9v7" stroke="#f1d48d" stroke-width="3"/><circle cx="64" cy="9" r="3" fill="#e8c36e"/>
+                            </svg>
+                        </div>
                         <div class="blackjack-zona-crupier"><h3>El crupier</h3><div id="manoCrupierBlackjack" class="blackjack-cartas" aria-label="Cartas del crupier"></div><p id="totalCrupierBlackjack"></p><p id="estadoCrupierBlackjack" class="blackjack-frase-crupier" aria-live="polite"></p></div>
                     </div>
                     <section class="blackjack-zona-jugadores" aria-labelledby="tituloJugadoresBlackjack"><h3 id="tituloJugadoresBlackjack">Jugadores en la mesa</h3><ol id="blackjackJugadores"></ol></section>
-                    <div class="blackjack-letrero-fieltro" aria-hidden="true">BUENA SUERTE · BUENAS CANCIONES</div>
+                    <div id="blackjackAcciones" class="blackjack-acciones blackjack-acciones-mesa"><button id="iniciarRondaBlackjack" type="button" hidden>Repartir (100 fichas)</button><button id="pedirCartaBlackjack" type="button" hidden>Pedir carta</button><button id="plantarseBlackjack" type="button" hidden>Plantarse</button><button id="salirSalaBlackjack" type="button">Salir de la sala</button></div>
                 </div>
             </section>
             <p id="resultadoBlackjack" role="status"></p>
-            <div class="blackjack-acciones"><button id="iniciarRondaBlackjack" type="button" hidden>Repartir (100 fichas)</button><button id="pedirCartaBlackjack" type="button" hidden>Pedir carta</button><button id="plantarseBlackjack" type="button" hidden>Plantarse</button><button id="salirSalaBlackjack" type="button">Salir de la sala</button></div>
         </div>
     </section>
     <hr>

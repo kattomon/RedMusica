@@ -30,8 +30,21 @@ export function finishRound(state){
  state.status='finished';state.current_player_id=null;
 }
 export function advance(state){const next=state.players.find(p=>p.status==='playing');if(next){state.current_player_id=next.user_id;return;}state.current_player_id=null;finishRound(state);}
+export function leaveRound(state,userId){
+ const player=state.players.find(p=>p.user_id===userId);if(!player)return false;
+ const wasTurn=state.status==='playing'&&state.current_player_id===userId;
+ state.players=state.players.filter(p=>p.user_id!==userId);
+ if(wasTurn){if(state.players.length)advance(state);else state.current_player_id=null;}
+ return true;
+}
+export function setReady(state,userId,ready){
+ if(state.status!=='lobby')throw new Error('Solo puedes cambiar tu estado de listo mientras la sala espera jugadores.');
+ const player=state.players.find(p=>p.user_id===userId);if(!player)throw new Error('No formas parte de esta sala.');
+ player.ready=Boolean(ready);return player.ready;
+}
 export function holdTurn(state,userId){state.current_player_id=userId;}
 export function startRound(state,deck=shuffledDeck()){
+ if(state.status==='lobby'&&(!state.players.length||state.players.some(player=>!player.ready)))throw new Error('Todos los jugadores deben marcarse listos antes de repartir.');
  state.deck=deck.slice();state.dealer={hand:[]};state.result='';state.status='playing';
  for(const player of state.players){player.hand=[];player.bet=0;player.result='';if(player.chips>=BET){player.chips-=BET;player.bet=BET;player.status='playing';}else player.status='waiting';}
  state.players.filter(player=>player.status==='playing').forEach(player=>{draw(state,player.hand);draw(state,player.hand);if(natural(player.hand))player.status='blackjack';});
