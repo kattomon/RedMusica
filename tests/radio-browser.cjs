@@ -55,7 +55,7 @@ const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),ne
   await live.waitForFunction(()=>window.playerCalls.some(p=>p.videoId==='ponmlkjihgf'));
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);assert.deepEqual(errors,[]);
   await ctx.route('**/script.js?*',r=>r.fulfill({contentType:'text/javascript',body:''}));
-  const feed=await ctx.newPage();await feed.goto('http://127.0.0.1:4180/index.html');
+  const feed=await ctx.newPage();await feed.goto('http://127.0.0.1:4180/index.html?seccion=musica');await feed.locator('#crearPublicacion').evaluate(element=>element.hidden=false);
   await feed.locator('#buscarAlbum').fill('Mi búsqueda sin perder');
   const pages=ctx.pages().length;
   await feed.getByRole('button',{name:'Radio ♫'}).click();

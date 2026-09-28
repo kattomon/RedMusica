@@ -11,6 +11,10 @@
     let viendoActividad = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'actividad';
     let viendoGuardados = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'guardados';
     let viendoListas = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'listas';
+    let viendoEventos = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'eventos';
+    let viendoVideos = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'videos';
+    let viendoJuegos = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'juegos';
+    let viendoMusica = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'musica';
     let viendoBlackjack = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'blackjack';
     let listaActualId = new URLSearchParams(location.search).get('lista');
     let idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || "");
@@ -32,16 +36,21 @@
     let amigoChatActivo = null, mensajesPrivadosCargados = new Set();
     document.getElementById("navegacion").hidden = false;
     document.getElementById("perfilPublico").hidden = !viendoPerfil;
-    document.getElementById("crearPublicacion").hidden = viendoPerfil || viendoMemes || viendoPeliculas || viendoBlackjack;
+    document.getElementById("crearPublicacion").hidden = !viendoMusica;
+    document.getElementById('compositorMuro').hidden = viendoPerfil || viendoMemes || viendoPeliculas || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || viendoMusica || viendoBlackjack;
     document.getElementById('crearMeme').hidden = !viendoMemes;
     document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
     document.getElementById('seccionListas').hidden = !viendoListas;
+    document.getElementById('seccionEventos').hidden = !viendoEventos;
+    document.getElementById('seccionVideos').hidden = !viendoVideos;
+    document.getElementById('seccionJuegos').hidden = !viendoJuegos;
     document.getElementById('seccionBlackjack').hidden = !viendoBlackjack;
     document.getElementById('memesNav').setAttribute('aria-current',viendoMemes?'page':'false');
     document.getElementById('peliculasNav').setAttribute('aria-current',viendoPeliculas?'page':'false');
     document.getElementById('amigosNav').hidden = !viendoAmigos;
     document.getElementById('seccionAmigos').hidden = !viendoAmigos;
-    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoAmigos?'page':'false');
+    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoAmigos&&!viendoEventos&&!viendoMusica?'page':'false');
+    document.getElementById('musicaNav').setAttribute('aria-current',viendoMusica?'page':'false');
     if(viendoAmigos)document.title='Amigos · RedMusica';
     if (viendoPerfil) {
         document.getElementById("tituloFeed").textContent = "Publicaciones de este perfil";
@@ -153,7 +162,9 @@
             <form id="formularioFoto"><label for="archivoFoto">Foto de perfil</label><input id="archivoFoto" type="file" accept="image/jpeg,image/png,image/webp" required>
             <p>JPG, PNG o WebP, hasta 10 MB. Se recorta al centro. La foto será pública.</p>
             <button type="submit">Guardar foto</button><button id="quitarFoto" type="button">Quitar foto</button></form>
+            <form id="formularioEstadoBreve"><label for="estadoBreve">Estado breve</label><input id="estadoBreve" maxlength="100" placeholder="¿Qué estás escuchando o pensando?"><button type="submit">Actualizar estado</button></form>
             <form id="formularioBio"><label for="bioPerfil">Sobre mí</label><textarea id="bioPerfil" maxlength="300" rows="3"></textarea><button type="submit">Guardar presentación</button></form>
+            <form id="formularioAlbumFotos"><label for="nombreAlbumFotos">Álbum de fotos</label><input id="nombreAlbumFotos" maxlength="60" placeholder="Ej.: Concierto de Los Jaivas" required><label for="fotosPerfil">Fotos de discos o conciertos (JPG, PNG, WebP)</label><input id="fotosPerfil" type="file" accept="image/jpeg,image/png,image/webp" multiple required><label for="descripcionFotos">Pie de foto (opcional)</label><input id="descripcionFotos" maxlength="160" placeholder="Una noche inolvidable"><p>Las imágenes se reducen antes de subir y cada perfil puede guardar hasta 20 fotos.</p><button type="submit">Subir al álbum</button></form>
             <p id="estadoEdicionPerfil" role="status"></p></details><button id="cerrarSesion" type="button">Cerrar sesión</button></div>
         <p id="estadoPerfil" role="status"></p>`;
     if (config.emailConfirmationEnabled === false) {
@@ -189,12 +200,12 @@
     let revisionFeed = 0;
     let desplazamiento = 0;
     const porPagina = 20;
-    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,post_type,image_path,film_wikidata_id,film_tmdb_id,film_title,film_director,film_year,film_poster,film_rating,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
+    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,post_type,image_path,link_url,film_wikidata_id,film_tmdb_id,film_title,film_director,film_year,film_poster,film_rating,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
     const destinoCorreo = location.origin + location.pathname;
     const estadoPerfil = document.getElementById("estadoPerfil");
 
     function actualizarVisibilidadCuenta(){
-        const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoAmigos&&!viendoActividad&&!viendoGuardados&&!viendoListas&&!viendoBlackjack;
+        const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoAmigos&&!viendoActividad&&!viendoGuardados&&!viendoListas&&!viendoEventos&&!viendoVideos&&!viendoJuegos&&!viendoMusica&&!viendoBlackjack;
         const recuperacion=Boolean(usuario&&recuperando&&inicio);
         cuenta.hidden=!(inicio&&(!usuario||recuperacion));
         const sesion=document.getElementById('sesionPerfil');
@@ -245,10 +256,15 @@
         document.getElementById('actividadNav').hidden = !usuario;
         document.getElementById('guardadosNav').hidden = !usuario;
         document.getElementById('listasNav').hidden = !usuario;
+        document.getElementById('eventosNav').hidden = !usuario;
+        document.getElementById('musicaNav').hidden = !usuario;
+        document.getElementById('videosNav').hidden = !usuario;
+        document.getElementById('juegosNav').hidden = !usuario;
         document.getElementById('memesNav').hidden = sesionLista&&!usuario;
         document.getElementById('peliculasNav').hidden = sesionLista&&!usuario;
         document.getElementById('blackjackNav').hidden = sesionLista&&!usuario;
         document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack;
+        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || viendoMusica || viendoBlackjack;
         document.getElementById('dockAmigos').hidden = !usuario;
         document.getElementById('abrirDockAmigos').hidden = !usuario;
         actualizarVisibilidadCuenta();
@@ -260,6 +276,7 @@
         document.getElementById('miFoto').replaceChildren();
         if (perfil && usuario) { nombre.append(rangoPerfil(perfil.role)); document.getElementById('miFoto').append(fotoPerfil(usuario.id, perfil)); }
         document.getElementById('bioPerfil').value = perfil?.bio || '';
+        document.getElementById('estadoBreve').value = perfil?.status_text || '';
         document.getElementById('quitarFoto').disabled = !perfil?.avatar_updated_at;
         document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
         document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
@@ -291,6 +308,92 @@
             const list=resultado(response);input.value='';misListas.unshift(list);renderizarListas();status.textContent='Lista creada.';
         });
     });
+    async function perfilesAmigosActuales(){
+        const rows=resultado(await db.from('friendships').select('user_a,user_b').eq('status','accepted').or('user_a.eq.'+usuario.id+',user_b.eq.'+usuario.id).limit(100));
+        const ids=[...new Set(rows.map(row=>row.user_a===usuario.id?row.user_b:row.user_a))];
+        return ids.length?resultado(await db.from('profiles').select('id,username,role,avatar_updated_at').in('id',ids)):[];
+    }
+    function horaEvento(value){return new Date(value).toLocaleString('es',{dateStyle:'medium',timeStyle:'short'});}
+    async function cargarEventos(){
+        const invitationBox=document.getElementById('listaInvitaciones'),eventBox=document.getElementById('listaEventos');
+        document.getElementById('estadoEventos').textContent='Cargando eventos…';document.getElementById('estadoInvitaciones').textContent='';
+        try{
+            const [invitesResponse,eventsResponse]=await Promise.all([
+                db.from('event_invites').select('event_id,response,created_at,event:events!event_invites_event_id_fkey(id,host_id,title,venue,description,starts_at,host:profiles!events_host_id_fkey(username))').eq('invitee_id',usuario.id).eq('response','invited').order('created_at',{ascending:false}).limit(30),
+                db.from('events').select('id,host_id,title,venue,description,starts_at,created_at,host:profiles!events_host_id_fkey(username)').gt('starts_at',new Date().toISOString()).order('starts_at').limit(60)
+            ]);
+            const invites=resultado(invitesResponse),events=resultado(eventsResponse);invitationBox.replaceChildren();eventBox.replaceChildren();
+            for(const invite of invites){const ev=invite.event;if(!ev)continue;const card=document.createElement('article');card.className='tarjeta-evento';const heading=document.createElement('h4');heading.textContent=ev.title;const info=document.createElement('p');info.textContent=(ev.host?.username?'@'+ev.host.username+' te invita · ':'')+horaEvento(ev.starts_at)+(ev.venue?' · '+ev.venue:'');const description=document.createElement('p');description.textContent=ev.description||'';card.append(heading,info,description);
+                [['going','Voy'],['interested','Me interesa'],['declined','No podré ir']].forEach(([value,label])=>{const button=crearBoton(label);button.addEventListener('click',async()=>{button.disabled=true;try{resultado(await db.from('event_invites').update({response:value,responded_at:new Date().toISOString()}).eq('event_id',ev.id).eq('invitee_id',usuario.id));await cargarEventos();}catch{document.getElementById('estadoInvitaciones').textContent='No se pudo responder a la invitación.';}finally{button.disabled=false;}});card.append(button);});invitationBox.append(card);
+            }
+            if(!invites.length){const empty=document.createElement('p');empty.textContent='No tienes invitaciones pendientes.';invitationBox.append(empty);}
+            if(!events.length){const empty=document.createElement('p');empty.textContent='Todavía no hay eventos próximos. Crea el primero e invita a tus amigos.';eventBox.append(empty);}
+            const eventIds=events.map(ev=>ev.id), responses=eventIds.length?resultado(await db.from('event_invites').select('event_id,invitee_id,response').in('event_id',eventIds)):[];
+            let friends=[];try{friends=await perfilesAmigosActuales();}catch{}
+            events.forEach(ev=>{
+                const card=document.createElement('article');card.className='tarjeta-evento';const heading=document.createElement('h4');heading.textContent=ev.title;const info=document.createElement('p');info.textContent=(ev.host?.username?'Organiza @'+ev.host.username+' · ':'')+horaEvento(ev.starts_at)+(ev.venue?' · '+ev.venue:'');const description=document.createElement('p');description.textContent=ev.description||'';card.append(heading,info,description);
+                const attending=responses.filter(r=>r.event_id===ev.id&&r.response==='going').length;if(ev.host_id===usuario.id||responses.some(r=>r.event_id===ev.id&&r.invitee_id===usuario.id)){const tally=document.createElement('p');tally.textContent=attending+' confirmaron asistencia';card.append(tally);}
+                const mine=responses.find(r=>r.event_id===ev.id&&r.invitee_id===usuario.id);
+                if(mine){const status=document.createElement('p');status.className='estado-respuesta-evento';status.textContent=({going:'Asistirás',interested:'Te interesa',declined:'Indicaste que no asistirás',invited:'Tienes una invitación pendiente'})[mine.response];card.append(status);if(mine.response==='invited')[['going','interested','declined']].forEach(([value,label])=>{const b=crearBoton(({going:'Voy',interested:'Me interesa',declined:'No podré ir'})[value]);b.addEventListener('click',async()=>{b.disabled=true;try{resultado(await db.from('event_invites').update({response:value,responded_at:new Date().toISOString()}).eq('event_id',ev.id).eq('invitee_id',usuario.id));await cargarEventos();}catch{document.getElementById('estadoEventos').textContent='No se pudo guardar tu respuesta.';}finally{b.disabled=false;}});card.append(b);});}
+                if(ev.host_id===usuario.id){
+                    const form=document.createElement('form');form.className='invitar-amigos-evento';const label=document.createElement('label'),select=document.createElement('select');label.textContent='Invitar amigos';select.multiple=true;select.size=Math.min(4,Math.max(2,friends.length));friends.forEach(friend=>{const option=document.createElement('option');option.value=friend.id;option.textContent='@'+friend.username;select.append(option);});const button=crearBoton('Enviar invitación');button.type='submit';button.disabled=!friends.length;const status=document.createElement('p');status.setAttribute('role','status');form.append(label,select,button,status);form.addEventListener('submit',async e=>{e.preventDefault();const selected=[...select.selectedOptions].map(option=>option.value);if(!selected.length){status.textContent='Elige uno o más amigos.';return;}if(selected.length>6){status.textContent='Puedes invitar hasta seis amigos de una vez.';return;}button.disabled=true;try{let sent=0;for(const friendId of selected){const result=await db.from('event_invites').insert({event_id:ev.id,invitee_id:friendId});if(result.error?.code==='23505')continue;if(result.error)throw result.error;sent++;}status.textContent=sent?'Invitaciones enviadas ('+sent+').':'Esas personas ya estaban invitadas.';select.selectedIndex=-1;}catch{status.textContent='No se pudieron enviar las invitaciones.';}finally{button.disabled=false;}});card.append(form);
+                    const remove=crearBoton('Cancelar evento');remove.className='boton-secundario';remove.addEventListener('click',async()=>{if(!window.confirm('¿Cancelar este evento?'))return;remove.disabled=true;try{resultado(await db.from('events').delete().eq('id',ev.id).eq('host_id',usuario.id));await cargarEventos();}catch{document.getElementById('estadoEventos').textContent='No se pudo cancelar el evento.';}finally{remove.disabled=false;}});card.append(remove);
+                }
+                eventBox.append(card);
+            });
+            document.getElementById('estadoEventos').textContent='';document.getElementById('estadoInvitaciones').textContent='';
+        }catch{document.getElementById('estadoEventos').textContent='No se pudieron cargar los eventos. Actualiza la página e inténtalo de nuevo.';}
+    }
+    document.getElementById('formularioEvento').addEventListener('submit',event=>{
+        event.preventDefault();if(!exigirCuenta())return;const form=event.currentTarget,button=form.querySelector('button'),status=document.getElementById('estadoEventos');
+        const startsAt=new Date(document.getElementById('fechaEvento').value);
+        if(Number.isNaN(startsAt.valueOf())||startsAt<=new Date()){status.textContent='Elige una fecha y hora futuras.';return;}
+        accion(button,status,async()=>{resultado(await db.from('events').insert({title:document.getElementById('nombreEvento').value.trim(),venue:document.getElementById('lugarEvento').value.trim(),description:document.getElementById('descripcionEvento').value.trim(),starts_at:startsAt.toISOString()}));form.reset();status.textContent='Evento creado. Ya puedes invitar amigos.';await cargarEventos();});
+    });
+    const listaVideos=document.getElementById('listaVideos'),estadoVideos=document.getElementById('estadoVideos');
+    async function cargarVideos(){
+        if(!usuario)return;estadoVideos.textContent='Buscando entre los artistas y álbumes compartidos…';listaVideos.replaceChildren();
+        try{
+            let albumes=resultado(await db.from('posts').select('album_artist,album_title').eq('user_id',usuario.id).eq('post_type','album').order('created_at',{ascending:false}).limit(30));
+            if(!albumes.length)albumes=resultado(await db.from('posts').select('album_artist,album_title').eq('post_type','album').order('created_at',{ascending:false}).limit(30));
+            const artistas=[...new Set(albumes.map(row=>row.album_artist?.trim()).filter(Boolean))].slice(0,3);
+            if(!artistas.length){estadoVideos.textContent='Comparte o reseña algunos álbumes para recibir recomendaciones de video.';return;}
+            const results=await Promise.all(artistas.map(async artist=>{
+                const {data,error}=await db.functions.invoke('radio',{body:{action:'search',query:artist+' official music video'}});
+                if(error)throw error;return data?.songs||[];
+            }));
+            const shown=new Set();
+            results.flat().forEach(video=>{
+                if(!video?.video_id||shown.has(video.video_id))return;shown.add(video.video_id);
+                const card=document.createElement('article');card.className='tarjeta-video';
+                const link=document.createElement('a');link.href='https://www.youtube.com/watch?v='+encodeURIComponent(video.video_id);link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','Ver en YouTube: '+video.title);
+                const image=document.createElement('img');image.src=video.thumbnail||'https://i.ytimg.com/vi/'+encodeURIComponent(video.video_id)+'/hqdefault.jpg';image.alt='';image.loading='lazy';image.decoding='async';link.append(image);
+                const title=document.createElement('h3');title.textContent=video.title;const channel=document.createElement('p');channel.textContent=video.channel||'YouTube';const watch=document.createElement('span');watch.textContent='Ver en YouTube ↗';link.append(title,channel,watch);card.append(link);listaVideos.append(card);
+            });
+            estadoVideos.textContent=shown.size?'Recomendaciones según los artistas presentes en tus álbumes. YouTube abre en una pestaña nueva.':'No encontramos videos disponibles para esos artistas. Prueba de nuevo más tarde.';
+        }catch(error){estadoVideos.textContent=error?.message||'No se pudieron obtener recomendaciones de YouTube. Inténtalo de nuevo más tarde.';}
+    }
+    document.getElementById('actualizarVideos').addEventListener('click',cargarVideos);
+    async function cargarJuegos(){
+        const box=document.getElementById('listaJuegos'),status=document.getElementById('estadoJuegos');status.textContent='Cargando recomendaciones…';box.replaceChildren();
+        try{
+            const rows=resultado(await db.from('game_recommendations').select('id,user_id,title,platform,genre,reason,created_at,profiles:profiles!game_recommendations_user_id_fkey(username,role),game_recommendation_votes(count)').order('created_at',{ascending:false}).limit(60));
+            const voted=usuario&&rows.length?resultado(await db.from('game_recommendation_votes').select('recommendation_id').eq('user_id',usuario.id).in('recommendation_id',rows.map(row=>row.id))):[];
+            const voteIds=new Set(voted.map(row=>row.recommendation_id));
+            rows.forEach(game=>{
+                const card=document.createElement('article');card.className='tarjeta-recomendacion-juego';const author=document.createElement('p');author.className='autor-publicacion';author.append(enlaceUsuario(game.user_id,game.profiles?.username||'Usuario'));if(game.profiles?.role)author.append(document.createTextNode(' '),rangoPerfil(game.profiles.role));
+                const title=document.createElement('h3');title.textContent=game.title;const platform=document.createElement('p');platform.className='plataforma-juego';platform.textContent=game.platform+(game.genre?' · '+game.genre:'');const reason=document.createElement('p');reason.textContent=game.reason;const time=document.createElement('time');time.dateTime=game.created_at;time.textContent=new Date(game.created_at).toLocaleDateString('es',{dateStyle:'medium'});card.append(author,title,platform,reason,time);
+                const vote=crearBoton((voteIds.has(game.id)?'♥':'♡')+' Recomendar ('+(game.game_recommendation_votes?.[0]?.count||0)+')');vote.className='votar-juego';vote.setAttribute('aria-pressed',String(voteIds.has(game.id)));vote.addEventListener('click',async()=>{if(!exigirCuenta())return;vote.disabled=true;try{if(voteIds.has(game.id)){resultado(await db.from('game_recommendation_votes').delete().eq('recommendation_id',game.id).eq('user_id',usuario.id));voteIds.delete(game.id);}else{resultado(await db.from('game_recommendation_votes').insert({recommendation_id:game.id}));voteIds.add(game.id);}await cargarJuegos();}catch{status.textContent='No se pudo guardar el voto. Inténtalo de nuevo.';}finally{vote.disabled=false;}});card.append(vote);
+                if(usuario?.id===game.user_id){const remove=crearBoton('Eliminar recomendación');remove.className='boton-secundario';remove.addEventListener('click',async()=>{remove.disabled=true;try{resultado(await db.from('game_recommendations').delete().eq('id',game.id).eq('user_id',usuario.id));await cargarJuegos();}catch{status.textContent='No se pudo eliminar la recomendación.';}finally{remove.disabled=false;}});card.append(remove);}
+                box.append(card);
+            });
+            status.textContent=rows.length?'':'Todavía no hay recomendaciones. Publica la primera.';
+        }catch{status.textContent='No se pudieron cargar las recomendaciones de juegos.';}
+    }
+    document.getElementById('formularioJuego').addEventListener('submit',event=>{
+        event.preventDefault();if(!exigirCuenta())return;const form=event.currentTarget,button=form.querySelector('button'),status=document.getElementById('estadoJuegos');
+        accion(button,status,async()=>{resultado(await db.from('game_recommendations').insert({title:document.getElementById('nombreJuego').value.trim(),platform:document.getElementById('plataformaJuego').value.trim(),genre:document.getElementById('generoJuego').value.trim(),reason:document.getElementById('motivoJuego').value.trim()}));form.reset();status.textContent='Recomendación publicada.';await cargarJuegos();});
+    });
     async function sincronizarSesion(session, evento) {
         if (session && usuario && session.user.id === usuario.id && perfil && evento !== "PASSWORD_RECOVERY") return;
         const revision = ++revisionSesion;
@@ -303,7 +406,7 @@
         if(usuario)iniciarPresencia();else detenerPresencia();
         try {
             if (usuario) {
-                const datos = resultado(await db.from("profiles").select("username,role,bio,avatar_updated_at").eq("id", usuario.id).single());
+                const datos = resultado(await db.from("profiles").select("username,role,bio,status_text,avatar_updated_at").eq("id", usuario.id).single());
                 if (revision !== revisionSesion) return;
                 perfil = datos;
             }
@@ -463,7 +566,7 @@
         const botones = [...document.querySelectorAll('#editarPerfil button')]; botones.forEach(b => b.disabled = true);
         try {
             const cambios = await tarea(id);
-            const filas = resultado(await db.from('profiles').update(cambios).eq('id', id).select('username,role,bio,avatar_updated_at'));
+            const filas = resultado(await db.from('profiles').update(cambios).eq('id', id).select('username,role,bio,status_text,avatar_updated_at'));
             if (!filas.length) throw Error('No se pudo guardar el perfil.');
             if (revision !== revisionSesion) return;
             perfil = filas[0]; actualizarAcceso(); await cargarFeed(true);
@@ -471,18 +574,20 @@
         } catch(e) { if(revision === revisionSesion) estadoEdicion.textContent = e.message || 'No se pudo guardar. Inténtalo otra vez.'; }
         finally { guardandoPerfil = false; botones.forEach(b => b.disabled = false); document.getElementById('quitarFoto').disabled = !perfil?.avatar_updated_at; }
     }
-    async function prepararFoto(file) {
+    async function prepararFoto(file, maxDimension = 512) {
         if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type)) throw Error('Elige una imagen JPG, PNG o WebP.');
         if (file.size > 10*1024*1024) throw Error('La imagen no puede superar 10 MB.');
         const url = URL.createObjectURL(file);
         try {
             const img = new Image(); img.src = url; await img.decode();
             if (!img.naturalWidth || !img.naturalHeight || img.naturalWidth * img.naturalHeight > 50000000) throw Error('La imagen es demasiado grande. Elige una más pequeña.');
-            const canvas = document.createElement('canvas'); canvas.width = canvas.height = 512;
-            const ctx = canvas.getContext('2d'); const side = Math.min(img.naturalWidth,img.naturalHeight);
-            ctx.fillStyle = '#eeeeee'; ctx.fillRect(0,0,512,512);
-            ctx.drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,512,512);
-            const blob = await new Promise(resolve => canvas.toBlob(resolve,'image/jpeg',0.88));
+            const scale = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
+            const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.naturalWidth * scale)); canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#eeeeee'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.drawImage(img,0,0,canvas.width,canvas.height);
+            let quality=0.84, blob;
+            do { blob = await new Promise(resolve => canvas.toBlob(resolve,'image/jpeg',quality)); quality -= 0.12; } while(blob && blob.size > 900000 && quality > 0.48);
             if (!blob || blob.size>1048576) throw Error('No se pudo preparar la foto. Elige otra imagen.');
             return blob;
         } finally { URL.revokeObjectURL(url); }
@@ -491,7 +596,56 @@
         e.preventDefault(); const file = document.getElementById('archivoFoto').files[0];
         editarDatos(async id=>{ const blob = await prepararFoto(file); resultado(await db.storage.from('avatars').upload(id+'/avatar.jpg',blob,{upsert:true,contentType:'image/jpeg',cacheControl:'60'})); document.getElementById('archivoFoto').value=''; return {avatar_updated_at:new Date().toISOString()}; });
     });
+    async function prepararFotoAlbum(file) { return prepararFoto(file, 1440); }
+    function pintarAlbumesPerfil(rows, ownProfile) {
+        const target=document.getElementById('albumesPerfil');target.replaceChildren();
+        const groups=new Map();
+        rows.forEach(photo=>{if(!groups.has(photo.album_id))groups.set(photo.album_id,{name:photo.album?.name||'Fotos',photos:[]});groups.get(photo.album_id).photos.push(photo);});
+        groups.forEach(group=>{
+            const section=document.createElement('section');section.className='album-fotos-perfil';
+            const heading=document.createElement('h4');heading.textContent=group.name;section.append(heading);
+            const grid=document.createElement('div');grid.className='galeria-perfil';
+            group.photos.forEach(photo=>{
+                const figure=document.createElement('figure'),image=document.createElement('img');image.src=config.supabaseUrl+'/storage/v1/object/public/profile-photos/'+photo.object_path.split('/').map(encodeURIComponent).join('/')+'?v='+encodeURIComponent(photo.created_at);image.alt=photo.caption||group.name;image.loading='lazy';image.decoding='async';
+                figure.append(image);
+                if(photo.caption){const caption=document.createElement('figcaption');caption.textContent=photo.caption;figure.append(caption);}
+                if(ownProfile){const remove=crearBoton('Quitar foto');remove.className='quitar-foto-perfil';remove.addEventListener('click',async()=>{remove.disabled=true;try{resultado(await db.from('profile_photos').delete().eq('id',photo.id).eq('user_id',usuario.id));resultado(await db.storage.from('profile-photos').remove([photo.object_path]));await cargarFotosPerfil(perfilSolicitado||usuario.id,ownProfile);}catch{document.getElementById('estadoMediosPerfil').textContent='No se pudo eliminar la foto.';}finally{remove.disabled=false;}});figure.append(remove);}
+                grid.append(figure);
+            });
+            section.append(grid);target.append(section);
+        });
+        if(!rows.length){const empty=document.createElement('p');empty.textContent=ownProfile?'Todavía no tienes fotos. Añade conciertos y discos desde Editar mi perfil.':'Todavía no hay fotos en este perfil.';target.append(empty);}
+    }
+    async function cargarFotosPerfil(profileId, ownProfile=false) {
+        const status=document.getElementById('estadoMediosPerfil');status.textContent='';
+        try {
+            const rows=resultado(await db.from('profile_photos').select('id,album_id,user_id,object_path,caption,created_at,album:profile_photo_albums!profile_photos_album_id_user_id_fkey(name)').eq('user_id',profileId).order('created_at',{ascending:false}).limit(20));
+            pintarAlbumesPerfil(rows,ownProfile);
+        } catch { status.textContent='No se pudieron cargar las fotos. Inténtalo de nuevo.'; }
+    }
+    document.getElementById('formularioAlbumFotos').addEventListener('submit',event=>{
+        event.preventDefault();if(!exigirCuenta())return;
+        const form=event.currentTarget,button=form.querySelector('button'),status=document.getElementById('estadoEdicionPerfil'),albumName=document.getElementById('nombreAlbumFotos').value.trim(),caption=document.getElementById('descripcionFotos').value.trim(),files=[...document.getElementById('fotosPerfil').files];
+        if(!albumName||!files.length)return;
+        if(files.length>5){status.textContent='Sube hasta cinco fotos por vez.';return;}
+        accion(button,status,async()=>{
+            const countResponse=await db.from('profile_photos').select('id',{count:'exact',head:true}).eq('user_id',usuario.id);
+            if(countResponse.error)throw countResponse.error;
+            if((countResponse.count||0)+files.length>20)throw Error('Cada perfil puede guardar hasta 20 fotos.');
+            let album=resultado(await db.from('profile_photo_albums').select('id').eq('user_id',usuario.id).eq('name',albumName).maybeSingle());
+            if(!album)album=resultado(await db.from('profile_photo_albums').insert({name:albumName}).select('id').single());
+            for(const file of files){
+                const blob=await prepararFotoAlbum(file),path=usuario.id+'/'+crypto.randomUUID()+'.jpg';
+                resultado(await db.storage.from('profile-photos').upload(path,blob,{contentType:'image/jpeg',cacheControl:'3600'}));
+                try{resultado(await db.from('profile_photos').insert({album_id:album.id,object_path:path,caption}).select('id').single());}
+                catch(error){await db.storage.from('profile-photos').remove([path]);throw error;}
+            }
+            document.getElementById('fotosPerfil').value='';document.getElementById('descripcionFotos').value='';
+            status.textContent='Fotos añadidas al álbum.';await cargarFotosPerfil(usuario.id,true);
+        });
+    });
     document.getElementById('formularioBio').addEventListener('submit',e=>{e.preventDefault(); const bio=document.getElementById('bioPerfil').value.trim(); editarDatos(async()=>({bio}));});
+    document.getElementById('formularioEstadoBreve').addEventListener('submit',e=>{e.preventDefault(); const status=document.getElementById('estadoBreve').value.trim(); editarDatos(async()=>({status_text:status}));});
     document.getElementById('quitarFoto').addEventListener('click',()=>editarDatos(async id=>{resultado(await db.storage.from('avatars').remove([id+'/avatar.jpg'])); return {avatar_updated_at:null};}));
 
 
@@ -802,6 +956,21 @@
     setInterval(()=>{if(usuario&&!document.hidden)actualizarConteoSolicitudesAmistad();},120000);
 
     async function cargarFeed(reiniciar) {
+        if(viendoVideos){
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','cuenta','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
+            if(usuario)await cargarVideos();else document.getElementById('estadoVideos').textContent='Inicia sesión para ver recomendaciones.';
+            return;
+        }
+        if(viendoJuegos){
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','cuenta','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
+            if(usuario)await cargarJuegos();else document.getElementById('estadoJuegos').textContent='Inicia sesión para ver y publicar recomendaciones.';
+            return;
+        }
+        if(viendoEventos){
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','cuenta','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
+            if(usuario)await cargarEventos();else document.getElementById('estadoEventos').textContent='Inicia sesión para ver eventos e invitaciones.';
+            return;
+        }
         if(viendoBlackjack){
             ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','cuenta','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
             return;
@@ -824,12 +993,14 @@
         const inicio = reiniciar ? 0 : desplazamiento;
         try {
             if (viendoPerfil) {
-                const publico = idPerfilValido ? resultado(await db.from("profiles").select("username,created_at,role,bio,avatar_updated_at").eq("id", perfilSolicitado).maybeSingle()) : null;
+                const publico = idPerfilValido ? resultado(await db.from("profiles").select("username,created_at,role,bio,status_text,avatar_updated_at").eq("id", perfilSolicitado).maybeSingle()) : null;
                 if (revision !== revisionFeed) return;
                 if (!publico) {
                     document.getElementById('fotoPerfilPublico').replaceChildren();
                     document.getElementById('rangoPerfilPublico').replaceChildren();
                     document.getElementById('bioPerfilPublico').textContent = '';
+                    document.getElementById('estadoBrevePublico').hidden=true;
+                    document.getElementById('albumesPerfil').replaceChildren();
                     objetivoSeguir=null;document.getElementById("seguirPerfil").hidden=true;document.getElementById("conteoSeguidores").textContent="";
                     document.getElementById('presenciaPerfil').dataset.userId='';document.getElementById('amistadPerfil').hidden=true;document.getElementById('rechazarAmistad').hidden=true;
                     document.getElementById("tituloPerfilPublico").textContent = "Perfil no encontrado";
@@ -845,6 +1016,8 @@
                 document.getElementById('fotoPerfilPublico').replaceChildren(fotoPerfil(perfilSolicitado, publico));
                 document.getElementById('rangoPerfilPublico').replaceChildren(rangoPerfil(publico.role));
                 document.getElementById('bioPerfilPublico').textContent = publico.bio || 'Todavía no hay una presentación.';
+                const statusNode=document.getElementById('estadoBrevePublico');statusNode.textContent=publico.status_text||'';statusNode.hidden=!publico.status_text;
+                await cargarFotosPerfil(perfilSolicitado,Boolean(usuario&&usuario.id===perfilSolicitado));
                 document.title = "@" + publico.username + " · RedMusica";
                 document.getElementById('presenciaPerfil').dataset.userId=perfilSolicitado;actualizarIndicadoresPresencia();
                 objetivoSeguir=perfilSolicitado;const followButton=document.getElementById('seguirPerfil');
@@ -887,7 +1060,7 @@
                 let consulta=db.from('posts').select(seleccionPosts,viendoPerfil?{count:'exact'}:{});
                 if(viendoPerfil)consulta=consulta.eq('user_id',perfilSolicitado);
                 else if(friendAuthors)consulta=consulta.in('user_id',friendAuthors);
-                else consulta=consulta.eq('post_type',viendoMemes?'meme':viendoPeliculas?'film':'album');
+                else consulta=consulta.eq('post_type',viendoMemes?'meme':viendoPeliculas?'film':viendoMusica?'album':'status');
                 respuesta=await consulta.order('created_at',{ascending:false}).order('id',{ascending:false}).range(inicio,inicio+porPagina-1);datos=resultado(respuesta);rowsEnFuente=datos.length;
             }
             let propios=[],guardados=[];
@@ -926,19 +1099,31 @@
         viendoGuardados = !viendoPerfil && params.get('seccion') === 'guardados';
         viendoBlackjack = !viendoPerfil && params.get('seccion') === 'blackjack';
         viendoListas = !viendoPerfil && params.get('seccion') === 'listas';
+        viendoEventos = !viendoPerfil && params.get('seccion') === 'eventos';
+        viendoVideos = !viendoPerfil && params.get('seccion') === 'videos';
+        viendoJuegos = !viendoPerfil && params.get('seccion') === 'juegos';
+        viendoMusica = !viendoPerfil && params.get('seccion') === 'musica';
         listaActualId=params.get('lista');
         idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || '');
         document.getElementById('perfilPublico').hidden = !viendoPerfil;
-        document.getElementById('crearPublicacion').hidden = viendoPerfil || viendoMemes || viendoPeliculas || viendoBlackjack;
+        document.getElementById('crearPublicacion').hidden = !viendoMusica;
+        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || viendoMusica || viendoBlackjack;
         document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
         document.getElementById('seccionPeliculas').hidden = !viendoPeliculas;
         document.getElementById('seccionListas').hidden = !viendoListas;
+        document.getElementById('seccionVideos').hidden = !viendoVideos;
+        document.getElementById('seccionJuegos').hidden = !viendoJuegos;
+        document.getElementById('seccionEventos').hidden = !viendoEventos;
         document.getElementById('seccionBlackjack').hidden = !viendoBlackjack;
         document.getElementById('seccionAmigos').hidden = !viendoAmigos;
         document.getElementById('amigosNav').setAttribute('aria-current',viendoAmigos?'page':'false');
         document.getElementById('actividadNav').setAttribute('aria-current',viendoActividad?'page':'false');
         document.getElementById('guardadosNav').setAttribute('aria-current',viendoGuardados?'page':'false');
         document.getElementById('listasNav').setAttribute('aria-current',viendoListas?'page':'false');
+        document.getElementById('eventosNav').setAttribute('aria-current',viendoEventos?'page':'false');
+        document.getElementById('videosNav').setAttribute('aria-current',viendoVideos?'page':'false');
+        document.getElementById('juegosNav').setAttribute('aria-current',viendoJuegos?'page':'false');
+        document.getElementById('musicaNav').setAttribute('aria-current',viendoMusica?'page':'false');
         document.getElementById('blackjackNav').setAttribute('aria-current',viendoBlackjack?'page':'false');
         actualizarVisibilidadCuenta();
         document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack;
@@ -946,10 +1131,10 @@
         document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
         document.getElementById('memesNav').setAttribute('aria-current', viendoMemes ? 'page' : 'false');
         document.getElementById('peliculasNav').setAttribute('aria-current', viendoPeliculas ? 'page' : 'false');
-        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoAmigos && !viendoActividad && !viendoGuardados && !viendoListas && !viendoBlackjack ? 'page' : 'false');
-        document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : viendoActividad ? 'Actividad de tus amigos' : viendoGuardados ? 'Guardados' : viendoListas ? 'Mis listas' : 'Publicaciones';
-        document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : viendoActividad ? 'Agrega amigos para ver sus publicaciones aquí.' : viendoGuardados ? 'Todavía no guardas publicaciones.' : viendoListas ? 'Esta lista todavía no tiene publicaciones.' : 'Todavía no hay publicaciones. Comparte el primer álbum.';
-        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : viendoActividad ? 'Actividad de amigos · RedMusica' : viendoGuardados ? 'Guardados · RedMusica' : viendoListas ? 'Mis listas · RedMusica' : viendoBlackjack ? 'Blackjack · RedMusica' : 'RedMusica';
+        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoAmigos && !viendoActividad && !viendoGuardados && !viendoListas && !viendoEventos && !viendoVideos && !viendoJuegos && !viendoMusica && !viendoBlackjack ? 'page' : 'false');
+        document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : viendoMusica ? 'Publicaciones de música' : viendoActividad ? 'Actividad de tus amigos' : viendoGuardados ? 'Guardados' : viendoListas ? 'Mis listas' : 'Publicaciones del muro';
+        document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : viendoMusica ? 'Todavía no hay álbumes reseñados. ¡Comparte el primero!' : viendoActividad ? 'Agrega amigos para ver sus publicaciones aquí.' : viendoGuardados ? 'Todavía no guardas publicaciones.' : viendoListas ? 'Esta lista todavía no tiene publicaciones.' : 'Todavía no hay publicaciones. Comparte algo en el muro.';
+        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : viendoActividad ? 'Actividad de amigos · RedMusica' : viendoGuardados ? 'Guardados · RedMusica' : viendoListas ? 'Mis listas · RedMusica' : viendoBlackjack ? 'Blackjack · RedMusica' : viendoEventos ? 'Eventos · RedMusica' : viendoVideos ? 'Videos · RedMusica' : viendoJuegos ? 'Juegos · RedMusica' : viendoMusica ? 'Música · RedMusica' : 'RedMusica';
         if (!viendoPerfil) {
             document.getElementById('fotoPerfilPublico').replaceChildren();
             document.getElementById('rangoPerfilPublico').replaceChildren();
@@ -985,8 +1170,10 @@
         const autor = document.createElement("p");
         autor.className = "autor-publicacion";
         autor.append(fotoPerfil(post.user_id, post.profiles), enlaceUsuario(post.user_id, post.profiles.username), rangoPerfil(post.profiles.role));
+        const fecha=document.createElement('time');fecha.className='fecha-publicacion';fecha.dateTime=post.created_at;fecha.textContent=post.created_at?new Date(post.created_at).toLocaleString('es-CL',{dateStyle:'medium',timeStyle:'short'}):'';autor.append(fecha);
         const esMeme = post.post_type === 'meme';
         const esPelicula = post.post_type === 'film';
+        const esEstado = post.post_type === 'status';
         let portada = document.createElement("img");
         portada.loading = "lazy";
         portada.width = esPelicula ? 300 : 250;
@@ -999,11 +1186,12 @@
             const posterUrl=imagenAfiche(post.film_poster,600);
             if(posterUrl){portada.src=posterUrl;activarRespaldoAfiche(portada,{title:post.film_title,year:post.film_year,poster:post.film_poster,tmdb_id:post.film_tmdb_id},600);}
             else {portada=crearAficheAlternativo(post.film_title,post.film_year);recuperarAfichePublicacion(portada,{title:post.film_title,year:post.film_year,tmdb_id:post.film_tmdb_id},600);}
-        } else asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
+        } else if (!esEstado) asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
+        else if (post.image_path) { portada.className='imagen-muro';portada.alt='Imagen compartida por @'+post.profiles.username;portada.src=config.supabaseUrl+'/storage/v1/object/public/post-images/'+post.image_path.split('/').map(encodeURIComponent).join('/'); }
         const titulo = document.createElement("h3");
-        titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : esPelicula ? post.film_title : post.album_title;
+        titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : esPelicula ? post.film_title : esEstado ? 'Publicación' : post.album_title;
         const artista = document.createElement("p");
-        artista.hidden=esMeme; artista.textContent = esPelicula ? [post.film_director,post.film_year].filter(Boolean).join(' · ') : post.album_artist || '';
+        artista.hidden=esMeme||esEstado; artista.textContent = esPelicula ? [post.film_director,post.film_year].filter(Boolean).join(' · ') : post.album_artist || '';
         const puntuacion=document.createElement('p');
         puntuacion.className='nota-pelicula';puntuacion.hidden=!esPelicula;
         puntuacion.textContent=esPelicula?'★'.repeat(Math.floor(post.film_rating))+(post.film_rating%1?'½':'')+' · '+Number(post.film_rating).toLocaleString('es-CL',{minimumFractionDigits:post.film_rating%1?1:0,maximumFractionDigits:1})+'/5':'';
@@ -1194,9 +1382,33 @@
         }
         articulo.classList.toggle('publicacion-pelicula',esPelicula);
         if(esPelicula){const source=document.createElement('a');source.href=post.film_tmdb_id?'https://www.themoviedb.org/movie/'+encodeURIComponent(post.film_tmdb_id):'https://www.wikidata.org/wiki/'+encodeURIComponent(post.film_wikidata_id||'');source.target='_blank';source.rel='noopener';source.textContent=post.film_tmdb_id?'Ficha en TMDb':'Ficha en Wikidata';source.className='fuente-pelicula';articulo.prepend(autor,portada,titulo,artista,puntuacion,source,texto,acciones,mensaje,zona);}
+        else if(esEstado){
+            const elements=[autor,titulo];if(post.image_path)elements.push(portada);if(post.body.trim())elements.push(texto);
+            if(post.link_url){try{const url=new URL(post.link_url);if(url.protocol==='https:'){const link=document.createElement('a');link.className='enlace-muro';link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent=url.hostname+url.pathname;elements.push(link);}}catch{}}
+            elements.push(acciones,mensaje,zona);articulo.classList.add('publicacion-muro');articulo.prepend(...elements);
+        }
         else articulo.prepend(autor, portada, titulo, artista, texto, acciones, mensaje, zona);
         return articulo;
     }
+
+    document.getElementById('formularioMuro').addEventListener('submit',event=>{
+        event.preventDefault();if(!exigirCuenta())return;
+        const form=event.currentTarget,button=document.getElementById('publicarMuro'),status=document.getElementById('estadoMuro');
+        const body=document.getElementById('textoMuro').value.trim(),rawUrl=document.getElementById('enlaceMuro').value.trim(),file=document.getElementById('imagenMuro').files[0];
+        let linkUrl=null;
+        if(rawUrl){try{const url=new URL(rawUrl);if(url.protocol!=='https:')throw Error();linkUrl=url.href;}catch{status.textContent='Usa un enlace seguro que empiece por https://.';return;}}
+        if(!body&&!linkUrl&&!file){status.textContent='Escribe algo o añade un enlace o una foto.';return;}
+        accion(button,status,async()=>{
+            let path=null;
+            if(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Elige una foto JPG, PNG o WebP.');if(file.size>10*1024*1024)throw Error('La foto no puede superar 10 MB.');
+                const blob=await prepararImagenMeme(file);path=usuario.id+'/'+crypto.randomUUID()+'.jpg';
+                resultado(await db.storage.from('post-images').upload(path,blob,{upsert:false,contentType:'image/jpeg',cacheControl:'31536000'}));
+            }
+            try{resultado(await db.from('posts').insert({post_type:'status',body,link_url:linkUrl,image_path:path}));}
+            catch(error){if(path)await db.storage.from('post-images').remove([path]);throw error;}
+            form.reset();status.textContent='Publicación compartida.';await cargarFeed(true);
+        });
+    });
 
     document.getElementById("botonPublicar").addEventListener("click", function (evento) {
         if (!exigirCuenta()) return;

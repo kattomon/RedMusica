@@ -297,6 +297,54 @@ input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border
 .tarjeta-amigo .estado-amistad { grid-column: 1 / -1; margin: 0 0 0 54px; }
 .tarjeta-amigo .acciones { grid-column: 1 / -1; }
 
+/* Perfil con secciones, álbumes personales y actividades comunitarias. */
+#perfilPublico .secciones-perfil { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; padding:10px 0; border-top:1px solid #ded8cf; border-bottom:1px solid #ded8cf; }
+.secciones-perfil a { padding:7px 10px; border-radius:4px; background:#f2eee8; color:#51463d; }
+.bloque-perfil { margin:18px 0; padding:14px; border:1px solid #e5dfd7; border-radius:5px; background:#fffdfa; }
+.bloque-perfil h3 { margin:0 0 10px; font-size:1.08rem; }
+.estado-breve-publico { width:fit-content; max-width:100%; margin:0 0 10px; padding:8px 12px; border-left:3px solid #9a755e; background:#f2eee8; color:#3e3832; font-weight:650; overflow-wrap:anywhere; }
+.albumes-perfil { display:grid; gap:14px; }
+.album-fotos-perfil { min-width:0; }
+.album-fotos-perfil h4 { margin:4px 0 9px; }
+.galeria-perfil { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr)); gap:10px; }
+.galeria-perfil figure { min-width:0; margin:0; overflow:hidden; border:1px solid #dfd8ce; border-radius:5px; background:white; }
+.galeria-perfil img { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; background:#eee9e2; }
+.galeria-perfil figcaption { padding:6px 8px; color:#514b44; font-size:.9rem; overflow-wrap:anywhere; }
+.quitar-foto-perfil { width:calc(100% - 12px); min-height:34px; margin:6px; padding:4px 8px; font-size:.83rem; }
+#formularioEstadoBreve, #formularioBio, #formularioAlbumFotos { display:grid; gap:8px; margin:14px 0; padding-top:12px; border-top:1px solid #e4ddd4; }
+#formularioAlbumFotos input[type=file] { max-width:100%; }
+#seccionEventos, #seccionVideos, #seccionJuegos { margin:16px 0; padding:18px; border:1px solid #d8d2c9; border-radius:4px; background:white; }
+#seccionEventos h2, #seccionVideos h2, #seccionJuegos h2 { margin-top:0; }
+.formulario-evento { display:grid; gap:8px; max-width:620px; margin:12px 0; }
+.formulario-evento input, .formulario-evento textarea { width:100%; }
+.lista-eventos { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr)); gap:12px; }
+.tarjeta-evento, .tarjeta-recomendacion-juego { min-width:0; padding:14px; border:1px solid #e0d9cf; border-radius:5px; background:#fffdfa; }
+.tarjeta-evento h4, .tarjeta-recomendacion-juego h3 { margin:0 0 8px; }
+.tarjeta-evento p, .tarjeta-recomendacion-juego p { overflow-wrap:anywhere; }
+.tarjeta-evento > button, .tarjeta-recomendacion-juego > button { margin:5px 6px 0 0; }
+.invitar-amigos-evento { display:grid; gap:7px; margin-top:12px; padding-top:10px; border-top:1px solid #e5dfd7; }
+.invitar-amigos-evento select { min-height:82px; padding:6px; }
+.estado-respuesta-evento, .plataforma-juego { color:#765b47; font-weight:650; }
+.rejilla-videos { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr)); gap:14px; margin:14px 0; }
+.tarjeta-video { min-width:0; overflow:hidden; border:1px solid #e0d9cf; border-radius:5px; background:#fffdfa; }
+.tarjeta-video a { display:block; height:100%; color:inherit; text-decoration:none; }
+.tarjeta-video img { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; background:#282522; }
+.tarjeta-video h3 { margin:9px 10px 4px; font-size:1rem; line-height:1.35; }
+.tarjeta-video p, .tarjeta-video span { display:block; margin:4px 10px 9px; color:#655e56; font-size:.9rem; }
+.tarjeta-video span { color:#765b47; font-weight:700; }
+.tarjeta-video a:hover { background:#f7f3ed; }
+.autor-publicacion { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.autor-publicacion .avatar { flex:0 0 38px; }
+.votar-juego[aria-pressed=true] { background:#ede0d3; border-color:#a47c5e; color:#513a2b; }
+@media(max-width:560px) {
+    #perfilPublico .secciones-perfil { gap:5px; }
+    .secciones-perfil a { flex:1 1 auto; text-align:center; font-size:.92rem; }
+    .bloque-perfil { padding:11px; }
+    .galeria-perfil { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    #seccionEventos, #seccionVideos, #seccionJuegos { padding:13px; }
+    .rejilla-videos { grid-template-columns:1fr; }
+}
+
 /* A warm, understated palette keeps the classic social layout distinct to RedMusica. */
 body { background: #f2f0ec; }
 h1, h2, h3 { color: #3e3934; }
@@ -328,10 +376,22 @@ hr { border: 0; border-top: 1px solid #d4cec5; margin: 22px 0; }
 .atribucion-catalogo h3 { margin-bottom: 6px; font-size: 15px; }
 .logo-tmdb { display: block; width: 72px; height: auto; margin: 8px 0; }
 .publicacion-pelicula .poster-pelicula { object-fit: cover; }
+#compositorMuro { margin: 18px 0 24px; padding: 16px; border: 1px solid #d8d2c9; border-radius: 4px; background: #fff; }
+#compositorMuro h2 { margin: 0 0 12px; font-size: 1.2rem; }
+#formularioMuro { display: grid; gap: 9px; }
+#formularioMuro textarea { width: 100%; min-height: 92px; resize: vertical; }
+#formularioMuro input[type=url], #formularioMuro input[type=file] { width: 100%; }
+#formularioMuro button { justify-self: start; min-width: 120px; }
+.publicacion-muro h3 { margin: 8px 0; font-size: 1rem; color: #766f66; }
+.publicacion-muro .opinion { white-space: pre-wrap; overflow-wrap: anywhere; }
+.imagen-muro { display: block; width: auto; max-width: min(100%,720px); max-height: 720px; height: auto; margin: 12px auto; object-fit: contain; }
+.enlace-muro { display: inline-block; max-width: 100%; margin: 2px 0 12px; overflow-wrap: anywhere; }
+#crearPublicacion { margin-bottom: 20px; }
 @media (max-width: 520px) {
     #navegacion { gap: 2px; padding: 5px; }
     #navegacion a { padding: 6px 7px; }
     #cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas, #seccionAmigos, #chatComunitario { padding: 13px; }
+    #compositorMuro { padding: 13px; }
 }
 
 #formularioAcceso, #formularioNuevaClave { max-width: 440px; }
@@ -345,6 +405,7 @@ article form textarea { display: block; width: 100%; min-height: 100px; margin-t
 #fotoPerfilPublico .avatar, #miFoto .avatar { width: 112px; height: 112px; font-size: 32px; }
 .rango-perfil { display: inline-block; font-size: 12px; font-weight: 600; border: 1px solid #bbb; padding: 2px 9px; border-radius: 12px; background: #f7f7f7; color: #444; vertical-align: middle; }
 .autor-publicacion { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.fecha-publicacion { color: #777067; font-size: .82rem; }
 #perfilPublico { border-top: 5px solid #555; }
 #perfilPublico h2 { margin: 10px 0; }
 #rangoPerfilPublico { margin-top: 12px; }

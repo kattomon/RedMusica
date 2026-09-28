@@ -1,0 +1,36 @@
+const {PGlite}=require(process.env.PGLITE_MODULE||'@electric-sql/pglite');
+const fs=require('node:fs'),assert=require('node:assert/strict');
+
+(async()=>{
+ const db=new PGlite();
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,raw_user_meta_data jsonb);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth,public to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated;create schema storage;create table storage.buckets(id text primary key,name text,public bool,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key default gen_random_uuid(),owner_id uuid,bucket_id text,name text);alter table storage.objects enable row level security;grant usage on schema storage to authenticated;grant all on storage.objects to authenticated;`);
+ for(const f of ['schema','radio','admin','profiles','social','community'])await db.exec(fs.readFileSync('supabase/'+f+'.sql','utf8').replace(/^\uFEFF/,''));
+ await db.exec(fs.readFileSync('supabase/migrations/20260928090000_profile_status_media_events.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/migrations/20260928093000_index_profile_photo_album_owner.sql','utf8'));
+ const a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222222222',c='33333333-3333-4333-8333-333333333333';
+ for(const [id,name] of [[a,'Ana'],[b,'Bob'],[c,'Cami']])await db.query('insert into auth.users values($1,$2)',[id,{username:name}]);
+ const asUser=async id=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');};
+ await asUser(a);
+ await db.query("update public.profiles set status_text='Escuchando Candelabro' where id=$1",[a]);assert.equal((await db.query('select status_text from public.profiles where id=$1',[a])).rows[0].status_text,'Escuchando Candelabro');
+ await assert.rejects(db.query('update public.profiles set status_text=$1 where id=$2',['x'.repeat(101),a]),'status length is limited');
+ const wallPost=(await db.query("insert into public.posts(post_type,body,link_url) values('status','Un hallazgo antiguo','https://example.com/archivo') returning id")).rows[0].id;
+ await db.query("insert into public.posts(post_type,body) values('status','Una idea desde mi muro')");
+ await assert.rejects(db.query("insert into public.posts(post_type,body,link_url) values('status','enlace inseguro','http://example.com')"),'status links must use HTTPS');
+ await assert.rejects(db.query("insert into public.posts(post_type,body) values('status','')"),'wall posts need content');
+ assert.equal((await db.query('select count(*)::int n from public.posts where id=$1 and post_type=\'status\'',[wallPost])).rows[0].n,1);
+ const album=(await db.query("insert into public.profile_photo_albums(name) values('Concierto') returning id")).rows[0].id;
+ const photoPath=a+'/44444444-4444-4444-8444-444444444444.jpg';await db.query("insert into storage.objects(bucket_id,name) values('profile-photos',$1)",[photoPath]);
+ await db.query('insert into public.profile_photos(album_id,object_path,caption) values($1,$2,$3)',[album,photoPath,'En vivo']);
+ await assert.rejects(db.query('insert into public.profile_photos(album_id,object_path) values($1,$2)',[album,b+'/55555555-5555-4555-8555-555555555555.jpg']),'cannot attach another owner photo');
+ const event=(await db.query("insert into public.events(title,venue,starts_at) values('Escucha colectiva','Santiago',now()+interval '2 days') returning id")).rows[0].id;
+ await db.exec('reset role');await db.query('insert into public.friendships(user_a,user_b,requested_by,status) values($1,$2,$1,\'accepted\')',[a,b]);await asUser(a);
+ await db.query('insert into public.event_invites(event_id,invitee_id) values($1,$2)',[event,b]);
+ await assert.rejects(db.query('insert into public.event_invites(event_id,invitee_id) values($1,$2)',[event,c]),'only friends may be invited');
+ await asUser(b);assert.equal((await db.query('select count(*)::int n from public.event_invites where invitee_id=$1',[b])).rows[0].n,1);
+ await db.query("update public.event_invites set response='going',responded_at=now() where event_id=$1 and invitee_id=$2",[event,b]);
+ const game=(await db.query("insert into public.game_recommendations(title,platform,genre,reason) values('Hades','PC y Switch','Roguelike','Gran música y combate ágil') returning id")).rows[0].id;
+ await db.query('insert into public.game_recommendation_votes(recommendation_id) values($1)',[game]);
+ await asUser(a);assert.equal((await db.query('select count(*)::int n from public.game_recommendation_votes where recommendation_id=$1',[game])).rows[0].n,1);
+ await assert.rejects(db.query('delete from public.event_invites where event_id=$1 and invitee_id=$2 returning event_id',[event,b]),'inviter cannot remove invite');
+ await db.close();console.log('PASS profile/social features: public status and photos, account ownership, event invites and RSVP, game recommendations and votes');
+})().catch(error=>{console.error(error);process.exit(1)});

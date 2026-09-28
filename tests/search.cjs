@@ -36,7 +36,7 @@ const server = http.createServer((req, res) => {
                 }));
                 return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ count: empty ? 0 : 21, 'release-groups': results }) });
             });
-            await page.goto('http://127.0.0.1:4175');
+            await page.goto('http://127.0.0.1:4175/?seccion=musica');
             await page.waitForFunction(() => typeof consultarCampo === 'function');
             async function search() { await page.locator('#botonBuscar').click(); await page.waitForFunction(() => !document.querySelector('#botonBuscar').disabled); }
             await search(); assert.equal(requests.length, 0);

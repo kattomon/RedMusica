@@ -1,3 +1,11 @@
+const rutaLocal = new URLSearchParams(location.search);
+const viendoMusicaLocal = rutaLocal.get('seccion') === 'musica';
+document.getElementById('navegacion').hidden = false;
+document.getElementById('musicaNav').hidden = false;
+document.getElementById('musicaNav').setAttribute('aria-current', viendoMusicaLocal ? 'page' : 'false');
+document.getElementById('inicioNav').setAttribute('aria-current', viendoMusicaLocal ? 'false' : 'page');
+document.getElementById('crearPublicacion').hidden = !viendoMusicaLocal;
+
 function agregarInteracciones(publicacion, datos) {
     const botonLike = document.createElement("button");
     botonLike.type = "button";
