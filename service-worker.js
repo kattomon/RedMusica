@@ -5,7 +5,7 @@ const SHELL_FILES = [
     './',
     './index.html',
     './style.css?v=20260928-40',
-    './site.webmanifest',
+    './site.webmanifest?v=20260928-1',
     './app-icon.svg',
     './app-icon-192.png',
     './app-icon-512.png',

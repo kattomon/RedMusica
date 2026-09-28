@@ -24,7 +24,7 @@ const server = http.createServer((req, res) => {
     page.on('pageerror', error => pageErrors.push(error.message));
     await page.goto('http://127.0.0.1:4175/', { waitUntil: 'domcontentloaded' });
 
-    const manifest = await page.evaluate(async () => (await (await fetch('./site.webmanifest')).json()));
+    const manifest = await page.evaluate(async () => (await fetch('./site.webmanifest?v=20260928-1')).json());
     assert.equal(manifest.name, 'RedMusica');
     assert.equal(manifest.display, 'standalone');
     assert.deepEqual(manifest.icons.filter(icon => icon.sizes !== 'any').map(icon => icon.sizes), ['192x192', '512x512']);
