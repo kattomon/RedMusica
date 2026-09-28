@@ -17,7 +17,7 @@
             await cargarScript("vendor/supabase-2.117.2.js");
             await cargarScript("cloud.js?v=20260927-33");
             await cargarScript("admin.js?v=20260927-19");
-            await cargarScript("blackjack.js?v=20260927-6");
+            await cargarScript("blackjack.js?v=20260928-1");
         } else {
             await cargarScript("local.js?v=20260927-18");
         }

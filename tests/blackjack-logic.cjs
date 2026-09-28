@@ -1,13 +1,19 @@
 const assert=require('node:assert/strict');
 (async()=>{
- const {BET,advance,finishRound,leaveRound,natural,roomCode,score,setReady,shuffledDeck,startRound}=await import('../supabase/functions/blackjack/game.mjs');
+ const {BET,advance,finishRound,leaveRound,natural,roomCode,score,setReady,setWager,shuffledDeck,startRound}=await import('../supabase/functions/blackjack/game.mjs');
  assert.match(roomCode(Uint8Array.from([0,1,2,3,4,5,6,7])),/^[A-Z0-9]{6}$/,'room codes must satisfy the six-character database and invite format');
  assert.equal(BET,100);assert.equal(score([{rank:'A'},{rank:'6'}]),17);assert.equal(score([{rank:'A'},{rank:'A'},{rank:'9'}]),21);assert.equal(score([{rank:'10'},{rank:'9'},{rank:'4'}]),23);
  assert.equal(natural([{rank:'A'},{rank:'K'}]),true);assert.equal(natural([{rank:'7'},{rank:'7'},{rank:'7'}]),false);assert.equal(shuffledDeck().length,312);
  const card=(rank,suit='♠')=>({rank,suit});
+ const wagerRoom={status:'lobby',players:[{user_id:'bettor',chips:1000,wager:100,ready:true,status:'waiting',hand:[]}],dealer:{hand:[]}};
+ assert.equal(setWager(wagerRoom,'bettor',375),375);assert.equal(wagerRoom.players[0].ready,false,'changing the stake requires the player to confirm ready again');
+ assert.throws(()=>setWager(wagerRoom,'bettor',1001),/apuesta/);assert.throws(()=>setWager(wagerRoom,'bettor',1.333),/apuesta/);assert.throws(()=>setWager(wagerRoom,'bettor',0),/apuesta/);
+ setReady(wagerRoom,'bettor',true);startRound(wagerRoom,[card('5'),card('8'),card('10'),card('9')]);assert.equal(wagerRoom.players[0].bet,375);assert.equal(wagerRoom.players[0].chips,625,'the server deducts the exact selected stake');wagerRoom.players[0].status='bust';advance(wagerRoom);assert.equal(wagerRoom.status,'finished');assert.equal(wagerRoom.players[0].ready,false,'players must reconfirm before another round');
+ assert.equal(setWager(wagerRoom,'bettor',625),625,'a player can stake the entire remaining balance');assert.throws(()=>setWager(wagerRoom,'bettor',626),/apuesta/);setReady(wagerRoom,'bettor',true);assert.throws(()=>setReady({...wagerRoom,players:[{...wagerRoom.players[0],chips:0,wager:1}]},'bettor',true),/apuesta/);
+ const halfChip={status:'lobby',players:[{user_id:'natural',chips:1000,wager:375,ready:true,status:'waiting',hand:[]}],dealer:{hand:[]}};startRound(halfChip,[card('9'),card('8'),card('5'),card('K'),card('K'),card('A')]);assert.equal(halfChip.players[0].chips,1562.5,'a custom odd stake still receives the correct 3:2 natural payout');assert.equal(setWager(halfChip,'natural',1562.5),1562.5,'the full balance remains available after a fractional natural payout');
  const one={status:'lobby',players:[{user_id:'owner',username:'Kattomon',chips:1000,status:'waiting',hand:[],ready:true},{user_id:'guest',username:'Ana',chips:50,status:'waiting',hand:[],ready:true}],dealer:{hand:[]}};
- startRound(one,[card('7'),card('10'),card('A'),card('K')]);
- assert.equal(one.status,'finished');assert.equal(one.players[0].chips,1150,'natural blackjack pays 3:2');assert.equal(one.players[0].result,'Blackjack · ganó');assert.equal(one.players[1].chips,50);assert.equal(one.players[1].status,'waiting');assert.equal(one.players[1].result,'','players without a full stake remain waiting');
+ startRound(one,[card('9'),card('10'),card('8'),card('7'),card('K'),card('A')]);
+ assert.equal(one.players[1].bet,50,'a player with a smaller balance can use a smaller stake');assert.equal(one.players[1].chips,0);one.players[1].status='bust';advance(one);assert.equal(one.status,'finished');assert.equal(one.players[0].chips,1150,'natural blackjack pays 3:2');assert.equal(one.players[0].result,'Blackjack · ganó');assert.equal(one.players[1].chips,0);assert.equal(one.players[1].result,'Perdió');
  const table={status:'lobby',players:[{user_id:'owner',username:'Kattomon',chips:1000,status:'waiting',hand:[],ready:false},{user_id:'guest',username:'Ana',chips:1000,status:'waiting',hand:[],ready:false}],dealer:{hand:[]}};
  assert.throws(()=>startRound(table,[card('7'),card('10'),card('8'),card('10'),card('7'),card('9')]),/Todos los jugadores/,'the dealer cannot deal until everyone is ready');setReady(table,'owner',true);assert.equal(table.players[0].ready,true);setReady(table,'guest',true);
  startRound(table,[card('7'),card('10'),card('8'),card('10'),card('7'),card('9')]);assert.equal(table.current_player_id,'owner');assert.equal(table.players[0].chips,900);

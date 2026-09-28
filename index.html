@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#313131">
     <link rel="manifest" href="site.webmanifest">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260927-36">
+    <link rel="stylesheet" href="style.css?v=20260928-37">
 </head>
 <body>
 <main>
@@ -52,7 +52,7 @@
     </section>
     <section id="seccionBlackjack" aria-labelledby="tituloBlackjack" hidden>
         <h2 id="tituloBlackjack">Blackjack de RedMusica</h2>
-        <p>Juega a solas contra el crupier automático o crea una sala para jugar con hasta cinco amigos. Solo se usan fichas ficticias; no hay apuestas ni premios de dinero real.</p>
+        <p>Juega a solas contra el crupier automático o crea una sala para jugar con hasta cinco amigos. Antes de cada ronda, cada jugador puede apostar desde 0,01 ficha hasta todo su saldo. Solo se usan fichas ficticias; no hay apuestas ni premios de dinero real.</p>
         <p id="blackjackAcceso" hidden><a href="./">Inicia sesión desde Inicio</a> para crear una sala o unirte con un código.</p>
         <p id="estadoBlackjack" role="status" aria-live="polite"></p>
         <div id="blackjackEntrada">
@@ -69,23 +69,65 @@
                 <div class="blackjack-fieltro">
                     <div class="blackjack-rotulo-mesa"><span>REDMUSICA</span><strong>BLACKJACK <b>21</b></strong></div>
                     <div class="blackjack-crupier">
-                        <div id="blackjackCrupierArte" class="blackjack-crupier-pixel blitzcrank" role="img" aria-label="Blitzcrank, crupier robot inspirado en League of Legends">
-                            <svg viewBox="0 0 128 160" aria-hidden="true" focusable="false" shape-rendering="crispEdges">
-                                <defs><linearGradient id="blitzmetal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0a4"/><stop offset=".4" stop-color="#d8a642"/><stop offset="1" stop-color="#87602c"/></linearGradient><linearGradient id="blitzblue" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#aaf7ff"/><stop offset="1" stop-color="#19aee4"/></linearGradient></defs>
-                                <ellipse cx="64" cy="151" rx="47" ry="6" fill="#092d25" opacity=".55"/>
-                                <path d="M62 11h5v18h-5z" fill="#d2a94d" stroke="#40372a" stroke-width="2"/><path d="M59 7h11v7H59z" fill="#f7da82" stroke="#40372a" stroke-width="2"/>
-                                <path d="M49 101h30l12 18 7 28H31l7-28z" fill="url(#blitzmetal)" stroke="#443b2f" stroke-width="4"/><path d="M49 113h30l5 23H44z" fill="#273e48" stroke="#9b793d" stroke-width="3"/><path d="M57 118h14v14H57z" fill="url(#blitzblue)" stroke="#27313a" stroke-width="3"/><path d="M61 121h5v8h-5z" fill="#e6ffff"/>
-                                <path d="M43 108 29 100 21 107 32 121l16 4m37-17 13-9 9 8-10 14-16 4" fill="none" stroke="#bd913f" stroke-width="10"/><path d="M43 108 29 100 21 107 32 121l16 4m37-17 13-9 9 8-10 14-16 4" fill="none" stroke="#59472c" stroke-width="2"/>
-                                <g class="crupier-brazo-reparto"><path d="M100 111h17v12h-17z" fill="#d9ad50" stroke="#493b2d" stroke-width="3"/><path d="M98 120h24v20h-24z" fill="url(#blitzmetal)" stroke="#493b2d" stroke-width="4"/><path d="M103 139h14v7h-14z" fill="#66502e" stroke="#342e27" stroke-width="2"/><path d="M88 113h12v13H88z" fill="#c3a051" stroke="#493b2d" stroke-width="3"/></g>
-                                <path d="M27 116h14v13H27z" fill="#c3a051" stroke="#493b2d" stroke-width="3"/><path d="M9 108h23v28H9z" fill="url(#blitzmetal)" stroke="#493b2d" stroke-width="4"/><path d="M5 114h9v15h-9zm23 0h9v15h-9z" fill="#8d6a33" stroke="#493b2d" stroke-width="3"/><path d="M15 115h11v9H15z" fill="#f8e7a6"/>
-                                <path d="M38 40h52v47l-9 17H47l-9-17z" fill="url(#blitzmetal)" stroke="#433a2f" stroke-width="4"/><path d="M43 51h42v27H43z" fill="#304c56" stroke="#9c783d" stroke-width="3"/><path d="M47 59h12v8H47zm22 0h12v8H69z" fill="url(#blitzblue)" stroke="#143947" stroke-width="2"/><path d="M49 60h5v5h-5zm22 0h5v5h-5z" fill="#efffff"/><path d="M52 84h24v8H52z" fill="#57442c" stroke="#3c3226" stroke-width="2"/><path d="M57 85v6m7-6v6m7-6v6" stroke="#f0ce77" stroke-width="2"/><path d="M31 48h8v14h-8zm50 0h8v14h-8z" fill="#d6a744" stroke="#433a2f" stroke-width="3"/>
-                                <path d="M47 97h34v8H47z" fill="#75603b" stroke="#433a2f" stroke-width="3"/><path d="M51 101h26v5H51z" fill="#e5bd62"/>
+                        <div id="blackjackCrupierArte" class="blackjack-crupier-arte blitzcrank" role="img" aria-label="Blitzcrank, crupier robot inspirado en League of Legends">
+                            <svg viewBox="0 0 220 240" aria-hidden="true" focusable="false">
+                                <defs>
+                                    <linearGradient id="blitzmetal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff4c5"/><stop offset=".28" stop-color="#e8bd5c"/><stop offset=".67" stop-color="#bd8730"/><stop offset="1" stop-color="#795323"/></linearGradient>
+                                    <linearGradient id="blitzedge" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffedaa"/><stop offset=".45" stop-color="#d4a242"/><stop offset="1" stop-color="#825b27"/></linearGradient>
+                                    <linearGradient id="blitzblue" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e2ffff"/><stop offset=".4" stop-color="#62efff"/><stop offset="1" stop-color="#0797d4"/></linearGradient>
+                                    <radialGradient id="blitzglow"><stop stop-color="#7ef7ff" stop-opacity=".7"/><stop offset="1" stop-color="#24bfe8" stop-opacity="0"/></radialGradient>
+                                    <filter id="blitzshadow" x="-.3" y="-.3" width="1.6" height="1.7"><feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dy="5"/><feComponentTransfer><feFuncA type="linear" slope=".45"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                                </defs>
+                                <ellipse cx="110" cy="221" rx="72" ry="9" fill="#092d25" opacity=".5"/>
+                                <g filter="url(#blitzshadow)" stroke="#493b2c" stroke-linejoin="round">
+                                    <!-- Oversized articulated arms and brass gauntlets -->
+                                    <path d="M65 105 49 111 39 133 48 147 68 139M155 105l17 8 11 20-9 16-20-10" fill="none" stroke="#765326" stroke-width="18"/>
+                                    <path d="M65 105 49 111 39 133 48 147 68 139M155 105l17 8 11 20-9 16-20-10" fill="none" stroke="url(#blitzedge)" stroke-width="13"/>
+                                    <path d="m43 123 10 8m115-8-10 8" fill="none" stroke="#fff0b1" stroke-width="2" opacity=".8"/>
+                                    <circle cx="43" cy="134" r="8" fill="#d1a147" stroke-width="3"/><circle cx="177" cy="134" r="8" fill="#d1a147" stroke-width="3"/>
+                                    <g>
+                                        <path d="M23 142 13 147 9 162v29l8 13h40l9-13v-28l-9-14z" fill="url(#blitzmetal)" stroke-width="4"/>
+                                        <path d="M15 157h44m-44 22h44" fill="none" stroke="#8b6329" stroke-width="5"/>
+                                        <path d="M18 161h38v13H18z" fill="#f6d77e" stroke-width="2"/>
+                                        <path d="m17 151 8-5m29 5-8-5" stroke="#fff0b1" stroke-width="3" stroke-linecap="round"/>
+                                        <circle cx="14" cy="164" r="3" fill="#6e5129" stroke="none"/><circle cx="57" cy="164" r="3" fill="#6e5129" stroke="none"/>
+                                    </g>
+                                    <g class="crupier-brazo-reparto">
+                                        <path d="m197 142 10 5 4 15v29l-8 13h-40l-9-13v-28l9-14z" fill="url(#blitzmetal)" stroke-width="4"/>
+                                        <path d="M205 157h-44m44 22h-44" fill="none" stroke="#8b6329" stroke-width="5"/>
+                                        <path d="M164 161h38v13h-38z" fill="#f6d77e" stroke-width="2"/>
+                                        <path d="m203 151-8-5m-29 5 8-5" stroke="#fff0b1" stroke-width="3" stroke-linecap="round"/>
+                                        <circle cx="206" cy="164" r="3" fill="#6e5129" stroke="none"/><circle cx="163" cy="164" r="3" fill="#6e5129" stroke="none"/>
+                                    </g>
+                                    <!-- Broad plated torso with an energized core -->
+                                    <path d="M72 106h76l17 17-6 59-18 20H79l-18-20-6-59z" fill="url(#blitzmetal)" stroke-width="5"/>
+                                    <path d="M70 125h80l8 48-15 17H77l-15-17z" fill="#8f672e" stroke-width="3"/>
+                                    <path d="M76 128h68l7 39-11 13H80l-11-13z" fill="url(#blitzedge)" stroke-width="2"/>
+                                    <path d="M92 150q18-18 36 0v22q-18 17-36 0z" fill="#294a53" stroke="#57472f" stroke-width="3"/>
+                                    <path d="M97 154q13-12 26 0v15q-13 11-26 0z" fill="url(#blitzblue)" stroke="#283d43" stroke-width="2"/>
+                                    <ellipse cx="110" cy="162" rx="30" ry="28" fill="url(#blitzglow)" stroke="none"/>
+                                    <path d="M104 156h5v11h-5zm8 0h5v11h-5z" fill="#f0ffff" stroke="none"/>
+                                    <path d="M83 132v29m54-29v29M76 184h68" fill="none" stroke="#ffedaf" stroke-width="2" opacity=".85"/>
+                                    <circle cx="71" cy="130" r="4" fill="#ffe6a0" stroke-width="2"/><circle cx="149" cy="130" r="4" fill="#ffe6a0" stroke-width="2"/>
+                                    <!-- Domed head, bright cyan eyes and short antenna -->
+                                    <path d="M104 54h12l3 16h-18z" fill="#a87930" stroke-width="3"/><circle cx="110" cy="49" r="7" fill="#e7bb5e" stroke-width="3"/><circle cx="110" cy="48" r="2" fill="#fff2b7" stroke="none"/>
+                                    <path d="M68 82q0-36 30-43h24q30 7 30 43v16l-15 17H83L68 98z" fill="url(#blitzmetal)" stroke-width="5"/>
+                                    <path d="M75 82q0-29 27-35h16q27 6 27 35v7H75z" fill="#394c4e" stroke="#785927" stroke-width="3"/>
+                                    <ellipse cx="110" cy="84" rx="43" ry="21" fill="url(#blitzglow)" stroke="none"/>
+                                    <path class="crupier-ojos" d="M83 79q8-8 16 0v9H83zm38 0q8-8 16 0v9h-16z" fill="url(#blitzblue)" stroke="#155064" stroke-width="2"/>
+                                    <path d="M87 80h5v4h-5zm38 0h5v4h-5z" fill="#fff" stroke="none"/>
+                                    <path d="M91 101h38l-6 10H97z" fill="#89622d" stroke-width="2"/><path d="M101 103h18" stroke="#f2d17a" stroke-width="3" stroke-linecap="round"/>
+                                    <path d="M63 80h7v19h-7zm87 0h7v19h-7z" fill="url(#blitzedge)" stroke-width="3"/>
+                                    <circle cx="72" cy="94" r="3" fill="#fff0b1" stroke="none"/><circle cx="148" cy="94" r="3" fill="#fff0b1" stroke="none"/>
+                                    <!-- Short floating stabilizers -->
+                                    <path d="M79 194h21v12H79zm41 0h21v12h-21z" fill="#735329" stroke-width="3"/><path d="M75 205h29v7H75zm41 0h29v7h-29z" fill="url(#blitzedge)" stroke-width="3"/>
+                                </g>
                             </svg>
                         </div>
                         <div class="blackjack-zona-crupier"><h3>Blitzcrank · Crupier</h3><div id="manoCrupierBlackjack" class="blackjack-cartas" aria-label="Cartas del crupier"></div><p id="totalCrupierBlackjack"></p><p id="estadoCrupierBlackjack" class="blackjack-frase-crupier" aria-live="polite"></p></div>
                     </div>
                     <section class="blackjack-zona-jugadores" aria-labelledby="tituloJugadoresBlackjack"><h3 id="tituloJugadoresBlackjack">Jugadores en la mesa</h3><ol id="blackjackJugadores"></ol></section>
-                    <div id="blackjackAcciones" class="blackjack-acciones blackjack-acciones-mesa"><button id="iniciarRondaBlackjack" type="button" hidden>Repartir (100 fichas)</button><button id="pedirCartaBlackjack" type="button" hidden>Pedir carta</button><button id="plantarseBlackjack" type="button" hidden>Plantarse</button><button id="salirSalaBlackjack" type="button">Salir de la sala</button></div>
+                    <div id="blackjackAcciones" class="blackjack-acciones blackjack-acciones-mesa"><button id="iniciarRondaBlackjack" type="button" hidden>Repartir</button><button id="pedirCartaBlackjack" type="button" hidden>Pedir carta</button><button id="plantarseBlackjack" type="button" hidden>Plantarse</button><button id="salirSalaBlackjack" type="button">Salir de la sala</button></div>
                     <details id="blackjackChatCrupier" class="blackjack-chat-crupier">
                         <summary>Hablar con el crupier</summary>
                         <p class="blackjack-chat-aviso">Puedo conversar sobre música y blackjack. Recuerdo tus gustos solo en este navegador.</p>
@@ -228,6 +270,6 @@
 </dialog>
 <script src="radio-panel.js?v=20260927-22" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20260927-33" defer></script>
+<script src="script.js?v=20260928-1" defer></script>
 </body>
 </html>

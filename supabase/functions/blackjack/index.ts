@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
-import { advance, draw, holdTurn, leaveRound, roomCode, score, setReady, startRound } from './game.mjs';
+import { advance, draw, holdTurn, leaveRound, roomCode, score, setReady, setWager, startRound, validWagerAmount } from './game.mjs';
 
 const origin='https://kattomon.github.io';
 const headers={'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
@@ -38,7 +38,7 @@ Deno.serve(async req=>{
  try{
   const raw=await req.text();if(raw.length>2048)return reply({error:'Solicitud demasiado larga.'},413);
   const input=JSON.parse(raw);
-  if(!['create','join','state','ready','start','hit','stand','leave'].includes(input?.action))return reply({error:'Acción no válida.'},400);
+  if(!['create','join','state','ready','set_bet','start','hit','stand','leave'].includes(input?.action))return reply({error:'Acción no válida.'},400);
   const token=(req.headers.get('Authorization')||'').replace(/^Bearer /i,'');
   const {data:{user},error:authError}=await db.auth.getUser(token);
   if(authError||!user)return reply({error:'Inicia sesión para jugar.'},401);
@@ -46,7 +46,7 @@ Deno.serve(async req=>{
   if(input.action==='create'){
    await db.from('blackjack_rooms').delete().lt('expires_at',new Date().toISOString());
    for(let attempt=0;attempt<5;attempt++){
-    const roomCode=code(),state={status:'lobby',players:[{user_id:user.id,username:profile.username,chips:1000,bet:0,hand:[],status:'waiting',ready:false}],dealer:{hand:[]},deck:[],current_player_id:null,result:''};
+    const roomCode=code(),state={status:'lobby',players:[{user_id:user.id,username:profile.username,chips:1000,wager:bet,bet:0,hand:[],status:'waiting',ready:false}],dealer:{hand:[]},deck:[],current_player_id:null,result:''};
     const {data,error}=await db.from('blackjack_rooms').insert({code:roomCode,host_id:user.id,state}).select('*').single();
     if(!error&&data)return reply({room:publicState(data)});
    }
@@ -60,22 +60,27 @@ Deno.serve(async req=>{
    if(room.state.players.some((p:any)=>p.user_id===user.id))return reply({room:publicState(room)});
    if(room.state.status!=='lobby')return reply({error:'La partida ya comenzó; la sala no acepta más jugadores.'},409);
    if(room.state.players.length>=6)return reply({error:'Esta mesa ya tiene seis jugadores.'},409);
-   const state=structuredClone(room.state);state.players.push({user_id:user.id,username:profile.username,chips:1000,bet:0,hand:[],status:'waiting',ready:false});
+   const state=structuredClone(room.state);state.players.push({user_id:user.id,username:profile.username,chips:1000,wager:bet,bet:0,hand:[],status:'waiting',ready:false});
    room=await saveRoom(room,state);return reply({room:publicState(room)});
   }
   if(input.action==='state')return reply({room:publicState(room)});
   let state=structuredClone(room.state);
   const player=state.players.find((p:any)=>p.user_id===user.id);
+  if(input.action==='set_bet'){
+   if(!player)return reply({error:'No formas parte de esta sala.'},403);
+   setWager(state,user.id,input.amount);room=await saveRoom(room,state);return reply({room:publicState(room)});
+  }
   if(input.action==='ready'){
    if(!player)return reply({error:'No formas parte de esta sala.'},403);
-   if(state.status!=='lobby')return reply({error:'La sala ya no está esperando jugadores.'},409);
+   if(!['lobby','finished'].includes(state.status))return reply({error:'La sala ya no espera confirmaciones para esta ronda.'},409);
    setReady(state,user.id,input.ready===true);room=await saveRoom(room,state);return reply({room:publicState(room)});
   }
   if(input.action==='start'){
    if(room.host_id!==user.id)return reply({error:'Solo quien creó la sala puede repartir.'},403);
    if(!['lobby','finished'].includes(state.status))return reply({error:'Esta ronda todavía está en curso.'},409);
    if(state.players.some((p:any)=>!p.ready))return reply({error:'Todos los jugadores deben marcarse listos antes de repartir.'},409);
-   const readyPlayers=state.players.filter((p:any)=>p.chips>=bet);
+   const readyPlayers=state.players.filter((p:any)=>{const wager=p.wager??Math.min(bet,p.chips);return validWagerAmount(wager)&&wager<=p.chips;});
+   if(readyPlayers.length!==state.players.length)return reply({error:'Revisa que cada apuesta esté dentro del saldo antes de repartir.'},409);
    if(!readyPlayers.length)return reply({error:'Nadie tiene fichas suficientes para otra ronda.'},409);
    startRound(state);room=await saveRoom(room,state);return reply({room:publicState(room)});
   }
@@ -99,7 +104,7 @@ Deno.serve(async req=>{
   room=await saveRoom(room,state);return reply({room:publicState(room)});
  }catch(error){
   const message=error instanceof Error?error.message:'';
-  const safe=/^(Inicia|No se encontró|Tu cuenta|No encontramos|El código|La partida|Esta ronda|Nadie|Espera|No formas|Todavía|La mesa|Solo quien|Se acabaron)/.test(message);
+  const safe=/^(Inicia|No se encontró|Tu cuenta|No encontramos|El código|La partida|Esta ronda|Nadie|Espera|No formas|Todavía|La mesa|Solo quien|Solo puedes|La apuesta|Todos los jugadores|Revisa|Se acabaron)/.test(message);
   return reply({error:safe?message:'No se pudo completar la jugada. Inténtalo de nuevo.'},400);
  }
 });
