@@ -1064,17 +1064,46 @@
         masComentarios.hidden = true;
         let comentariosCargados = 0;
         let cargandoComentarios = false;
+        function crearNodoComentario(comentario, esRespuesta) {
+            const caja=document.createElement('div');caja.className=esRespuesta?'comentario-publicado comentario-respuesta':'comentario-publicado';
+            const p=document.createElement('p'),author=enlaceUsuario(comentario.user_id,comentario.profiles.username),content=document.createElement('span');
+            p.append(author,document.createTextNode(': '));pintarTextoConGif(content,comentario.body);p.append(content);caja.append(p);
+            if(!esRespuesta&&usuario){
+                const reply=crearBoton('Responder');reply.type='button';reply.setAttribute('aria-expanded','false');
+                reply.addEventListener('click',()=>{
+                    const old=caja.querySelector('.formulario-respuesta-comentario');if(old){old.remove();reply.setAttribute('aria-expanded','false');return;}
+                    const form=document.createElement('form');form.className='fila-controles formulario-respuesta-comentario';form.autocomplete='off';
+                    const input=document.createElement('input');input.maxLength=1000;input.placeholder='Escribe una respuesta';input.setAttribute('aria-label','Responder a @'+comentario.profiles.username);
+                    const gif=document.createElement('input');gif.type='hidden';gif.className='url-gif-adjunto';
+                    const gifButton=crearBoton('GIF');gifButton.type='button';gifButton.className='abrir-selector-gif';
+                    const send=crearBoton('Enviar respuesta');send.type='submit';
+                    const cancel=crearBoton('Cancelar');cancel.type='button';cancel.addEventListener('click',()=>{form.remove();reply.setAttribute('aria-expanded','false');});
+                    form.append(input,gif,gifButton,send,cancel);
+                    form.addEventListener('submit',event=>{event.preventDefault();if(!exigirCuenta())return;accion(send,estadoComentarios,async()=>{
+                        const body=prepararCuerpo(form,input,1000);if(!body)return;
+                        resultado(await db.from('comments').insert({post_id:post.id,parent_comment_id:comentario.id,body}));
+                        await cargarComentarios(true);estadoComentarios.textContent='Respuesta enviada.';
+                    });});
+                    caja.append(form);reply.setAttribute('aria-expanded','true');input.focus();
+                });
+                caja.append(reply);
+            }
+            return caja;
+        }
         async function cargarComentarios(reiniciar) {
             if (cargandoComentarios) return;
             cargandoComentarios = true;
             masComentarios.disabled = true;
             try {
                 const desde = reiniciar ? 0 : comentariosCargados;
-                const comentarios = resultado(await db.from("comments").select("id,user_id,body,created_at,profiles:profiles!comments_user_id_fkey(username)").eq("post_id", post.id).order("created_at", { ascending: false }).order("id", { ascending: false }).range(desde, desde + 49));
+                const comentarios = resultado(await db.from("comments").select("id,user_id,parent_comment_id,body,created_at,profiles:profiles!comments_user_id_fkey(username)").eq("post_id", post.id).is('parent_comment_id',null).order("created_at", { ascending: false }).order("id", { ascending: false }).range(desde, desde + 49));
                 if (reiniciar) lista.textContent = "";
+                const replies=comentarios.length?resultado(await db.from('comments').select("id,user_id,parent_comment_id,body,created_at,profiles:profiles!comments_user_id_fkey(username)").eq('post_id',post.id).in('parent_comment_id',comentarios.map(row=>row.id)).order('created_at',{ascending:true}).order('id',{ascending:true}).range(0,199)):[];
+                const repliesByParent=new Map();for(const reply of replies){if(!repliesByParent.has(reply.parent_comment_id))repliesByParent.set(reply.parent_comment_id,[]);repliesByParent.get(reply.parent_comment_id).push(reply);}
                 comentarios.forEach(function (comentario) {
-                    const p = document.createElement("p");const author=enlaceUsuario(comentario.user_id, comentario.profiles.username);p.append(author,document.createTextNode(': '));const content=document.createElement('span');pintarTextoConGif(content,comentario.body);p.append(content);
-                    lista.appendChild(p);
+                    const node=crearNodoComentario(comentario,false),children=repliesByParent.get(comentario.id)||[];
+                    if(children.length){const thread=document.createElement('div');thread.className='respuestas-comentario';children.forEach(reply=>thread.append(crearNodoComentario(reply,true)));node.append(thread);}
+                    lista.append(node);
                 });
                 comentariosCargados = desde + comentarios.length;
                 masComentarios.hidden = comentarios.length < 50;

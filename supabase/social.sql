@@ -79,6 +79,7 @@ declare recipient uuid; item public.notifications;
 begin
  if tg_table_name='follows' then recipient:=new.followed_id;
  elsif tg_table_name='likes' then select user_id into recipient from public.posts where id=new.post_id;
+ elsif new.parent_comment_id is not null then select user_id into recipient from public.comments where id=new.parent_comment_id;
  else select user_id into recipient from public.posts where id=new.post_id;
  end if;
  if recipient is not null and recipient<>new.user_id then
