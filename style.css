@@ -8,7 +8,8 @@
 #adminList, #adminQueue { max-height: 550px; overflow: auto; }
 #abrirRadio { position: fixed; top: 16px; right: 20px; z-index: 20; box-shadow: 0 2px 8px #0002; }
 #panelRadio { position: fixed; top: 72px; right: 20px; width: min(440px, calc(100vw - 32px)); height: min(760px, calc(100vh - 88px)); height: min(760px, calc(100dvh - 88px)); z-index: 30; background: #f7f7f7; border: 1px solid #aaa; border-radius: 8px; box-shadow: 0 8px 32px #0003; overflow: hidden; display: flex; flex-direction: column; }
-#panelRadio header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #ddd; background: white; }
+#panelRadio header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #ddd; background: white; cursor: grab; touch-action: none; user-select: none; }
+#panelRadio header:active { cursor: grabbing; }
 #panelRadio header h2 { font-size: 18px; margin: 0; }
 #panelRadio header h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #panelRadio .controles-panel-radio { display: flex; align-items: center; gap: 6px; }
@@ -29,6 +30,10 @@
 @media(max-width:480px) { #abrirRadio { top: 12px; right: 16px; } #panelRadio { right: 16px; } #panelRadio.minimizado { right: 16px; } body:not(.radio-embedded) main > h1 { padding-right: 110px; } }
 #radioReproductor { margin: 16px 0; width: 100%; min-height: 240px; }
 #radioReproductor iframe { display: block; width: 100%; min-height: 240px; aspect-ratio: 16 / 9; border: 0; }
+.radio-volumen-control { display: grid; grid-template-columns: 1fr; gap: 5px; max-width: 360px; margin: 12px 0; }
+.radio-volumen-control label { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
+.radio-volumen-control input[type="range"] { width: 100%; min-height: 32px; accent-color: #555; cursor: pointer; }
+.radio-embedded .radio-volumen-control { max-width: none; }
 #radioResultados article h3 { margin-top: 0; }
 #radioResultados { display: grid; gap: 12px; }
 #radioResultados .radio-video-card { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 1fr); grid-template-rows: auto 1fr auto; align-items: start; gap: 6px 14px; padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 6px; }

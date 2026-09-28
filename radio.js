@@ -10,6 +10,12 @@
  const omitted = new Set(), blockedVideos = new Set();
  let playingSong = null, playerFailure = false;
  let roomRevision = null, roomPaused = false;
+ const volumeControl=$('radioVolumen'),volumeOutput=$('radioVolumenValor');
+ function volumeKey(){return 'redmusica:radio-volume:v1:'+(session?.user?.id||'guest');}
+ function savedVolume(){try{const value=Number(localStorage.getItem(volumeKey()));return Number.isFinite(value)&&value>=0&&value<=100?value:60;}catch{return 60;}}
+ function applyVolume(){const value=Number(volumeControl.value);volumeOutput.value=value+'%';volumeOutput.textContent=value+'%';if(ready&&player){try{player.setVolume(value);if(value===0)player.mute();else player.unMute();}catch{}}}
+ volumeControl.value=String(savedVolume());applyVolume();
+ volumeControl.addEventListener('input',()=>{applyVolume();try{localStorage.setItem(volumeKey(),volumeControl.value);}catch{}});
  async function manage(action,data){
   const {data:auth}=await db.auth.getSession();if(!auth.session)throw Error('Inicia sesión.');
   const response=await fetch(config.supabaseUrl+'/functions/v1/admin',{method:'POST',headers:{'Content-Type':'application/json',apikey:config.supabasePublishableKey,Authorization:'Bearer '+auth.session.access_token},body:JSON.stringify({action,data}),signal:AbortSignal.timeout(15000)});
@@ -131,7 +137,7 @@
   $('radioEscuchar').disabled=true;
   window.onYouTubeIframeAPIReady=()=>{
    player=new YT.Player('youtubePlayer',{width:'100%',height:'360',playerVars:{playsinline:1,origin:location.origin},events:{
-    onReady:()=>{ready=true;$('radioEscuchar').disabled=false;$('radioEscuchar').textContent='Volver a la canción de la sala';const s=playable();if(s)load(s,false);},
+    onReady:()=>{ready=true;applyVolume();$('radioEscuchar').disabled=false;$('radioEscuchar').textContent='Volver a la canción de la sala';const s=playable();if(s)load(s,false);},
     onStateChange:event=>{if(event.data===0 && loaded)next();},
     onAutoplayBlocked:()=>{$('radioPlayback').textContent='Tu navegador pide un toque: pulsa reproducir en el video.';},
     onError:playbackError
@@ -175,7 +181,7 @@
    });
   }catch(e){$('radioEstado').textContent=e.message;}finally{busy=false;$('radioBuscar').disabled=false;}
  });
- function updateSession(value){session=value;authRevision++;$('radioResultados').replaceChildren();$('radioSesion').textContent=session ? 'Ya puedes buscar y pedir canciones con tu cuenta.' : 'Puedes escuchar sin cuenta. Para pedir canciones, inicia sesión desde Inicio.';}
+ function updateSession(value){session=value;authRevision++;volumeControl.value=String(savedVolume());applyVolume();$('radioResultados').replaceChildren();$('radioSesion').textContent=session ? 'Ya puedes buscar y pedir canciones con tu cuenta.' : 'Puedes escuchar sin cuenta. Para pedir canciones, inicia sesión desde Inicio.';}
  db.auth.onAuthStateChange((_event,value)=>updateSession(value));
  db.auth.getSession().then(({data})=>updateSession(data.session));
  refresh();setInterval(refresh,15000);setInterval(updateScheduleStatus,1000);

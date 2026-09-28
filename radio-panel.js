@@ -8,6 +8,17 @@
  const defaultTitle = title.textContent;
  let nowPlaying = '';
  let frame;
+ const dragKey='redmusica:radio-panel-position:v1';
+ function clampPosition(left,top){const rect=panel.getBoundingClientRect(),margin=8;return{left:Math.max(margin,Math.min(left,innerWidth-rect.width-margin)),top:Math.max(margin,Math.min(top,innerHeight-rect.height-margin))};}
+ function savePosition(left,top){const p=clampPosition(left,top);panel.style.left=p.left+'px';panel.style.top=p.top+'px';panel.style.right='auto';try{localStorage.setItem(dragKey,JSON.stringify(p));}catch{}}
+ try{const p=JSON.parse(localStorage.getItem(dragKey)||'null');if(Number.isFinite(p?.left)&&Number.isFinite(p?.top)){panel.style.left=p.left+'px';panel.style.top=p.top+'px';panel.style.right='auto';}}catch{}
+ let drag=null;
+ panel.querySelector('header').addEventListener('pointerdown',event=>{if(event.button!==0||event.target.closest('button,input,a,select,textarea'))return;const rect=panel.getBoundingClientRect();drag={id:event.pointerId,x:event.clientX,y:event.clientY,left:rect.left,top:rect.top};event.currentTarget.setPointerCapture(event.pointerId);});
+ panel.querySelector('header').addEventListener('pointermove',event=>{if(!drag||event.pointerId!==drag.id)return;const deltaX=event.clientX-drag.x,deltaY=event.clientY-drag.y;if(Math.abs(deltaX)+Math.abs(deltaY)>3)savePosition(drag.left+deltaX,drag.top+deltaY);});
+ const finishDrag=event=>{if(drag?.id===event.pointerId)drag=null;};
+ panel.querySelector('header').addEventListener('pointerup',finishDrag);
+ panel.querySelector('header').addEventListener('pointercancel',finishDrag);
+ window.addEventListener('resize',()=>{if(!panel.hidden&&!panel.style.right){const rect=panel.getBoundingClientRect();savePosition(rect.left,rect.top);}});
  function setOpen(open) {
   panel.hidden = !open;
   panel.classList.remove('minimizado');
