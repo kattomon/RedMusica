@@ -131,6 +131,8 @@ const server=http.createServer((req,res)=>{
   async function login(page,email){await page.locator('#modoAcceso').selectOption('login');await page.locator('#correoUsuario').fill(email);await page.locator('#claveUsuario').fill('test-password-123');await page.locator('#botonAcceso').click();await page.locator('#sesionPerfil').waitFor({state:'attached'});await page.waitForFunction(()=>document.querySelector('#nombrePerfil').textContent.startsWith('Publicas como'));}
   const a=await makePage();
   assert.equal(await a.locator('#cuenta').isVisible(),true,'guest account entry is shown on the home page');
+  assert.equal(await a.locator('#chatComunitario').isVisible(),false,'community chat is hidden until login');
+  const visitor=await makePage('?seccion=memes');await visitor.waitForURL('http://127.0.0.1:4174/');assert.equal(await visitor.locator('#memesNav').isVisible(),false,'visitors can only access home');assert.equal(await visitor.locator('#chatComunitario').isVisible(),false);await visitor.close();
   await a.locator('#modoAcceso').selectOption('signup');await a.locator('#nombreUsuario').fill('Ana');await a.locator('#correoUsuario').fill(ana.email);await a.locator('#claveUsuario').fill('test-password-123');await a.locator('#botonAcceso').click();await a.waitForFunction(()=>document.querySelector('#estadoPerfil').textContent.includes('Cuenta creada. Inicia sesión'));
   assert.match(await a.locator('.aviso-cuenta').innerText(),/no necesitas confirmar el correo/i);
   assert.match(await a.locator('.aviso-cuenta').innerText(),/no hay recuperación de contraseña/i);
@@ -208,18 +210,18 @@ const server=http.createServer((req,res)=>{
   await a.reload();await a.locator('#sesionPerfil').waitFor({state:'attached'});await a.getByRole('button',{name:'Eliminar',exact:true}).waitFor();
   assert.equal(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   a.on('dialog',dialog=>dialog.accept());await a.getByRole('button',{name:'Eliminar',exact:true}).click();await a.waitForFunction(()=>document.querySelectorAll('#feed article').length===0);
-  await a.locator('#miPerfil').click();await a.locator('#sesionPerfil').waitFor({state:'visible'});await a.locator('#cerrarSesion').click();await a.locator('#sesionPerfil').waitFor({state:'hidden'});await a.goto('http://127.0.0.1:4174/');await a.locator('#formularioAcceso').waitFor();assert.equal(await a.locator('#claveUsuario').inputValue(),'');
+  await a.locator('#miPerfil').click();await a.locator('#sesionPerfil').waitFor({state:'visible'});await a.locator('#cerrarSesion').click();await a.locator('#sesionPerfil').waitFor({state:'hidden'});await a.goto('http://127.0.0.1:4174/');await a.locator('#formularioAcceso').waitFor();await a.locator('#chatComunitario').waitFor({state:'hidden'});assert.equal(await a.locator('#claveUsuario').inputValue(),'');
   await a.locator('#correoUsuario').fill(ana.email);await a.locator('#recuperarClave').click();await a.waitForFunction(()=>document.querySelector('#estadoPerfil').textContent.includes('recibirás un enlace'));
   await a.goto('about:blank');await a.goto('http://127.0.0.1:4174/#access_token='+token(ana)+'&refresh_token=refresh-test&expires_in=3600&token_type=bearer&type=recovery');
   await a.locator('#formularioNuevaClave').waitFor();await a.locator('#nuevaClave').fill('new-password-123');await a.getByRole('button',{name:'Guardar contraseña',exact:true}).click();await a.waitForFunction(()=>document.querySelector('#estadoPerfil').textContent==='Contraseña actualizada.');await a.locator('#miPerfil').click();await a.locator('#cerrarSesion').click();await a.locator('#sesionPerfil').waitFor({state:'hidden'});await a.goto('http://127.0.0.1:4174/');await login(a,ana.email);
   // Public profile deep links must filter on the server and keep pagination/ownership.
   posts=Array.from({length:22},(_,i)=>({id:'profile-post-'+i,user_id:i===21?luis.id:ana.id,album_id:'33333333-3333-4333-8333-333333333333',album_title:'Disco '+i,album_artist:'Artista',body:'Opinión '+i,created_at:new Date().toISOString()}));
-  const c=await makePage('?perfil='+ana.id);await c.locator('#bioPerfilPublico').getByText('Escucho discos de Chile.',{exact:true}).waitFor();assert.equal(await c.locator('#rangoPerfilPublico').innerText(),'Owner');assert.equal(await c.locator('#fotoPerfilPublico img').count(),1);
+  const c=await makePage();await c.context().route('**/rest/v1/notifications*',r=>r.fulfill({status:r.request().method()==='OPTIONS'?204:200,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,HEAD,OPTIONS,PATCH','access-control-allow-headers':'authorization,apikey,content-type,x-client-info,prefer','content-type':'application/json'},body:r.request().method()==='OPTIONS'?'':'[]'}));await login(c,luis.email);await c.goto('http://127.0.0.1:4174/?perfil='+ana.id);await c.locator('#bioPerfilPublico').getByText('Escucho discos de Chile.',{exact:true}).waitFor();assert.equal(await c.locator('#rangoPerfilPublico').innerText(),'Owner');assert.equal(await c.locator('#fotoPerfilPublico img').count(),1);
   await c.waitForFunction(()=>document.querySelector('#resumenPerfilPublico').textContent==='21 publicaciones');
   assert.equal(await c.locator('#tituloPerfilPublico').innerText(),'@Ana');
   assert.equal(await c.locator('#feed article').count(),20);
   assert.equal(await c.locator('#crearPublicacion').isVisible(),false);
-  assert.equal(await c.locator('#miPerfil').isVisible(),false);
+  assert.equal(await c.locator('#miPerfil').isVisible(),true);
   assert.equal(await c.getByRole('button',{name:'Editar',exact:true}).count(),0);
   assert.equal(await c.locator('#enlacePerfil').inputValue(),'http://127.0.0.1:4174/?perfil='+ana.id);
   assert.equal(await c.locator('#feed').innerText().then(t=>t.includes('@Luis')),false);
@@ -266,11 +268,11 @@ const server=http.createServer((req,res)=>{
   await a.waitForFunction(()=>!document.querySelector('#feed').innerText.includes('Meme de @Ana'));
   assert.equal(await a.locator('.imagen-meme').count(),0,'memes stay out of the album feed');
   await a.locator('#memesNav').click();await a.locator('.imagen-meme').waitFor();
-  await a.locator('#textoChat').fill('Hola desde el chat');await a.locator('#formularioChat').getByRole('button',{name:'Enviar',exact:true}).click();
+  assert.equal(await a.locator('#chatComunitario').isVisible(),true,'signed-in users can access community chat');assert.equal(await a.locator('#textoChat').getAttribute('autocomplete'),'off');assert.equal(await a.locator('#textoChat').getAttribute('spellcheck'),'false');assert.equal(await a.locator('#textoChatPrivado').getAttribute('autocomplete'),'off');assert.equal(await a.locator('#textoChatPrivado').getAttribute('spellcheck'),'false');await a.locator('#textoChat').fill('Hola desde el chat');await a.locator('#formularioChat').getByRole('button',{name:'Enviar',exact:true}).click();
   try{await a.locator('.mensaje-chat').filter({hasText:'Hola desde el chat'}).waitFor({timeout:5000});}catch{throw Error(engine.name()+' chat send failed: '+await a.locator('#estadoChat').innerText()+'; account: '+await a.locator('#nombrePerfil').innerText()+'; DOM: '+await a.locator('#mensajesChat').innerText()+'; errors: '+JSON.stringify(a.errors));}assert.equal(chatMessages.length,1);
   await a.reload();await a.locator('.mensaje-chat').filter({hasText:'Hola desde el chat'}).waitFor();
   assert.equal(await a.locator('#mensajesChat .mensaje-chat').count(),1);
-  assert.deepEqual(a.errors,[]);assert.deepEqual(b.errors,[]);assert.deepEqual(c.errors,[]);
+  assert.deepEqual(a.errors,[]);assert.deepEqual(b.errors,[]);
   console.log(engine.name(),'PASS notifications/follows and profiles: public deep links, reload, author filter, pagination, owner controls, likes/comments, missing/empty profiles, navigation');
   await browser.close();console.log(engine.name(),'PASS shared UI using mock API: signup, album and separate meme page/feed, likes, comments, community chat, ownership UI, reload, mobile, no JS errors');
  }

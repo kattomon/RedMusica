@@ -39,7 +39,7 @@
   setButton($('iniciarRondaBlackjack'),host&&['lobby','finished'].includes(room.status),!players.some(p=>p.chips>=100));
   setButton($('pedirCartaBlackjack'),room.status==='playing'&&turn,false);setButton($('plantarseBlackjack'),room.status==='playing'&&turn,false);
   $('salirSalaBlackjack').disabled=room.status==='playing';
-  status(room.status==='playing'?(turn?'Es tu turno.':'Turno de @'+(players.find(p=>p.user_id===room.current_player_id)?.username||'otro jugador')+'.'):room.status==='lobby'?'La sala está lista para recibir hasta seis jugadores.':'Partida compartida y actualizada.');
+  status(room.status==='playing'?(turn?'Es tu turno.':'Turno de @'+(players.find(p=>p.user_id===room.current_player_id)?.username||'otro jugador')+'.'):room.status==='lobby'?'Sala lista para jugar a solas o invitar hasta cinco personas.':'Partida actualizada. Puedes repartir otra ronda.');
  }
  function leaveView(){room=null;roomCode='';$('blackjackEntrada').hidden=false;$('blackjackMesa').hidden=true;clearInterval(poll);poll=null;}
  async function request(action,code=roomCode){

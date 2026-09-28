@@ -167,6 +167,7 @@
     feed.after(mas);
     let usuario = null;
     let perfil = null;
+    let sesionLista = false;
     let peliculaSeleccionada = null;
     let misListas = [];
     const cachePeliculas = new Map();
@@ -234,6 +235,10 @@
         document.getElementById('actividadNav').hidden = !usuario;
         document.getElementById('guardadosNav').hidden = !usuario;
         document.getElementById('listasNav').hidden = !usuario;
+        document.getElementById('memesNav').hidden = sesionLista&&!usuario;
+        document.getElementById('peliculasNav').hidden = sesionLista&&!usuario;
+        document.getElementById('blackjackNav').hidden = sesionLista&&!usuario;
+        document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack;
         document.getElementById('dockAmigos').hidden = !usuario;
         document.getElementById('abrirDockAmigos').hidden = !usuario;
         actualizarVisibilidadCuenta();
@@ -280,6 +285,7 @@
         if (session && usuario && session.user.id === usuario.id && perfil && evento !== "PASSWORD_RECOVERY") return;
         const revision = ++revisionSesion;
         usuario = session ? session.user : null;
+        sesionLista = true;
         perfil = null;
         if (evento === "PASSWORD_RECOVERY") recuperando = true;
         if (!usuario) recuperando = false;
@@ -293,6 +299,9 @@
             }
             if (revision !== revisionSesion) return;
             actualizarAcceso();
+            aplicarRuta();
+            if(usuario){if(!chatChannel||chatOwner!==usuario.id){iniciarChatRealtime();await cargarChat();}}
+            else if(chatChannel){db.removeChannel(chatChannel);chatChannel=null;chatOwner=null;realtimeChat=false;mensajesChat.clear();perfilesChat.clear();listaChat.replaceChildren();}
             if(usuario)await cargarListas();else{misListas=[];renderizarListas();}
             await cargarFeed(true);
             await Promise.all([actualizarConteoSolicitudesAmistad(),cargarAmigosDock()]);
@@ -307,14 +316,14 @@
         setTimeout(function () { sincronizarSesion(session, evento); }, 0);
     });
 
-    // One shared chat. Realtime is preferred; polling is only a quiet fallback.
+    // Chat history is stored in Supabase and remains available after reloads.
     const cajaChat = document.getElementById('chatComunitario');
     const listaChat = document.getElementById('mensajesChat');
     const estadoChat = document.getElementById('estadoChat');
-    cajaChat.hidden = false;
-    const perfilesChat = new Map();
+    cajaChat.hidden = true;
     const mensajesChat = new Set();
-    let chatChannel = null, realtimeChat = false, cargandoChat = false;
+    const perfilesChat = new Map();
+    let chatChannel = null, chatOwner = null, realtimeChat = false, cargandoChat = false;
     async function cargarChat() {
         if (cargandoChat || document.hidden) return;
         cargandoChat = true;
@@ -341,6 +350,8 @@
         listaChat.scrollTop=listaChat.scrollHeight;
     }
     function iniciarChatRealtime() {
+        if(chatChannel)db.removeChannel(chatChannel);
+        chatOwner=usuario?.id||null;
         chatChannel=db.channel('redmusica-chat-general').on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},payload=>{
             const row=payload.new;
             if(row.user_id===usuario?.id && perfil) row.profiles=perfil;
@@ -354,8 +365,6 @@
             else estadoChat.textContent='Chat conectado; actualizando mensajes.';
         });
     }
-    iniciarChatRealtime();
-    cargarChat();
     document.getElementById('formularioChat').addEventListener('submit',e=>{
         e.preventDefault();const input=document.getElementById('textoChat'),button=document.getElementById('enviarChat');
         if(!exigirCuenta()||!input.value.trim())return;
@@ -364,8 +373,8 @@
             row.profiles=perfil;renderMensajeChat(row);input.value='';estadoChat.textContent='Mensaje enviado.';
         });
     });
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden)cargarChat();});
-    setInterval(()=>{if(!realtimeChat&&!document.hidden)cargarChat();},30000);
+    document.addEventListener('visibilitychange',()=>{if(usuario&&!document.hidden)cargarChat();});
+    setInterval(()=>{if(usuario&&!realtimeChat&&!document.hidden)cargarChat();},30000);
     window.addEventListener('pagehide',()=>{if(chatChannel)db.removeChannel(chatChannel);});
 
     document.getElementById("modoAcceso").addEventListener("change", function (evento) {
@@ -829,7 +838,8 @@
     mas.addEventListener("click", function () { cargarFeed(false); });
 
     function aplicarRuta() {
-        const params = new URLSearchParams(location.search);
+        let params = new URLSearchParams(location.search);
+        if(sesionLista&&!usuario&&(params.has('perfil')||params.has('seccion'))){history.replaceState(null,'',location.pathname);params=new URLSearchParams();}
         perfilSolicitado = params.get('perfil');
         viendoPerfil = perfilSolicitado !== null;
         viendoMemes = !viendoPerfil && params.get('seccion') === 'memes';
@@ -854,7 +864,7 @@
         document.getElementById('listasNav').setAttribute('aria-current',viendoListas?'page':'false');
         document.getElementById('blackjackNav').setAttribute('aria-current',viendoBlackjack?'page':'false');
         actualizarVisibilidadCuenta();
-        document.getElementById('chatComunitario').hidden = viendoAmigos || viendoBlackjack;
+        document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack;
         ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack;});
         document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
         document.getElementById('memesNav').setAttribute('aria-current', viendoMemes ? 'page' : 'false');
@@ -869,7 +879,8 @@
             document.getElementById('tituloPerfilPublico').textContent = 'Cargando perfil…';
             document.getElementById('resumenPerfilPublico').textContent = '';
         document.getElementById('compartirPerfil').hidden = true;
-            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack||(viendoListas&&!listaActualId);});
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack||(viendoListas&&!listaActualId);});
+            document.getElementById('chatComunitario').hidden=!usuario||viendoAmigos||viendoBlackjack;
             actualizarVisibilidadCuenta();
             document.getElementById('presenciaPerfil').dataset.userId='';
             document.getElementById('amistadPerfil').hidden=true;

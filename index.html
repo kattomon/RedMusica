@@ -49,7 +49,7 @@
     </section>
     <section id="seccionBlackjack" aria-labelledby="tituloBlackjack" hidden>
         <h2 id="tituloBlackjack">Blackjack de RedMusica</h2>
-        <p>Hasta seis jugadores contra el crupier automático. Juega por turnos con fichas ficticias; no hay apuestas ni premios de dinero real.</p>
+        <p>Juega a solas contra el crupier automático o crea una sala para jugar con hasta cinco amigos. Solo se usan fichas ficticias; no hay apuestas ni premios de dinero real.</p>
         <p id="blackjackAcceso" hidden><a href="./">Inicia sesión desde Inicio</a> para crear una sala o unirte con un código.</p>
         <p id="estadoBlackjack" role="status" aria-live="polite"></p>
         <div id="blackjackEntrada">
@@ -162,9 +162,9 @@
         <p>Un chat general para conversar mientras compartimos música. Se muestran los últimos 50 mensajes.</p>
         <p id="estadoChat" role="status"></p>
         <div id="mensajesChat" aria-live="polite" aria-relevant="additions"></div>
-        <form id="formularioChat" class="fila-controles">
+        <form id="formularioChat" class="fila-controles" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <label class="solo-lectores" for="textoChat">Mensaje (máximo 500 caracteres)</label>
-            <input id="textoChat" maxlength="500" placeholder="Escribe un mensaje" required>
+            <input id="textoChat" maxlength="500" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Escribe un mensaje" required>
             <button id="enviarChat" type="submit">Enviar</button>
         </form>
     </section>
@@ -179,7 +179,7 @@
     <header><h2 id="tituloChatAmigo">Chat</h2><button id="minimizarChatAmigo" type="button" aria-label="Minimizar chat">−</button><button id="cerrarChatAmigo" type="button" aria-label="Cerrar chat">×</button></header>
     <div id="mensajesPrivados" aria-live="polite" aria-relevant="additions"></div>
     <p id="estadoChatPrivado" role="status"></p>
-    <form id="formularioChatPrivado"><label class="solo-lectores" for="textoChatPrivado">Mensaje privado</label><input id="textoChatPrivado" maxlength="1000" placeholder="Escribe un mensaje" required><button id="enviarChatPrivado" type="submit">Enviar</button></form>
+    <form id="formularioChatPrivado" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><label class="solo-lectores" for="textoChatPrivado">Mensaje privado</label><input id="textoChatPrivado" maxlength="1000" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Escribe un mensaje" required><button id="enviarChatPrivado" type="submit">Enviar</button></form>
 </section>
 <button id="abrirRadio" type="button" aria-controls="panelRadio" aria-expanded="false">Radio ♫</button>
 <section id="panelRadio" role="region" aria-labelledby="tituloPanelRadio" hidden>
