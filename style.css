@@ -537,6 +537,9 @@ hr { border-top-color: var(--rm-line); }
 #ventanaChatAmigo #formularioChatPrivado button { min-height: 42px; }
 .tarjeta-pelicula, .tarjeta-album, .tarjeta-lista, .tarjeta-evento, .tarjeta-video, .tarjeta-juego { border-radius: 8px; }
 img, video { max-width: 100%; }
+#instalarApp { margin: 0 0 12px; padding: 8px 14px; }
+#estadoInstalacion, #estadoConexion { width: fit-content; max-width: 100%; margin: 0 0 14px; padding: 9px 12px; border: 1px solid var(--rm-line); border-radius: 7px; background: #fff; color: var(--rm-ink); }
+#estadoConexion { border-color: #b68b55; background: #fff8e9; }
 @media (max-width: 700px) {
     body > main { width: min(100% - 24px, 620px); padding-top: 16px; padding-bottom: calc(32px + env(safe-area-inset-bottom)); }
     #abrirRadio { z-index: 70; }
@@ -544,7 +547,7 @@ img, video { max-width: 100%; }
     #navegacion > * { scroll-snap-align: start; }
     #navegacion a { min-height: 44px; padding-inline: 10px; }
     #navegacion button { min-height: 44px; }
-    #ventanaChatAmigo:not(.minimizado) { inset: auto 0 0; z-index: 60; width: 100%; max-width: none; height: min(72dvh, 620px); max-height: calc(100dvh - 72px); border: 1px solid var(--rm-line); border-bottom: 0; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+    #ventanaChatAmigo:not(.minimizado) { inset: auto 0 0; z-index: 60; width: 100%; max-width: none; height: min(58dvh, 480px); max-height: calc(100dvh - 72px); border: 1px solid var(--rm-line); border-bottom: 0; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom); }
     #navegacion { z-index: 65; }
     #ventanaChatAmigo.minimizado { right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 60; width: min(320px, calc(100vw - 20px)); }
     #dockAmigos { right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); max-height: min(52vh, 380px); }
