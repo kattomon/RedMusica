@@ -30,7 +30,9 @@
     </aside>
     <section id="notificaciones" aria-labelledby="tituloNotificaciones" hidden>
         <h2 id="tituloNotificaciones">Notificaciones</h2><p id="estadoNotificaciones" role="status"></p>
-        <button id="activarNotificacionesNavegador" type="button">Activar avisos en el navegador</button>
+        <p id="ayudaNotificacionesPush">Activa los avisos en este dispositivo para recibir alertas mientras RedMusica siga abierta, aunque esté en segundo plano.</p>
+        <button id="activarNotificacionesNavegador" type="button">Activar avisos en este dispositivo</button>
+        <button id="desactivarNotificacionesNavegador" type="button" hidden>Desactivar avisos en este dispositivo</button>
         <button id="marcarLeidas" type="button">Marcar todas como leídas</button>
         <div id="listaNotificaciones" aria-live="polite"></div>
         <button id="masNotificaciones" type="button" hidden>Ver anteriores</button>
@@ -331,7 +333,7 @@
 </dialog>
 <script src="radio-panel.js?v=20260928-1" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20260928-2" defer></script>
+<script src="script.js?v=20260928-3" defer></script>
 <script src="pwa.js?v=20260928-1" defer></script>
 </body>
 </html>

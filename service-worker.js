@@ -1,6 +1,6 @@
 'use strict';
 
-const SHELL_CACHE = 'redmusica-shell-v2';
+const SHELL_CACHE = 'redmusica-shell-v3';
 const SHELL_FILES = [
     './',
     './index.html',
@@ -13,12 +13,12 @@ const SHELL_FILES = [
     './radio-panel.js?v=20260928-1',
     './radio.html',
     './radio.js?v=20260927-22',
-    './script.js?v=20260928-2',
+    './script.js?v=20260928-3',
     './pwa.js?v=20260928-1',
     './covers.js?v=20260927-18',
     './search.js?v=20260927-18',
     './vendor/supabase-2.117.2.js',
-    './cloud.js?v=20260928-1',
+    './cloud.js?v=20260928-2',
     './admin.js?v=20260927-19',
     './blackjack.js?v=20260928-1',
     './local.js?v=20260927-18'
@@ -84,9 +84,30 @@ self.addEventListener('notificationclick', event => {
         const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
         const app = windows.find(client => new URL(client.url).origin === self.location.origin && new URL(client.url).pathname.startsWith(self.registration.scope.replace(self.location.origin, '')));
         if (app) {
+            const target = event.notification.data?.url;
+            if (target && typeof app.navigate === 'function') await app.navigate(new URL(target, self.registration.scope).href);
             await app.focus();
             return;
         }
         await self.clients.openWindow(self.registration.scope);
+    })());
+});
+
+self.addEventListener('push', event => {
+    event.waitUntil((async () => {
+        const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        // RedMusica only shows alerts while the user still has the app open.
+        if (!windows.length) return;
+        let data = {};
+        try { data = event.data?.json() || {}; } catch { data = { body: event.data?.text() || '' }; }
+        const title = String(data.title || 'RedMusica').slice(0, 80);
+        const body = String(data.body || 'Tienes una novedad en RedMusica.').slice(0, 180);
+        await self.registration.showNotification(title, {
+            body,
+            icon: './app-icon-192.png',
+            badge: './app-icon-192.png',
+            tag: data.tag ? String(data.tag).slice(0, 100) : 'redmusica-notificacion',
+            data: { url: typeof data.url === 'string' ? data.url : './' }
+        });
     })());
 });

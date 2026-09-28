@@ -5,3 +5,7 @@ verify_jwt = false
 [functions.admin]
 # Every action verifies auth.getUser, then reads fresh database permissions.
 verify_jwt = false
+
+[functions.push]
+# Actions validate the user JWT internally; database events use a Vault-backed secret.
+verify_jwt = false

@@ -36,7 +36,7 @@ const server = http.createServer((req, res) => {
 
     await page.evaluate(async () => { await navigator.serviceWorker.ready; });
     assert.equal(await page.evaluate(() => Boolean(navigator.serviceWorker.controller)), true, 'the shell worker controls the installed web app');
-    assert.equal(await page.evaluate(async () => (await caches.keys()).includes('redmusica-shell-v2')), true, 'the static app shell is cached');
+    assert.equal(await page.evaluate(async () => (await caches.keys()).includes('redmusica-shell-v3')), true, 'the static app shell is cached');
 
     await page.evaluate(() => {
         const prompt = new Event('beforeinstallprompt', { cancelable: true });

@@ -419,6 +419,7 @@
             await cargarFeed(true);
             await Promise.all([actualizarConteoSolicitudesAmistad(),cargarAmigosDock()]);
             iniciarMensajesPrivados();
+            if(usuario)sincronizarAvisosPush();
             revisionNotificaciones++;offsetNotificaciones=0;actualizarContadorNotificaciones();
         } catch (error) {
             if (revision === revisionSesion) estadoPerfil.textContent = "No se pudo cargar tu perfil. Recarga la página para volver a intentarlo.";
@@ -550,6 +551,8 @@
     });
     document.getElementById("cerrarSesion").addEventListener("click", function (evento) {
         accion(evento.currentTarget, estadoPerfil, async function () {
+            if(suscripcionPush){const subscription=suscripcionPush;try{await llamarPush({action:'unsubscribe',endpoint:subscription.endpoint});}catch{}try{await subscription.unsubscribe();}catch{}}
+            suscripcionPush=null;pintarEstadoPush(false);
             resultado(await db.auth.signOut({ scope: "local" }));
             document.getElementById("claveUsuario").value = "";
             estadoPerfil.textContent = "Sesión cerrada.";
@@ -692,26 +695,81 @@
         const box=document.getElementById('notificaciones');box.hidden=!notificacionesAbiertas;
         document.getElementById('abrirNotificaciones').setAttribute('aria-expanded',String(notificacionesAbiertas));if(notificacionesAbiertas)cargarNotificaciones(true);
     });
-    let registroAvisosNavegador=null;
-    async function registrarAvisosNavegador(){
-        if(!('serviceWorker' in navigator))return false;
-        try{registroAvisosNavegador=await navigator.serviceWorker.register('./service-worker.js');await navigator.serviceWorker.ready;return true;}catch{return false;}
-    }
+    let registroAvisosNavegador=null, suscripcionPush=null;
     const activarAvisosNavegador=document.getElementById('activarNotificacionesNavegador');
-    if(!('Notification' in window)){
+    const desactivarAvisosNavegador=document.getElementById('desactivarNotificacionesNavegador');
+    const estadoAvisosNavegador=document.getElementById('estadoNotificaciones');
+    function pintarEstadoPush(activo){
+        activarAvisosNavegador.hidden=activo;
+        desactivarAvisosNavegador.hidden=!activo;
+        if(activo)estadoAvisosNavegador.textContent='Avisos activados en este dispositivo. Llegarán mientras RedMusica esté abierta, también en segundo plano.';
+    }
+    async function registrarAvisosNavegador(){
+        if(!('serviceWorker' in navigator))throw new Error('Este navegador no admite el servicio de notificaciones.');
+        registroAvisosNavegador=await navigator.serviceWorker.register('./service-worker.js');
+        registroAvisosNavegador=await navigator.serviceWorker.ready;
+        if(!registroAvisosNavegador.pushManager)throw new Error('Este navegador no admite avisos push. En iPhone, instala RedMusica desde “Añadir a pantalla de inicio”.');
+        return registroAvisosNavegador;
+    }
+    function clavePushABinario(value){
+        const padding='='.repeat((4-value.length%4)%4);
+        const binary=atob(value.replace(/-/g,'+').replace(/_/g,'/')+padding);
+        return Uint8Array.from(binary,char=>char.charCodeAt(0));
+    }
+    async function llamarPush(payload){
+        const {data,error}=await db.functions.invoke('push',{body:payload});
+        if(error)throw error;
+        return data;
+    }
+    async function guardarSuscripcionPush(subscription){
+        if(!usuario)throw new Error('Inicia sesión para activar avisos.');
+        const data=await llamarPush({action:'subscribe',subscription:subscription.toJSON()});
+        if(data?.error)throw new Error(data.error);
+        suscripcionPush=subscription;
+        pintarEstadoPush(true);
+    }
+    async function sincronizarAvisosPush(){
+        if(!usuario||!('Notification' in window)||Notification.permission!=='granted')return;
+        try{
+            const registration=await registrarAvisosNavegador();
+            const subscription=await registration.pushManager.getSubscription();
+            if(subscription)await guardarSuscripcionPush(subscription);
+        }catch{}
+    }
+    if(!('Notification' in window)||!('serviceWorker' in navigator)){
         activarAvisosNavegador.hidden=true;
+        document.getElementById('ayudaNotificacionesPush').textContent='Este navegador no admite notificaciones push. Prueba Safari con RedMusica instalada en iPhone o Chrome en Android.';
     }else{
-        if(Notification.permission==='granted'){activarAvisosNavegador.textContent='Avisos del navegador activados';registrarAvisosNavegador();}
+        if(Notification.permission==='granted'){
+            registrarAvisosNavegador().then(sincronizarAvisosPush).catch(()=>{});
+        }
         activarAvisosNavegador.addEventListener('click',async()=>{
+            activarAvisosNavegador.disabled=true;
             try{
+                if(!exigirCuenta())return;
                 const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
                 const instalada=navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
-                if(ios&&!instalada){document.getElementById('estadoNotificaciones').textContent='En iPhone o iPad, usa Compartir → Añadir a pantalla de inicio. Abre RedMusica desde ese icono y activa los avisos.';return;}
+                if(ios&&!instalada){estadoAvisosNavegador.textContent='En iPhone: toca Compartir → Añadir a pantalla de inicio; abre RedMusica desde el icono y vuelve a activar los avisos.';return;}
+                if(Notification.permission==='denied')throw new Error('Los avisos están bloqueados. Permítelos en la configuración del navegador para RedMusica.');
                 const permission=Notification.permission==='default'?await Notification.requestPermission():Notification.permission;
-                const preparado=permission==='granted'?await registrarAvisosNavegador():false;
-                activarAvisosNavegador.textContent=permission==='granted'?'Avisos del navegador activados':permission==='denied'?'Avisos bloqueados en el navegador':'Avisos no activados';
-                document.getElementById('estadoNotificaciones').textContent=permission==='granted'?(preparado?'Te avisaremos cuando llegue un mensaje mientras RedMusica esté abierta.':'El navegador permitirá avisos mientras RedMusica siga abierta en esta pestaña.') :permission==='denied'?'El navegador bloqueó los avisos. Puedes permitirlos desde la configuración del sitio.':'No se activó el permiso de avisos.';
-            }catch{document.getElementById('estadoNotificaciones').textContent='No se pudo activar el permiso de avisos.';}
+                if(permission!=='granted')throw new Error('No se concedió permiso para mostrar avisos.');
+                const registration=await registrarAvisosNavegador();
+                const keyData=await llamarPush({action:'public-key'});
+                if(keyData?.error||!keyData?.publicKey)throw new Error(keyData?.error||'El servicio de avisos todavía no está configurado.');
+                const subscription=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:clavePushABinario(keyData.publicKey)});
+                await guardarSuscripcionPush(subscription);
+            }catch(error){estadoAvisosNavegador.textContent=error.message||'No se pudieron activar los avisos. Inténtalo de nuevo.';}
+            finally{activarAvisosNavegador.disabled=false;}
+        });
+        desactivarAvisosNavegador.addEventListener('click',async()=>{
+            desactivarAvisosNavegador.disabled=true;
+            try{
+                const registration=await registrarAvisosNavegador();
+                const subscription=suscripcionPush||await registration.pushManager.getSubscription();
+                if(subscription){await llamarPush({action:'unsubscribe',endpoint:subscription.endpoint});await subscription.unsubscribe();}
+                suscripcionPush=null;pintarEstadoPush(false);estadoAvisosNavegador.textContent='Avisos desactivados en este dispositivo.';
+            }catch{estadoAvisosNavegador.textContent='No se pudieron desactivar los avisos. Inténtalo de nuevo.';}
+            finally{desactivarAvisosNavegador.disabled=false;}
         });
     }
     document.getElementById('masNotificaciones').addEventListener('click',()=>cargarNotificaciones(false));
@@ -894,7 +952,7 @@
         if(!row?.id||avisosMensajesProcesados.has(row.id))return;
         avisosMensajesProcesados.add(row.id);if(avisosMensajesProcesados.size>300)avisosMensajesProcesados.delete(avisosMensajesProcesados.values().next().value);
         sonarAvisoMensaje();
-        if(document.hidden&&'Notification' in window&&Notification.permission==='granted'){
+        if(document.hidden&&!suscripcionPush&&'Notification' in window&&Notification.permission==='granted'){
             const body=tipo==='private'?'Tienes un nuevo mensaje privado.':'Hay un mensaje nuevo en el chat comunitario.';
             if(registroAvisosNavegador?.showNotification)registroAvisosNavegador.showNotification('Nuevo mensaje · RedMusica',{body,tag:'redmusica-mensaje-'+row.id}).catch(()=>{});
             else try{const notice=new Notification('Nuevo mensaje · RedMusica',{body,tag:'redmusica-mensaje-'+row.id});notice.onclick=()=>{window.focus();notice.close();};}catch{}
