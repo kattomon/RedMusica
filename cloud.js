@@ -1553,6 +1553,7 @@
             acciones.append(editar, borrar);
             articulo.appendChild(editor);
         }
+        articulo.classList.add('publicacion-' + post.post_type);
         articulo.classList.toggle('publicacion-pelicula',esPelicula);
         articulo.classList.toggle('publicacion-libro',esLibro);
         articulo.classList.toggle('publicacion-diario',esDiario);
