@@ -16,7 +16,7 @@
         if (config && config.supabaseUrl && config.supabasePublishableKey) {
             await cargarScript("vendor/supabase-2.117.2.js");
             await cargarScript("cloud.js?v=20260929-2");
-            await cargarScript("admin.js?v=20260929-21");
+            await cargarScript("admin.js?v=20260929-23");
             await cargarScript("blackjack.js?v=20260928-1");
         } else {
             await cargarScript("local.js?v=20260927-18");
