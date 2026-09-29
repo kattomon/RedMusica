@@ -754,6 +754,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .admin-cabecera .admin-kicker { color: var(--rm-accent); font-size: .75rem; font-weight: 800; letter-spacing: .12em; }
 .admin-rango { flex: 0 0 auto; padding: 6px 10px; border: 1px solid #cfc5b9; border-radius: 999px; background: #f7f4ef; font-size: .75rem; font-weight: 800; letter-spacing: .04em; }
 .admin-estado { min-height: 24px; margin: 12px 0; color: var(--rm-muted); font-size: .9rem; }
+.admin-estado[data-state="working"] { color: #80613c; }
+.admin-estado[data-state="success"] { color: #3f7058; }
+.admin-estado[data-state="error"] { padding: 9px 11px; border: 1px solid #d6a29a; border-radius: 7px; background: #fff3f0; color: #8a342a; }
+#administracion[aria-busy="true"] .admin-estado::before { display: inline-block; width: .65em; height: .65em; margin-right: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; content: ""; animation: admin-giro .7s linear infinite; }
+@keyframes admin-giro { to { transform: rotate(360deg); } }
 .admin-resumen { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 14px 0; }
 .admin-resumen article { display: grid; gap: 3px; min-width: 0; padding: 12px 14px; border: 1px solid var(--rm-line); border-radius: 9px; background: var(--rm-soft); }
 .admin-resumen span { color: var(--rm-muted); font-size: .8rem; }
@@ -761,14 +766,18 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .admin-tabs { display: flex; gap: 7px; margin: 16px 0; padding: 5px; overflow-x: auto; border: 1px solid var(--rm-line); border-radius: 9px; background: var(--rm-soft); scrollbar-width: thin; }
 .admin-tabs button { flex: 0 0 auto; min-height: 40px; padding: 6px 13px; background: transparent; color: var(--rm-ink); box-shadow: none; }
 .admin-tabs button[aria-pressed="true"] { background: var(--rm-accent); color: white; }
+.admin-tabs button:focus-visible, #administracion button:focus-visible, #administracion a:focus-visible { outline: 3px solid #bd8c4c; outline-offset: 2px; }
 .admin-view { display: grid; gap: 14px; }
 .admin-view[hidden], .admin-tabs [hidden] { display: none !important; }
+#administracion[aria-busy="true"] .admin-view { cursor: progress; }
 .admin-bloque { min-width: 0; padding: clamp(13px, 2vw, 20px); border: 1px solid var(--rm-line); border-radius: 10px; background: #fff; }
 .admin-bloque h3 { margin: 0 0 5px; }
 .admin-bloque h4 { margin: 18px 0 8px; }
 .admin-bloque > p { margin-top: 0; color: var(--rm-muted); }
 .admin-bloque-titulo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .admin-bloque-titulo p { margin: 4px 0 0; color: var(--rm-muted); }
+.admin-ayuda { margin: 8px 0; color: var(--rm-muted); font-size: .88rem; line-height: 1.5; }
+.admin-resultados { flex: 0 0 auto; color: var(--rm-muted); font-size: .82rem; }
 .admin-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .admin-acciones button { flex: 1 1 180px; }
 .admin-buscador, .admin-form-block, .admin-form-settings { display: grid; gap: 8px; }
@@ -785,6 +794,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .admin-fila > strong { flex: 1 1 100%; overflow-wrap: anywhere; }
 .admin-fila > p, .admin-fila > small { flex: 1 1 100%; min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .admin-fila > small { color: var(--rm-muted); }
+.admin-fila > time { flex: 1 1 100%; color: var(--rm-muted); font-size: .8rem; }
+.admin-fila-oculta { border-left: 3px solid #b97669; background: #fbf5f2; }
+.admin-paginacion > span { align-self: center; color: var(--rm-muted); font-size: .88rem; }
 .admin-fila button { min-height: 38px; padding: 5px 10px; }
 .admin-fila-cancion { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; }
 .admin-fila-cancion > strong, .admin-fila-cancion > small { grid-column: 1; }
