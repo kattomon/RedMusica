@@ -213,6 +213,7 @@
     let offsetNotificaciones = 0, cargandoNotificaciones = false, revisionNotificaciones = 0, notificacionesAbiertas = false;
     let recuperando = false;
     let revisionSesion = 0;
+    let rutaProtegidaPendiente = null, temporizadorRutaPendiente = 0;
     let revisionFeed = 0;
     let desplazamiento = 0;
     let filtroDiario = '';
@@ -426,6 +427,11 @@
         if (session && usuario && session.user.id === usuario.id && perfil && evento !== "PASSWORD_RECOVERY") return;
         const revision = ++revisionSesion;
         usuario = session ? session.user : null;
+        if (usuario && rutaProtegidaPendiente && !location.search) {
+            history.replaceState(null, '', location.pathname + rutaProtegidaPendiente);
+            rutaProtegidaPendiente = null;
+            clearTimeout(temporizadorRutaPendiente);
+        }
         sesionLista = true;
         perfil = null;
         if (evento === "PASSWORD_RECOVERY") recuperando = true;
@@ -459,7 +465,18 @@
     }
     // Never await another Auth call inside this callback (the SDK holds a lock).
     db.auth.onAuthStateChange(function (evento, session) {
-        setTimeout(function () { sincronizarSesion(session, evento); }, 0);
+        setTimeout(async function () {
+            // The initial auth event can arrive without its persisted session during a hard reload.
+            // Resolve storage outside the auth callback lock before applying the anonymous-route guard.
+            if (!session && evento === 'INITIAL_SESSION') {
+                await new Promise(resolve => setTimeout(resolve, 250));
+                if (usuario) return;
+                try { session = (await db.auth.getSession()).data.session; } catch {}
+                if (!session && usuario) return;
+            }
+            if (evento === 'INITIAL_SESSION' && usuario && (!session || session.user.id === usuario.id)) return;
+            sincronizarSesion(session, evento);
+        }, 0);
     });
 
     // Chat history is stored in Supabase and remains available after reloads.
@@ -751,8 +768,10 @@
             if(r.error)throw r.error;
             if(ticket!==revisionNotificaciones||!usuario)return;
             const button=document.getElementById('abrirNotificaciones');
-            button.textContent=r.count ? 'Notificaciones ('+r.count+')' : 'Notificaciones';
-            button.setAttribute('aria-label',r.count ? 'Notificaciones, '+r.count+' sin leer' : 'Notificaciones');
+            const badge=document.getElementById('contadorNotificaciones'),count=Number(r.count)||0;
+            badge.textContent=count>99?'99+':String(count);badge.hidden=count===0;
+            button.classList.toggle('con-no-leidas',count>0);
+            button.setAttribute('aria-label',count?'Notificaciones, '+count+' sin leer':'Notificaciones');
         } catch {}
     }
     async function cargarNotificaciones(reiniciar=true) {
@@ -766,6 +785,7 @@
             if(reiniciar)box.replaceChildren();
             rows.forEach(n=>{
                 const row=document.createElement('article');row.className='notificacion'+(n.read_at?'':' notificacion-no-leida');
+                const icon=document.createElement('span');icon.className='notificacion-icono';icon.setAttribute('aria-hidden','true');icon.textContent=n.kind==='like'?'♥':n.kind==='comment'?'✎':'+';
                 const link=document.createElement('a');
                 const who=n.actor?.username?'@'+n.actor.username:'Una cuenta';
                 const what=n.kind==='comment'?'comentó en tu publicación':n.kind==='like'?'marcó Me gusta en tu publicación':'empezó a seguirte';
@@ -773,7 +793,7 @@
                 link.href=n.kind==='follow'?'?perfil='+encodeURIComponent(n.actor_id||''):'?perfil='+encodeURIComponent(usuario.id)+'#'+encodeURIComponent(n.post_id||'');
                 link.addEventListener('click',async e=>{if(!n.read_at){e.preventDefault();await db.from('notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',usuario.id);n.read_at=new Date().toISOString();await actualizarContadorNotificaciones();location.href=link.href;}});
                 const time=document.createElement('time');time.dateTime=n.created_at;time.textContent=new Date(n.created_at).toLocaleString('es',{dateStyle:'medium',timeStyle:'short'});
-                row.append(link,time);box.append(row);
+                row.append(icon,link,time);box.append(row);
             });
             offsetNotificaciones=desde+rows.length;document.getElementById('masNotificaciones').hidden=rows.length<30;
             document.getElementById('estadoNotificaciones').textContent=offsetNotificaciones?'':'Todavía no tienes notificaciones.';
@@ -781,11 +801,18 @@
         } catch {document.getElementById('estadoNotificaciones').textContent='No se pudieron cargar las notificaciones. Inténtalo de nuevo.';}
         finally {cargandoNotificaciones=false;}
     }
-    document.getElementById('abrirNotificaciones').addEventListener('click',()=>{
+    const botonNotificaciones=document.getElementById('abrirNotificaciones'),panelNotificaciones=document.getElementById('notificaciones');
+    function ubicarPanelNotificaciones(){if(panelNotificaciones.hidden)return;const anchor=botonNotificaciones.getBoundingClientRect(),width=Math.min(390,window.innerWidth-20),left=Math.max(10,Math.min(anchor.right-width,window.innerWidth-width-10)),top=Math.max(8,Math.min(anchor.bottom+8,window.innerHeight-260));panelNotificaciones.style.left=left+'px';panelNotificaciones.style.top=top+'px';}
+    function cerrarPanelNotificaciones(){notificacionesAbiertas=false;panelNotificaciones.hidden=true;botonNotificaciones.setAttribute('aria-expanded','false');}
+    botonNotificaciones.addEventListener('click',()=>{
         notificacionesAbiertas=!notificacionesAbiertas;
-        const box=document.getElementById('notificaciones');box.hidden=!notificacionesAbiertas;
-        document.getElementById('abrirNotificaciones').setAttribute('aria-expanded',String(notificacionesAbiertas));if(notificacionesAbiertas)cargarNotificaciones(true);
+        panelNotificaciones.hidden=!notificacionesAbiertas;
+        botonNotificaciones.setAttribute('aria-expanded',String(notificacionesAbiertas));if(notificacionesAbiertas){ubicarPanelNotificaciones();cargarNotificaciones(true);}
     });
+    document.getElementById('cerrarNotificaciones').addEventListener('click',cerrarPanelNotificaciones);
+    document.addEventListener('pointerdown',event=>{if(notificacionesAbiertas&&!panelNotificaciones.contains(event.target)&&!botonNotificaciones.contains(event.target))cerrarPanelNotificaciones();});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&notificacionesAbiertas){cerrarPanelNotificaciones();botonNotificaciones.focus();}});
+    window.addEventListener('resize',ubicarPanelNotificaciones,{passive:true});window.addEventListener('scroll',ubicarPanelNotificaciones,{passive:true});
     let registroAvisosNavegador=null, suscripcionPush=null;
     const activarAvisosNavegador=document.getElementById('activarNotificacionesNavegador');
     const desactivarAvisosNavegador=document.getElementById('desactivarNotificacionesNavegador');
@@ -1241,8 +1268,17 @@
     mas.addEventListener("click", function () { cargarFeed(false); });
 
     function aplicarRuta() {
+        if (rutaProtegidaPendiente && location.search && location.search !== rutaProtegidaPendiente) {
+            rutaProtegidaPendiente = null;
+            clearTimeout(temporizadorRutaPendiente);
+        }
+        if (usuario && rutaProtegidaPendiente && !location.search) {
+            history.replaceState(null, '', location.pathname + rutaProtegidaPendiente);
+            rutaProtegidaPendiente = null;
+            clearTimeout(temporizadorRutaPendiente);
+        }
         let params = new URLSearchParams(location.search);
-        if(sesionLista&&!usuario&&(params.has('perfil')||params.has('seccion'))){history.replaceState(null,'',location.pathname);params=new URLSearchParams();}
+        if(sesionLista&&!usuario&&(params.has('perfil')||params.has('seccion'))){rutaProtegidaPendiente=location.search;clearTimeout(temporizadorRutaPendiente);temporizadorRutaPendiente=setTimeout(()=>{rutaProtegidaPendiente=null;},15000);history.replaceState(null,'',location.pathname);params=new URLSearchParams();}
         perfilSolicitado = params.get('perfil');
         viendoPerfil = perfilSolicitado !== null;
         viendoMemes = !viendoPerfil && params.get('seccion') === 'memes';

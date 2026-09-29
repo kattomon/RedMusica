@@ -9,7 +9,7 @@
     <link rel="manifest" href="site.webmanifest?v=20260928-1">
     <link rel="apple-touch-icon" href="app-icon-192.png">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260929-50">
+        <link rel="stylesheet" href="style.css?v=20260929-51">
 </head>
 <body>
 <main>
@@ -19,7 +19,7 @@
     <p id="estadoInstalacion" role="status" hidden></p>
     <p id="estadoConexion" role="status" hidden>Estás sin conexión. La app puede abrir, pero la radio, el chat, las búsquedas y las publicaciones necesitan internet.</p>
     <nav id="navegacion" aria-label="Navegación principal" hidden>
-        <a id="inicioNav" href="./">Inicio</a><a id="diarioNav" href="?seccion=diario" hidden>Diario</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="peliculasNav" href="?seccion=peliculas" hidden>Películas</a><a id="librosNav" href="?seccion=libros" hidden>Libros</a><a id="memesNav" href="?seccion=memes" hidden>Memes</a><a id="blackjackNav" href="?seccion=blackjack" hidden>Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
+        <a id="inicioNav" href="./">Inicio</a><a id="diarioNav" href="?seccion=diario" hidden>Diario</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="peliculasNav" href="?seccion=peliculas" hidden>Películas</a><a id="librosNav" href="?seccion=libros" hidden>Libros</a><a id="memesNav" href="?seccion=memes" hidden>Memes</a><a id="blackjackNav" href="?seccion=blackjack" hidden>Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" class="boton-campana" type="button" hidden aria-controls="notificaciones" aria-expanded="false" aria-label="Notificaciones" title="Notificaciones"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="contadorNotificaciones" class="notificaciones-contador" aria-hidden="true" hidden></span></button>
     </nav>
     <aside id="radioEnVivo" class="radio-en-vivo" aria-label="Estado de la radio en vivo">
         <span id="radioEstadoEnVivo" class="radio-en-vivo-estado" data-status="loading"><span class="radio-en-vivo-punto" aria-hidden="true"></span><span id="radioEstadoEnVivoTexto">Conectando</span></span>
@@ -29,18 +29,17 @@
         <button id="abrirRadioDesdeEstado" type="button" aria-controls="panelRadio">Abrir reproductor</button>
     </aside>
     <section id="notificaciones" aria-labelledby="tituloNotificaciones" hidden>
-        <h2 id="tituloNotificaciones">Notificaciones</h2><p id="estadoNotificaciones" role="status"></p>
-        <p id="ayudaNotificacionesPush">Activa los avisos en este dispositivo para recibir alertas mientras RedMusica siga abierta, aunque esté en segundo plano.</p>
-        <button id="activarNotificacionesNavegador" type="button">Activar avisos en este dispositivo</button>
-        <button id="desactivarNotificacionesNavegador" type="button" hidden>Desactivar avisos en este dispositivo</button>
-        <button id="marcarLeidas" type="button">Marcar todas como leídas</button>
+        <header class="notificaciones-cabecera"><h2 id="tituloNotificaciones">Notificaciones</h2><button id="cerrarNotificaciones" type="button" aria-label="Cerrar notificaciones">×</button></header>
+        <p id="estadoNotificaciones" role="status" aria-live="polite"></p>
+        <div class="notificaciones-controles"><button id="marcarLeidas" type="button">Marcar todas como leídas</button><button id="masNotificaciones" type="button" hidden>Ver anteriores</button></div>
         <div id="listaNotificaciones" aria-live="polite"></div>
-        <button id="masNotificaciones" type="button" hidden>Ver anteriores</button>
+        <details class="notificaciones-ajustes"><summary>Avisos en este dispositivo</summary><p id="ayudaNotificacionesPush">Activa los avisos en este dispositivo para recibir alertas mientras RedMusica siga abierta, aunque esté en segundo plano.</p><button id="activarNotificacionesNavegador" type="button">Activar avisos</button><button id="desactivarNotificacionesNavegador" type="button" hidden>Desactivar avisos</button></details>
     </section>
     <section id="perfilPublico" aria-labelledby="tituloPerfilPublico" hidden>
-        <div id="fotoPerfilPublico"></div><div id="rangoPerfilPublico"></div>
-        <h2 id="tituloPerfilPublico">Cargando perfil…</h2>
-        <p id="fechaPerfilPublico"></p>
+        <header class="perfil-portada-publica">
+            <div class="perfil-portada-fondo" aria-hidden="true"></div>
+            <div class="perfil-portada-datos"><div id="fotoPerfilPublico"></div><div class="perfil-portada-texto"><div id="rangoPerfilPublico"></div><h2 id="tituloPerfilPublico">Cargando perfil…</h2><p id="fechaPerfilPublico"></p></div></div>
+        </header>
         <nav class="secciones-perfil" aria-label="Secciones del perfil"><a href="#sobrePerfil">Presentación</a><a href="#mediosPerfil">Fotos y álbumes</a><a href="#conciertosPerfil">Conciertos</a><a href="#blogPerfil">Diario</a><a href="#muroPersonal">Muro personal</a></nav>
         <section id="sobrePerfil" class="bloque-perfil"><h3>Presentación</h3><p id="estadoBrevePublico" class="estado-breve-publico" hidden></p><p id="bioPerfilPublico"></p></section>
         <section id="mediosPerfil" class="bloque-perfil"><h3>Fotos y álbumes</h3><p id="estadoMediosPerfil" role="status"></p><div id="albumesPerfil" class="albumes-perfil"></div></section>
@@ -397,7 +396,7 @@
 </dialog>
 <script src="radio-panel.js?v=20260928-1" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20260929-5" defer></script>
+<script src="script.js?v=20260929-7" defer></script>
 <script src="pwa.js?v=20260928-1" defer></script>
 </body>
 </html>
