@@ -9,7 +9,7 @@
     <link rel="manifest" href="site.webmanifest?v=20260928-1">
     <link rel="apple-touch-icon" href="app-icon-192.png">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260929-46">
+    <link rel="stylesheet" href="style.css?v=20260929-47">
 </head>
 <body>
 <main>
@@ -19,7 +19,7 @@
     <p id="estadoInstalacion" role="status" hidden></p>
     <p id="estadoConexion" role="status" hidden>Estás sin conexión. La app puede abrir, pero la radio, el chat, las búsquedas y las publicaciones necesitan internet.</p>
     <nav id="navegacion" aria-label="Navegación principal" hidden>
-        <a id="inicioNav" href="./">Inicio</a><a id="diarioNav" href="?seccion=diario" hidden>Diario</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="peliculasNav" href="?seccion=peliculas">Películas</a><a id="librosNav" href="?seccion=libros" hidden>Libros</a><a id="memesNav" href="?seccion=memes">Memes</a><a id="blackjackNav" href="?seccion=blackjack">Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
+        <a id="inicioNav" href="./">Inicio</a><a id="diarioNav" href="?seccion=diario" hidden>Diario</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="peliculasNav" href="?seccion=peliculas" hidden>Películas</a><a id="librosNav" href="?seccion=libros" hidden>Libros</a><a id="memesNav" href="?seccion=memes" hidden>Memes</a><a id="blackjackNav" href="?seccion=blackjack" hidden>Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a><button id="abrirNotificaciones" type="button" hidden aria-controls="notificaciones" aria-expanded="false">Notificaciones</button>
     </nav>
     <aside id="radioEnVivo" class="radio-en-vivo" aria-label="Estado de la radio en vivo">
         <span id="radioEstadoEnVivo" class="radio-en-vivo-estado" data-status="loading"><span class="radio-en-vivo-punto" aria-hidden="true"></span><span id="radioEstadoEnVivoTexto">Conectando</span></span>
@@ -272,7 +272,7 @@
     <section id="crearPublicacion" aria-label="Publicar sobre música" hidden>
     <h2>Música</h2>
     <h3>Buscar álbumes para reseñar</h3>
-    <form id="formularioBusqueda">
+    <form id="formularioBusqueda" role="search">
         <p id="ayudaBusqueda">Busca por artista, por álbum o combina ambos. También encontrarás EPs y sencillos.</p>
         <div class="campos-busqueda">
             <div><label for="buscarArtista">Artista</label>
@@ -310,7 +310,7 @@
     <section id="seccionPeliculas" aria-labelledby="tituloPeliculas" hidden>
         <h2 id="tituloPeliculas">Películas de la comunidad</h2>
         <p>Busca en un catálogo internacional de películas, selecciónala, puntúala y escribe tu reseña.</p>
-        <form id="formularioBusquedaPeliculas">
+        <form id="formularioBusquedaPeliculas" role="search">
             <label for="buscarPelicula">Nombre de la película</label>
             <div class="fila-controles"><input id="buscarPelicula" type="search" maxlength="120" placeholder="Ej.: La memoria infinita" required><button id="buscarPeliculas" type="submit">Buscar</button></div>
         </form>
@@ -337,7 +337,7 @@
     <section id="seccionLibros" aria-labelledby="tituloLibros" hidden>
         <h2 id="tituloLibros">Libros de la comunidad</h2>
         <p>Busca por título o autor, elige un libro, puntúalo y comparte tu reseña.</p>
-        <form id="formularioBusquedaLibros">
+        <form id="formularioBusquedaLibros" role="search">
             <label for="buscarLibro">Título, autor o ISBN</label>
             <div class="fila-controles"><input id="buscarLibro" type="search" maxlength="160" placeholder="Ej.: La amortajada, María Luisa Bombal" required><button id="buscarLibros" type="submit">Buscar</button></div>
         </form>
@@ -397,7 +397,7 @@
 </dialog>
 <script src="radio-panel.js?v=20260928-1" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20260929-1" defer></script>
+<script src="script.js?v=20260929-2" defer></script>
 <script src="pwa.js?v=20260928-1" defer></script>
 </body>
 </html>

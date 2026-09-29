@@ -1,5 +1,6 @@
 /* Shared mode: authorization is enforced by Supabase RLS, not by these buttons. */
 (function () {
+    document.body.classList.add('sesion-pendiente');
     const config = window.REDMUSICA_CONFIG;
     const db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
     window.redmusicaClient = db;
@@ -440,6 +441,7 @@
             if (revision !== revisionSesion) return;
             actualizarAcceso();
             aplicarRuta();
+            document.body.classList.remove('sesion-pendiente');
             if(usuario){if(!chatChannel||chatOwner!==usuario.id){iniciarChatRealtime();await cargarChat();}}
             else if(chatChannel){db.removeChannel(chatChannel);chatChannel=null;chatOwner=null;realtimeChat=false;mensajesChat.clear();perfilesChat.clear();listaChat.replaceChildren();}
             if(usuario)await cargarListas();else{misListas=[];renderizarListas();}
@@ -449,7 +451,10 @@
             if(usuario)sincronizarAvisosPush();
             revisionNotificaciones++;offsetNotificaciones=0;actualizarContadorNotificaciones();
         } catch (error) {
-            if (revision === revisionSesion) estadoPerfil.textContent = "No se pudo cargar tu perfil. Recarga la página para volver a intentarlo.";
+            if (revision === revisionSesion) {
+                estadoPerfil.textContent = "No se pudo cargar tu perfil. Recarga la página para volver a intentarlo.";
+                document.body.classList.remove('sesion-pendiente');
+            }
         }
     }
     // Never await another Auth call inside this callback (the SDK holds a lock).

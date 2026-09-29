@@ -658,7 +658,7 @@ img, video { max-width: 100%; }
 }
 
 /* A restrained community-site palette: paper, brick, teal, and muted gold. */
-body > main > section:not(#blackjackTablero) > h2 {
+body > main > section:not(#blackjackTablero):not(#perfilPublico) > h2 {
     padding-bottom: 9px;
     border-bottom: 1px solid var(--rm-line);
     color: var(--rm-plum);
@@ -693,6 +693,34 @@ body > main > section:not(#blackjackTablero) > h2 {
 #feedVacio { border-color: #c9b9a9; background: #fbf6ef; }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--rm-teal); }
 ::selection { background: #dfc4a6; color: #332f32; }
+
+/* Consistent hierarchy for browsing, discovery, and the community wall. */
+#tituloFeed {
+    width: min(100%, 860px);
+    margin: 26px auto 10px;
+    padding: 0 0 8px 11px;
+    border-left: 3px solid var(--rm-accent);
+    border-bottom: 1px solid var(--rm-line);
+    color: var(--rm-plum);
+}
+#feedVacio, #estadoFeed, #actualizarFeed, #verMas { width: min(100%, 860px); }
+#feedVacio { margin: 12px auto; }
+#estadoFeed { margin: 8px auto; color: var(--rm-muted); }
+#actualizarFeed, #verMas { display: block; margin: 10px auto; }
+#verMas { min-height: 42px; }
+.tarjeta-album { border: 1px solid var(--rm-line); background: linear-gradient(145deg, #fffdf9, #f4eee5); color: var(--rm-ink); box-shadow: 0 2px 8px #49392b12; }
+.tarjeta-album h3 { color: var(--rm-plum); }
+.tarjeta-album .detalle-lanzamiento { color: var(--rm-muted); }
+.tarjeta-album:hover { border-color: #c8ad92; background: #fffdf9; box-shadow: 0 5px 14px #49392b20; }
+#resultadoAlbum, #reseñaPelicula, #reseñaLibro { border-color: var(--rm-line); border-radius: var(--rm-radius); background: var(--rm-soft); }
+#crearPublicacion h3 { margin-top: 0; color: var(--rm-plum); }
+#formularioBusquedaPeliculas, #formularioBusquedaLibros, #formularioBusquedaJuegos,
+#formularioBusquedaConciertos, #formularioBusquedaDiario { margin: 14px 0; }
+#formularioBusquedaPeliculas > label, #formularioBusquedaLibros > label,
+#formularioBusquedaJuegos > label, #formularioBusquedaConciertos > label { margin-bottom: 5px; color: #5e514d; font-size: .92rem; }
+.atribucion-catalogo { color: var(--rm-muted); }
+.tarjeta-video:focus-within, .tarjeta-evento:focus-within, .tarjeta-recomendacion-juego:focus-within,
+.tarjeta-libro:focus-within, .tarjeta-concierto:focus-within, .tarjeta-pelicula:focus-within { outline: 2px solid var(--rm-teal); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -782,6 +810,22 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 }
 
 /* Classic dashboard feel: the whole feed stays visible and posts keep their own voice. */
+body.sesion-pendiente #navegacion > :not(#inicioNav),
+body.sesion-pendiente #perfilPublico,
+body.sesion-pendiente #crearPublicacion,
+body.sesion-pendiente #crearMeme,
+body.sesion-pendiente #seccionPeliculas,
+body.sesion-pendiente #seccionLibros,
+body.sesion-pendiente #seccionDiario,
+body.sesion-pendiente #compositorDiario,
+body.sesion-pendiente #seccionAmigos,
+body.sesion-pendiente #seccionEventos,
+body.sesion-pendiente #seccionVideos,
+body.sesion-pendiente #seccionJuegos,
+body.sesion-pendiente #seccionListas,
+body.sesion-pendiente #seccionBlackjack,
+body.sesion-pendiente #compositorMuro,
+body.sesion-pendiente #chatComunitario { display: none !important; }
 @media (min-width: 701px) {
     #navegacion { flex-wrap: wrap; overflow-x: visible; }
 }
@@ -822,4 +866,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
     #perfilPublico { grid-template-columns: 88px minmax(0, 1fr); column-gap: 13px; padding-top: 20px; background: linear-gradient(180deg, #f1e8dc 0, #f1e8dc 100px, var(--rm-surface) 100px); }
     #perfilPublico > #fotoPerfilPublico { grid-row: 1 / span 3; }
     #fotoPerfilPublico .avatar { width: 80px; height: 80px; border-width: 3px; }
+}
+@media (max-width: 520px) {
+    #tituloFeed { margin-top: 20px; }
+    #actualizarFeed, #verMas { width: 100%; }
+    #resultadoAlbum, #reseñaPelicula, #reseñaLibro { padding: 13px; }
+    .tarjeta-album { padding: 12px; }
 }
