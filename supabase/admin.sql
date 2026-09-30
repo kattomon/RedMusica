@@ -70,6 +70,10 @@ create policy settings_server on public.site_settings to service_role using(true
 create policy audit_server on public.admin_audit to service_role using(true) with check(true);
 
 -- Restrict all post writes to the active author, while honoring the site-wide posting switch.
+-- Drop the broader legacy policies from schema.sql; permissive policies combine with OR.
+drop policy if exists posts_create on public.posts;
+drop policy if exists posts_edit on public.posts;
+drop policy if exists posts_delete on public.posts;
 create policy posts_active_insert on public.posts as permissive for insert to authenticated with check(
  user_id=(select auth.uid()) and exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)
  and (select accept_posts from public.site_settings where id=1));

@@ -18,6 +18,7 @@
             await cargarScript("cloud.js?v=20260930-5");
             await cargarScript("admin.js?v=20260930-1");
             await cargarScript("blackjack.js?v=20260928-1");
+            await cargarScript("pool.js?v=20260930-1").catch(() => {});
         } else {
             await cargarScript("local.js?v=20260927-18");
         }
