@@ -252,6 +252,7 @@
         if (error?.code === '23514' || error?.code === '23502' || error?.code === '22001') return 'Revisa los datos ingresados; alguno no coincide con el catálogo o supera el límite permitido.';
         if (error?.code === '23503') return 'La sesión o el elemento seleccionado ya no está disponible. Actualiza la página e inténtalo de nuevo.';
         if (error?.name === 'AbortError' || error?.name === 'TimeoutError') return 'La conexión tardó demasiado. Inténtalo de nuevo.';
+        if (typeof error?.code === 'string') return 'No se pudo completar la acción. Código de diagnóstico: ' + error.code.slice(0, 12) + '.';
         return 'No se pudo completar la acción. Revisa tu conexión y tu sesión e inténtalo de nuevo.';
     }
     async function accion(boton, mensaje, tarea) {
