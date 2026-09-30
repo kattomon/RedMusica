@@ -9,7 +9,7 @@
     <link rel="manifest" href="site.webmanifest?v=20260929-1">
     <link rel="apple-touch-icon" href="app-icon-192.png">
     <title>RedMusica</title>
-    <link rel="stylesheet" href="style.css?v=20260929-52">
+    <link rel="stylesheet" href="style.css?v=20260930-53">
     <link rel="stylesheet" href="layout.css?v=20260929-1">
     <link rel="stylesheet" href="sections.css?v=20260929-1">
     <link rel="stylesheet" href="admin-ui.css?v=20260929-1">
@@ -110,11 +110,21 @@
         <button id="actualizarVideos" type="button">Buscar recomendaciones</button>
     </section>
     <section id="seccionJuegos" aria-labelledby="tituloJuegos" hidden>
-        <h2 id="tituloJuegos">Juegos recomendados</h2>
-        <p>Busca en el catálogo compartido de RedMusica y recomienda juegos de cualquier plataforma.</p>
-        <form id="formularioBusquedaJuegos" class="busqueda-juegos" role="search"><label for="buscarJuegoCatalogo">Buscar juego</label><div class="fila-controles"><input id="buscarJuegoCatalogo" type="search" maxlength="120" placeholder="Título del juego, saga o plataforma"><button type="submit">Buscar juegos</button></div></form>
-        <p id="estadoBusquedaJuegos" role="status"></p><div id="resultadosBusquedaJuegos" class="lista-eventos"></div>
-        <details id="crearJuegoCaja"><summary>No está en el catálogo: recomendar un juego</summary>
+        <h2 id="tituloJuegos">Juegos de la comunidad</h2>
+        <p>Busca juegos de distintas plataformas, agrégalos al catálogo común y publica tu reseña.</p>
+        <form id="formularioBusquedaJuegos" class="busqueda-juegos" role="search"><label for="buscarJuegoCatalogo">Nombre del juego, saga o plataforma</label><div class="fila-controles"><input id="buscarJuegoCatalogo" type="search" maxlength="120" placeholder="Ej.: Chrono Trigger, Hollow Knight, Zelda" autocomplete="off"><button type="submit">Buscar</button></div></form>
+        <p id="estadoBusquedaJuegos" role="status"></p><div id="resultadosBusquedaJuegos" class="lista-juegos-catalogo"></div>
+        <section id="reseñaJuego" class="editor-resena-juego" aria-labelledby="tituloResenaJuego" hidden>
+            <h3 id="tituloResenaJuego">Escribe tu reseña</h3>
+            <div id="detalleJuegoSeleccionado" class="ficha-juego-seleccionado"></div>
+            <form id="formularioResenaJuego">
+                <label for="notaJuego">Tu puntuación</label><select id="notaJuego" required><option value="0.5">½ estrella</option><option value="1">1 estrella</option><option value="1.5">1½ estrellas</option><option value="2">2 estrellas</option><option value="2.5">2½ estrellas</option><option value="3">3 estrellas</option><option value="3.5" selected>3½ estrellas</option><option value="4">4 estrellas</option><option value="4.5">4½ estrellas</option><option value="5">5 estrellas</option></select>
+                <label for="opinionJuego">Tu reseña</label><textarea id="opinionJuego" maxlength="5000" rows="5" placeholder="¿Qué te pareció?" required></textarea>
+                <button id="publicarResenaJuego" type="submit">Publicar reseña</button>
+            </form><p id="estadoResenaJuego" role="status"></p>
+        </section>
+        <p class="atribucion-catalogo">Datos de juegos: <a href="https://www.wikidata.org/" target="_blank" rel="noopener noreferrer">Wikidata</a>. Portadas: <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a>.</p>
+        <details id="crearJuegoCaja"><summary>¿No aparece? Recomienda un juego manualmente</summary>
             <form id="formularioJuego" class="formulario-evento">
                 <label for="nombreJuego">Nombre del juego</label><input id="nombreJuego" maxlength="100" required>
                 <label for="plataformaJuego">Plataforma(s)</label><input id="plataformaJuego" maxlength="120" required placeholder="PC, PS5, Xbox, Switch, Android…">
@@ -124,6 +134,7 @@
                 <button id="publicarJuego" type="submit">Añadir al catálogo y recomendar</button>
             </form>
         </details>
+        <h3 id="tituloRecomendacionesJuegos">Recomendaciones de la comunidad</h3>
         <p id="estadoJuegos" role="status"></p><div id="listaJuegos" class="lista-eventos"></div>
     </section>
     <section id="seccionDiario" aria-labelledby="tituloDiario" hidden>

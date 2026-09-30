@@ -694,6 +694,32 @@ body > main > section:not(#blackjackTablero):not(#perfilPublico) > h2 {
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--rm-teal); }
 ::selection { background: #dfc4a6; color: #332f32; }
 
+.lista-juegos-catalogo { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr)); gap:12px; margin:14px 0; }
+.tarjeta-juego-catalogo { display:grid; grid-template-columns:92px minmax(0,1fr); gap:11px; align-items:start; }
+.tarjeta-juego-catalogo .portada-juego, .tarjeta-juego-catalogo .portada-juego-vacia { grid-row:span 2; width:92px; height:130px; }
+.tarjeta-juego-catalogo h3 { margin:0 0 5px; font-size:1rem; }
+.tarjeta-juego-catalogo p { margin:4px 0; }
+.tarjeta-juego-catalogo button { grid-column:2; justify-self:start; }
+.portada-juego, .portada-juego-vacia { display:block; width:170px; aspect-ratio:2/3; object-fit:cover; border:1px solid #ded3c6; border-radius:6px; background:#ede6dd; }
+.portada-juego-vacia { display:grid; place-items:center; padding:10px; color:#63534d; font-weight:700; text-align:center; overflow-wrap:anywhere; background:linear-gradient(145deg,#e9dfd2,#cbbba9); }
+.ficha-juego-seleccionado { display:grid; grid-template-columns:130px minmax(0,1fr); gap:15px; align-items:start; margin:12px 0 18px; }
+.ficha-juego-seleccionado .portada-juego, .ficha-juego-seleccionado .portada-juego-vacia { width:130px; }
+.ficha-juego-seleccionado h4 { margin:0 0 7px; font-size:1.2rem; }
+.editor-resena-juego { margin:18px 0; padding:16px; border:1px solid var(--rm-line); border-radius:8px; background:var(--rm-soft); }
+.editor-resena-juego form { display:grid; gap:8px; }
+.editor-resena-juego select { max-width:310px; }
+.editor-resena-juego button { justify-self:end; }
+.publicacion-juego > .poster-juego { float:left; width:132px; height:198px; margin:0 15px 10px 0; }
+.publicacion-juego::after { display:block; clear:both; content:""; }
+.publicacion-juego > .fuente-pelicula { display:inline-block; margin:4px 0; }
+@media(max-width:560px) {
+    .lista-juegos-catalogo { grid-template-columns:1fr; }
+    .ficha-juego-seleccionado { grid-template-columns:92px minmax(0,1fr); gap:10px; }
+    .ficha-juego-seleccionado .portada-juego, .ficha-juego-seleccionado .portada-juego-vacia { width:92px; }
+    .publicacion-juego > .poster-juego { width:96px; height:144px; margin-right:11px; }
+    .editor-resena-juego { padding:12px; }
+}
+
 /* An early community-web feel: expressive masthead, clear sections and compact cards. */
 body {
     background-color: var(--rm-page);

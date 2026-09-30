@@ -205,6 +205,8 @@
     let sesionLista = false;
     let peliculaSeleccionada = null;
     let libroSeleccionado = null;
+    let juegoSeleccionado = null;
+    const cacheBusquedaJuegos = new Map();
     let misListas = [];
     const cachePeliculas = new Map();
     let revisionBusquedaPeliculas = 0;
@@ -217,7 +219,8 @@
     let desplazamiento = 0;
     let filtroDiario = '';
     const porPagina = 20;
-    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,post_type,image_path,link_url,film_wikidata_id,film_tmdb_id,film_title,film_director,film_year,film_poster,film_rating,book_google_id,book_title,book_authors,book_year,book_cover,book_rating,blog_title,blog_tags,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
+    const seleccionPostsPublica = "id,user_id,album_id,album_title,album_artist,post_type,image_path,link_url,film_wikidata_id,film_tmdb_id,film_title,film_director,film_year,film_poster,film_rating,book_google_id,book_title,book_authors,book_year,book_cover,book_rating,blog_title,blog_tags,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
+    const seleccionPosts = "id,user_id,album_id,album_title,album_artist,post_type,image_path,link_url,film_wikidata_id,film_tmdb_id,film_title,film_director,film_year,film_poster,film_rating,book_google_id,book_title,book_authors,book_year,book_cover,book_rating,game_id,game_rating,games_catalog!posts_game_id_fkey(title,platforms,genre,external_url,cover_url,release_year,summary,wikidata_id),blog_title,blog_tags,body,created_at,profiles:profiles!posts_user_id_fkey(username,role,avatar_updated_at),likes(count)";
     const destinoCorreo = location.origin + location.pathname;
     const estadoPerfil = document.getElementById("estadoPerfil");
 
@@ -405,6 +408,56 @@
         }catch(error){estadoVideos.textContent=error?.message||'No se pudieron obtener recomendaciones de YouTube. Inténtalo de nuevo más tarde.';}
     }
     document.getElementById('actualizarVideos').addEventListener('click',cargarVideos);
+    function idsWikidata(claims,prop){return (claims?.[prop]||[]).map(claim=>claim.mainsnak?.datavalue?.value?.id).filter(id=>/^Q[1-9][0-9]*$/.test(id||''));}
+    function etiquetaEntidad(entity){return entity?.labels?.es?.value||entity?.labels?.en?.value||'';}
+    async function buscarCatalogoWikidata(term){
+        const key=term.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
+        if(cacheBusquedaJuegos.has(key))return cacheBusquedaJuegos.get(key);
+        const api='https://www.wikidata.org/w/api.php';
+        const buscarIdioma=async language=>{
+            const url=new URL(api);url.search=new URLSearchParams({action:'wbsearchentities',search:term,language,type:'item',limit:'12',format:'json',origin:'*'}).toString();
+            const response=await fetch(url,{headers:{Accept:'application/json'}});if(!response.ok)throw new Error('Wikidata no respondió');return (await response.json()).search||[];
+        };
+        const [spanish,english]=await Promise.all([buscarIdioma('es'),buscarIdioma('en')]);
+        const matches=[...new Map([...spanish,...english].map(item=>[item.id,item])).values()].slice(0,24);
+        if(!matches.length)return [];
+        const detailsUrl=new URL(api);detailsUrl.search=new URLSearchParams({action:'wbgetentities',ids:matches.map(item=>item.id).join('|'),props:'labels|descriptions|claims',languages:'es|en',languagefallback:'1',format:'json',origin:'*'}).toString();
+        const detailsResponse=await fetch(detailsUrl,{headers:{Accept:'application/json'}});if(!detailsResponse.ok)throw new Error('No se pudieron consultar las fichas');
+        const entities=Object.values((await detailsResponse.json()).entities||{});
+        const valid=entities.filter(entity=>{
+            const claims=entity.claims||{},description=(entity.descriptions?.es?.value||entity.descriptions?.en?.value||'').toLocaleLowerCase('es');
+            return idsWikidata(claims,'P31').includes('Q7889')||/video game|videogame|videojuego|juego electrónico|computer game|arcade game/.test(description);
+        });
+        const references=[...new Set(valid.flatMap(entity=>[...idsWikidata(entity.claims,'P400'),...idsWikidata(entity.claims,'P136')]))].slice(0,50);
+        let referenceEntities={};
+        if(references.length){const refsUrl=new URL(api);refsUrl.search=new URLSearchParams({action:'wbgetentities',ids:references.join('|'),props:'labels',languages:'es|en',languagefallback:'1',format:'json',origin:'*'}).toString();const refsResponse=await fetch(refsUrl,{headers:{Accept:'application/json'}});if(refsResponse.ok)referenceEntities=(await refsResponse.json()).entities||{};}
+        const games=valid.map(entity=>{
+            const claims=entity.claims||{},date=claims.P577?.[0]?.mainsnak?.datavalue?.value?.time||claims.P571?.[0]?.mainsnak?.datavalue?.value?.time||'';
+            const filename=claims.P18?.[0]?.mainsnak?.datavalue?.value;
+            const cover=typeof filename==='string'?'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(filename)+'?width=480':null;
+            return {wikidata_id:entity.id,title:etiquetaEntidad(entity)||matches.find(item=>item.id===entity.id)?.label||'',platforms:[...new Set(idsWikidata(claims,'P400').map(id=>etiquetaEntidad(referenceEntities[id])).filter(Boolean))].slice(0,4).join(', ')||'Plataformas no especificadas',genre:[...new Set(idsWikidata(claims,'P136').map(id=>etiquetaEntidad(referenceEntities[id])).filter(Boolean))].slice(0,2).join(', '),release_year:(date.match(/[+-](\d{4})-/)||[])[1]?Number((date.match(/[+-](\d{4})-/)||[])[1]):null,summary:(entity.descriptions?.es?.value||entity.descriptions?.en?.value||'').slice(0,500),cover_url:cover,external_url:'https://www.wikidata.org/wiki/'+entity.id};
+        }).filter(game=>game.title);
+        cacheBusquedaJuegos.set(key,games);if(cacheBusquedaJuegos.size>30)cacheBusquedaJuegos.delete(cacheBusquedaJuegos.keys().next().value);return games;
+    }
+    function crearPortadaJuego(game){
+        const raw=game?.cover_url||game?.cover;
+        if(raw){try{const url=new URL(raw);if(url.protocol==='https:'&&url.hostname==='commons.wikimedia.org'&&url.pathname.startsWith('/wiki/Special:FilePath/')){const image=document.createElement('img');image.className='poster-juego portada-juego';image.loading='lazy';image.alt='Portada de '+(game.title||'juego');image.src=url.href;image.onerror=()=>{const fallback=document.createElement('div');fallback.className='poster-juego portada-juego-vacia';fallback.textContent=game.title||'Juego';image.replaceWith(fallback);};return image;}}catch{}}
+        const fallback=document.createElement('div');fallback.className='poster-juego portada-juego-vacia';fallback.textContent=game?.title||'Juego';return fallback;
+    }
+    function abrirResenaJuego(game,catalogId){
+        juegoSeleccionado={...game,id:catalogId};const detail=document.getElementById('detalleJuegoSeleccionado');detail.replaceChildren();detail.append(crearPortadaJuego(game));
+        const copy=document.createElement('div'),title=document.createElement('h4'),meta=document.createElement('p'),summary=document.createElement('p');title.textContent=game.title;meta.textContent=[game.platforms,game.release_year,game.genre].filter(Boolean).join(' · ');summary.textContent=game.summary||'Añadido al catálogo de juegos de la comunidad.';copy.append(title,meta,summary);
+        if(game.external_url){const source=document.createElement('a');source.href=game.external_url;source.target='_blank';source.rel='noopener noreferrer';source.textContent='Ver ficha en Wikidata';copy.append(source);}detail.append(copy);document.getElementById('reseñaJuego').hidden=false;document.getElementById('estadoResenaJuego').textContent='';document.getElementById('reseñaJuego').scrollIntoView({behavior:'smooth',block:'nearest'});document.getElementById('notaJuego').focus({preventScroll:true});
+    }
+    function mostrarJuegoCatalogo(game,box){
+        const card=document.createElement('article');card.className='tarjeta-juego-catalogo';card.append(crearPortadaJuego(game));const text=document.createElement('div'),title=document.createElement('h3'),meta=document.createElement('p'),description=document.createElement('p');title.textContent=game.title;meta.textContent=[game.platforms,game.release_year,game.genre].filter(Boolean).join(' · ');description.textContent=game.summary||'';text.append(title,meta);if(description.textContent)text.append(description);card.append(text);
+        const pick=crearBoton(game.id?'Escribir reseña':'Agregar al catálogo y reseñar');pick.addEventListener('click',async()=>{
+            if(!exigirCuenta())return;pick.disabled=true;
+            try{let id=game.id;if(!id){id=resultado(await db.rpc('add_external_game_catalog',{p_wikidata_id:game.wikidata_id,p_title:game.title.slice(0,120),p_platforms:(game.platforms||'Plataformas no especificadas').slice(0,120),p_genre:(game.genre||'').slice(0,60),p_external_url:game.external_url,p_cover_url:game.cover_url,p_release_year:game.release_year,p_summary:(game.summary||'').slice(0,500)}));game.id=id;}abrirResenaJuego(game,id);}
+            catch(error){document.getElementById('estadoBusquedaJuegos').textContent=mensajeErrorAccion(error);}
+            finally{pick.disabled=false;}
+        });card.append(pick);box.append(card);
+    }
     async function cargarJuegos(){
         const box=document.getElementById('listaJuegos'),status=document.getElementById('estadoJuegos');status.textContent='Cargando recomendaciones…';box.replaceChildren();
         try{
@@ -427,11 +480,20 @@
     });
     document.getElementById('formularioBusquedaJuegos').addEventListener('submit',async event=>{
         event.preventDefault();if(!exigirCuenta())return;const term=document.getElementById('buscarJuegoCatalogo').value.trim(),status=document.getElementById('estadoBusquedaJuegos'),box=document.getElementById('resultadosBusquedaJuegos'),button=event.currentTarget.querySelector('button');
-        if(term.length<2){status.textContent='Escribe al menos dos caracteres.';return;}button.disabled=true;status.textContent='Buscando en el catálogo de RedMusica…';box.replaceChildren();
-        try{const safe=term.replace(/[,%()]/g,' ');const rows=resultado(await db.from('games_catalog').select('id,title,platforms,genre,external_url').eq('hidden',false).or('title.ilike.%'+safe+'%,platforms.ilike.%'+safe+'%,genre.ilike.%'+safe+'%').order('title').limit(30));
-            rows.forEach(game=>{const card=document.createElement('article');card.className='tarjeta-juego-catalogo';const title=document.createElement('h3');title.textContent=game.title;const meta=document.createElement('p');meta.textContent=[game.platforms,game.genre].filter(Boolean).join(' · ');const pick=crearBoton('Recomendar este juego');pick.addEventListener('click',()=>{document.getElementById('nombreJuego').value=game.title;document.getElementById('plataformaJuego').value=game.platforms;document.getElementById('generoJuego').value=game.genre||'';document.getElementById('enlaceJuego').value=game.external_url||'';document.getElementById('crearJuegoCaja').open=true;document.getElementById('motivoJuego').focus();status.textContent='Cuéntanos por qué lo recomiendas.';});card.append(title,meta);if(game.external_url){const source=document.createElement('a');source.href=game.external_url;source.target='_blank';source.rel='noopener noreferrer';source.textContent='Ficha del juego';card.append(source);}card.append(pick);box.append(card);});
-            status.textContent=rows.length?rows.length+' juego(s) encontrado(s).':'No aparece todavía. Añádelo al catálogo con una recomendación.';
-        }catch{status.textContent='No se pudo consultar el catálogo de juegos. Inténtalo de nuevo.';}finally{button.disabled=false;}
+        if(term.length<2){status.textContent='Escribe al menos dos caracteres.';return;}if(term.length>80){status.textContent='La búsqueda puede tener hasta 80 caracteres.';return;}button.disabled=true;status.textContent='Buscando en el catálogo de RedMusica y Wikidata…';box.replaceChildren();document.getElementById('reseñaJuego').hidden=true;
+        try{
+            const safe=term.replace(/[,%()]/g,' ');const localPromise=db.from('games_catalog').select('id,title,platforms,genre,external_url,cover_url,release_year,summary,wikidata_id').eq('hidden',false).or('title.ilike.%'+safe+'%,platforms.ilike.%'+safe+'%,genre.ilike.%'+safe+'%').order('title').limit(20);
+            const [localResult,external]=await Promise.allSettled([localPromise,buscarCatalogoWikidata(term)]);
+            const localOk=localResult.status==='fulfilled'&&!localResult.value.error;const local=localOk?localResult.value.data||[]:[];const remote=external.status==='fulfilled'?external.value:[];const seen=new Set();
+            local.forEach(game=>{const key=game.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');seen.add(key);mostrarJuegoCatalogo(game,box);});
+            remote.filter(game=>!seen.has(game.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es'))).forEach(game=>mostrarJuegoCatalogo(game,box));
+            const total=local.length+remote.filter(game=>!seen.has(game.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es'))).length;
+            status.textContent=total?total+' juego(s) encontrado(s). Elige uno para agregarlo y reseñarlo.':external.status==='rejected'?'Wikidata no respondió y el catálogo de RedMusica no tiene coincidencias. Inténtalo de nuevo.':'No encontramos coincidencias. Prueba con otro título o recomiéndalo manualmente.';
+        }catch{status.textContent='No se pudo consultar el catálogo. Revisa tu conexión e inténtalo de nuevo.';}finally{button.disabled=false;}
+    });
+    document.getElementById('formularioResenaJuego').addEventListener('submit',event=>{
+        event.preventDefault();if(!exigirCuenta()||!juegoSeleccionado?.id)return;const form=event.currentTarget,button=document.getElementById('publicarResenaJuego'),status=document.getElementById('estadoResenaJuego');
+        accion(button,status,async()=>{const body=document.getElementById('opinionJuego').value.trim();if(!body)throw Error('Escribe tu reseña antes de publicarla.');resultado(await db.from('posts').insert({post_type:'game',game_id:juegoSeleccionado.id,game_rating:Number(document.getElementById('notaJuego').value),body}));form.reset();document.getElementById('reseñaJuego').hidden=true;document.getElementById('estadoBusquedaJuegos').textContent='Reseña publicada en el muro de juegos.';await cargarFeed(true);});
     });
     async function sincronizarSesion(session, evento) {
         if (session && usuario && session.user.id === usuario.id && perfil && evento !== "PASSWORD_RECOVERY") return;
@@ -1152,11 +1214,7 @@
             if(usuario)await cargarVideos();else document.getElementById('estadoVideos').textContent='Inicia sesión para ver recomendaciones.';
             return;
         }
-        if(viendoJuegos){
-            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','cuenta','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
-            if(usuario)await cargarJuegos();else document.getElementById('estadoJuegos').textContent='Inicia sesión para ver y publicar recomendaciones.';
-            return;
-        }
+        if(viendoJuegos&&reiniciar&&usuario)await cargarJuegos();
         if(viendoEventos){
             ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','cuenta','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
             if(usuario)await cargarEventos();else document.getElementById('estadoEventos').textContent='Inicia sesión para ver eventos e invitaciones.';
@@ -1247,13 +1305,13 @@
                 if(!friendAuthors.length)document.getElementById('feedVacio').textContent='Agrega amigos para ver sus publicaciones aquí.';
             }
             if(postIds!==null&&postIds.length){
-                respuesta=await db.from('posts').select(seleccionPosts).in('id',postIds);
+                respuesta=await db.from('posts').select(usuario?seleccionPosts:seleccionPostsPublica).in('id',postIds);
                 datos=resultado(respuesta);const byId=new Map(datos.map(post=>[post.id,post]));datos=postIds.map(id=>byId.get(id)).filter(Boolean);
             }else if(postIds===null&&!(friendAuthors&&friendAuthors.length===0)){
-                let consulta=db.from('posts').select(seleccionPosts,viendoPerfil&&reiniciar?{count:'exact'}:{});
+                let consulta=db.from('posts').select(usuario?seleccionPosts:seleccionPostsPublica,viendoPerfil&&reiniciar?{count:'exact'}:{});
                 if(viendoPerfil)consulta=consulta.eq('user_id',perfilSolicitado);
                 else if(friendAuthors)consulta=consulta.in('user_id',friendAuthors);
-                else consulta=consulta.eq('post_type',viendoMemes?'meme':viendoPeliculas?'film':viendoLibros?'book':viendoDiario?'blog':viendoMusica?'album':'status');
+                else consulta=consulta.eq('post_type',viendoMemes?'meme':viendoPeliculas?'film':viendoLibros?'book':viendoDiario?'blog':viendoJuegos?'game':viendoMusica?'album':'status');
                 if(viendoDiario&&filtroDiario){const term=filtroDiario.replace(/[^\p{L}\p{N}_ -]/gu,' ').trim();if(term)consulta=consulta.or('blog_title.ilike.%'+term+'%,blog_tags.ilike.%'+term+'%');}
                 respuesta=await consulta.order('created_at',{ascending:false}).order('id',{ascending:false}).range(inicio,inicio+porPagina-1);datos=resultado(respuesta);rowsEnFuente=datos.length;
             }
@@ -1343,8 +1401,8 @@
         document.getElementById('peliculasNav').setAttribute('aria-current', viendoPeliculas ? 'page' : 'false');
         document.getElementById('librosNav').setAttribute('aria-current',viendoLibros?'page':'false');
         document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoLibros && !viendoDiario && !viendoAmigos && !viendoActividad && !viendoGuardados && !viendoListas && !viendoEventos && !viendoVideos && !viendoJuegos && !viendoMusica && !viendoBlackjack ? 'page' : 'false');
-        document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : viendoLibros ? 'Reseñas de libros' : viendoDiario ? 'Diarios de la comunidad' : viendoMusica ? 'Publicaciones de música' : viendoActividad ? 'Actividad de tus amigos' : viendoGuardados ? 'Guardados' : viendoListas ? 'Mis listas' : 'Publicaciones del muro';
-        document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : viendoLibros ? 'Todavía no hay reseñas de libros. ¡Comparte la primera!' : viendoDiario ? 'Todavía no hay entradas. Escribe la primera.' : viendoMusica ? 'Todavía no hay álbumes reseñados. ¡Comparte el primero!' : viendoActividad ? 'Agrega amigos para ver sus publicaciones aquí.' : viendoGuardados ? 'Todavía no guardas publicaciones.' : viendoListas ? 'Esta lista todavía no tiene publicaciones.' : 'Todavía no hay publicaciones. Comparte algo en el muro.';
+        document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : viendoLibros ? 'Reseñas de libros' : viendoJuegos ? 'Reseñas de juegos' : viendoDiario ? 'Diarios de la comunidad' : viendoMusica ? 'Publicaciones de música' : viendoActividad ? 'Actividad de tus amigos' : viendoGuardados ? 'Guardados' : viendoListas ? 'Mis listas' : 'Publicaciones del muro';
+        document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : viendoLibros ? 'Todavía no hay reseñas de libros. ¡Comparte la primera!' : viendoJuegos ? 'Todavía no hay reseñas de juegos. ¡Publica la primera!' : viendoDiario ? 'Todavía no hay entradas. Escribe la primera.' : viendoMusica ? 'Todavía no hay álbumes reseñados. ¡Comparte el primero!' : viendoActividad ? 'Agrega amigos para ver sus publicaciones aquí.' : viendoGuardados ? 'Todavía no guardas publicaciones.' : viendoListas ? 'Esta lista todavía no tiene publicaciones.' : 'Todavía no hay publicaciones. Comparte algo en el muro.';
         document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoLibros ? 'Libros · RedMusica' : viendoDiario ? 'Diario · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : viendoActividad ? 'Actividad de amigos · RedMusica' : viendoGuardados ? 'Guardados · RedMusica' : viendoListas ? 'Mis listas · RedMusica' : viendoBlackjack ? 'Blackjack · RedMusica' : viendoEventos ? 'Eventos · RedMusica' : viendoVideos ? 'Videos · RedMusica' : viendoJuegos ? 'Juegos · RedMusica' : viendoMusica ? 'Música · RedMusica' : 'RedMusica';
         if (!viendoPerfil) {
             document.getElementById('fotoPerfilPublico').replaceChildren();
@@ -1399,12 +1457,13 @@
         const esMeme = post.post_type === 'meme';
         const esPelicula = post.post_type === 'film';
         const esLibro = post.post_type === 'book';
+        const esJuego = post.post_type === 'game';
         const esDiario = post.post_type === 'blog';
         const esEstado = post.post_type === 'status';
         let portada = document.createElement("img");
         portada.loading = "lazy";
-        portada.width = esPelicula||esLibro ? 300 : 250;
-        portada.height = esPelicula||esLibro ? 450 : 250;
+        portada.width = esPelicula||esLibro||esJuego ? 300 : 250;
+        portada.height = esPelicula||esLibro||esJuego ? 450 : 250;
         if (esMeme) {
             portada.className='imagen-meme'; portada.alt='Meme publicado por @'+post.profiles.username;
             portada.src=config.supabaseUrl+'/storage/v1/object/public/post-images/'+post.image_path.split('/').map(encodeURIComponent).join('/');
@@ -1414,15 +1473,16 @@
             if(posterUrl){portada.src=posterUrl;activarRespaldoAfiche(portada,{title:post.film_title,year:post.film_year,poster:post.film_poster,tmdb_id:post.film_tmdb_id},600);}
             else {portada=crearAficheAlternativo(post.film_title,post.film_year);recuperarAfichePublicacion(portada,{title:post.film_title,year:post.film_year,tmdb_id:post.film_tmdb_id},600);}
         } else if(esLibro){portada.className='poster-libro';portada.alt='Portada de '+post.book_title;const src=portadaLibroSegura(post.book_cover);if(src){portada.src=src;portada.onerror=()=>{const fallback=document.createElement('div');fallback.className='portada-libro-vacia';fallback.textContent=post.book_title;portada.replaceWith(fallback);};}else {const fallback=document.createElement('div');fallback.className='portada-libro-vacia';fallback.textContent=post.book_title;portada=fallback;}}
+        else if(esJuego){portada=crearPortadaJuego({title:post.games_catalog?.title||'Juego',cover_url:post.games_catalog?.cover_url});}
         else if (!esEstado&&!esDiario) asignarPortada(portada, "https://coverartarchive.org/release-group/" + post.album_id + "/front-500", post.album_title, post.album_artist);
         else if (post.image_path) { portada.className='imagen-muro';portada.alt='Imagen compartida por @'+post.profiles.username;portada.src=config.supabaseUrl+'/storage/v1/object/public/post-images/'+post.image_path.split('/').map(encodeURIComponent).join('/'); }
         const titulo = document.createElement("h3");
-        titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : esPelicula ? post.film_title : esLibro ? post.book_title : esDiario ? post.blog_title : esEstado ? 'Publicación' : post.album_title;
+        titulo.textContent = esMeme ? 'Meme de @'+post.profiles.username : esPelicula ? post.film_title : esLibro ? post.book_title : esJuego ? post.games_catalog?.title||'Reseña de juego' : esDiario ? post.blog_title : esEstado ? 'Publicación' : post.album_title;
         const artista = document.createElement("p");
-        artista.hidden=esMeme||esEstado||esDiario; artista.textContent = esPelicula ? [post.film_director,post.film_year].filter(Boolean).join(' · ') : esLibro ? [post.book_authors,post.book_year].filter(Boolean).join(' · ') : post.album_artist || '';
+        artista.hidden=esMeme||esEstado||esDiario; artista.textContent = esPelicula ? [post.film_director,post.film_year].filter(Boolean).join(' · ') : esLibro ? [post.book_authors,post.book_year].filter(Boolean).join(' · ') : esJuego ? [post.games_catalog?.platforms,post.games_catalog?.release_year,post.games_catalog?.genre].filter(Boolean).join(' · ') : post.album_artist || '';
         const puntuacion=document.createElement('p');
-        puntuacion.className='nota-pelicula';puntuacion.hidden=!esPelicula&&!esLibro;
-        const rating=esLibro?post.book_rating:post.film_rating;puntuacion.textContent=esPelicula||esLibro?'★'.repeat(Math.floor(rating))+(rating%1?'½':'')+' · '+Number(rating).toLocaleString('es-CL',{minimumFractionDigits:rating%1?1:0,maximumFractionDigits:1})+'/5':'';
+        puntuacion.className='nota-pelicula';puntuacion.hidden=!esPelicula&&!esLibro&&!esJuego;
+        const rating=esJuego?post.game_rating:esLibro?post.book_rating:post.film_rating;puntuacion.textContent=esPelicula||esLibro||esJuego?'★'.repeat(Math.floor(rating))+(rating%1?'½':'')+' · '+Number(rating).toLocaleString('es-CL',{minimumFractionDigits:rating%1?1:0,maximumFractionDigits:1})+'/5':'';
         const texto = document.createElement("p");
         texto.className = "opinion";
         pintarTextoConGif(texto,post.body);
@@ -1612,9 +1672,11 @@
         articulo.classList.add('publicacion-' + (post.post_type || 'album'));
         articulo.classList.toggle('publicacion-pelicula',esPelicula);
         articulo.classList.toggle('publicacion-libro',esLibro);
+        articulo.classList.toggle('publicacion-juego',esJuego);
         articulo.classList.toggle('publicacion-diario',esDiario);
         if(esPelicula){const source=document.createElement('a');source.href=post.film_tmdb_id?'https://www.themoviedb.org/movie/'+encodeURIComponent(post.film_tmdb_id):'https://www.wikidata.org/wiki/'+encodeURIComponent(post.film_wikidata_id||'');source.target='_blank';source.rel='noopener';source.textContent=post.film_tmdb_id?'Ficha en TMDb':'Ficha en Wikidata';source.className='fuente-pelicula';articulo.prepend(autor,portada,titulo,artista,puntuacion,source,texto,acciones,mensaje,zona);}
         else if(esLibro){const source=document.createElement('a');source.href=urlFichaLibro(post.book_google_id);source.target='_blank';source.rel='noopener noreferrer';source.textContent=String(post.book_google_id||'').startsWith('OLW_')?'Ficha de Open Library':'Ficha de Google Books';source.className='fuente-pelicula';articulo.prepend(autor,portada,titulo,artista,puntuacion,source,texto,acciones,mensaje,zona);}
+        else if(esJuego){const source=document.createElement('a');source.href=post.games_catalog?.external_url||'https://www.wikidata.org/';source.target='_blank';source.rel='noopener noreferrer';source.textContent=post.games_catalog?.wikidata_id?'Ficha en Wikidata':'Ficha del juego';source.className='fuente-pelicula';articulo.prepend(autor,portada,titulo,artista,puntuacion,source,texto,acciones,mensaje,zona);}
         else if(esDiario){const elements=[autor,titulo];if(etiquetasDiario.childElementCount)elements.push(etiquetasDiario);elements.push(texto,acciones,mensaje,zona);articulo.prepend(...elements);}
         else if(esEstado){
             const elements=[autor,titulo];if(post.image_path)elements.push(portada);if(post.body.trim())elements.push(texto);
