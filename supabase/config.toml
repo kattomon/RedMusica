@@ -6,6 +6,10 @@ verify_jwt = false
 # Every action verifies auth.getUser, then reads fresh database permissions.
 verify_jwt = false
 
+[functions.giphy]
+# The handler verifies the user token, account status and per-user rate limit.
+verify_jwt = true
+
 [functions.push]
 # Actions validate the user JWT internally; database events use a Vault-backed secret.
 verify_jwt = false

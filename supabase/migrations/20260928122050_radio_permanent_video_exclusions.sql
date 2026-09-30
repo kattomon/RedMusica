@@ -23,7 +23,7 @@ create or replace function public.radio_video_blocked(p_video text) returns bool
 language sql stable security definer set search_path=''
 as $$ select exists(select 1 from public.radio_blocklist where video_id=p_video) $$;
 revoke all on function public.radio_video_blocked(text) from public;
-grant execute on function public.radio_video_blocked(text) to anon,authenticated,service_role;
+grant execute on function public.radio_video_blocked(text) to service_role;
 revoke all on public.radio_blocklist from anon,authenticated;
 grant all on public.radio_blocklist to service_role;
 drop policy if exists radio_blocklist_server on public.radio_blocklist;

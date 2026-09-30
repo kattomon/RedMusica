@@ -16,5 +16,6 @@ create index blackjack_rooms_expires_at_idx on public.blackjack_rooms (expires_a
 alter table public.blackjack_rooms enable row level security;
 revoke all on public.blackjack_rooms from anon, authenticated;
 grant all on public.blackjack_rooms to service_role;
+create policy blackjack_rooms_server on public.blackjack_rooms to service_role using (true) with check (true);
 
 commit;

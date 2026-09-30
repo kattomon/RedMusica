@@ -26,14 +26,13 @@
     const presenciaEnLinea = new Set();
     const dialogoGif=document.getElementById('selectorGif');
     let formularioGifActivo=null;
-    let giphyApiKey='';
-    async function cargarClaveGiphy(){if(giphyApiKey)return giphyApiKey;try{const {data,error}=await db.from('site_gif_settings').select('api_key').eq('id',true).maybeSingle();if(!error)giphyApiKey=data?.api_key||'';}catch{}return giphyApiKey;}
-    function urlGifPermitida(value){try{const url=new URL(value);return url.protocol==='https:'&&(/\.giphy\.com$|\.giphyusercontent\.com$/.test(url.hostname))&&/\.gif$/i.test(url.pathname);}catch{return false;}}
+    async function cargarClaveGiphy(){return Boolean(usuario&&perfil);}
+    function urlGifPermitida(value){try{const url=new URL(value);return url.protocol==='https:'&&(/\.giphy\.com$|\.giphyusercontent\.com$/.test(url.hostname))&&/\.(gif|webp)$/i.test(url.pathname);}catch{return false;}}
     function pintarTextoConGif(container,value){const text=String(value||''),match=text.match(/(?:\r?\n)?\[GIF\]\s*(https:\/\/\S+)\s*$/);container.textContent=match?text.slice(0,match.index).trimEnd():text;if(match&&urlGifPermitida(match[1])){const image=document.createElement('img');image.className='gif-compartido';image.src=match[1];image.alt='GIF de GIPHY';image.loading='lazy';image.referrerPolicy='no-referrer';container.append(document.createElement('br'),image);}}
     function prepararCuerpo(form,input,limit){const text=input.value.trim(),gif=form.querySelector('.url-gif-adjunto')?.value||'',body=text+(gif?(text?'\n':'')+'[GIF] '+gif:'');if(body.length>limit)throw Error('El texto más el GIF supera el límite del mensaje. Acorta el texto.');return body;}
     function adjuntarGif(form,url){if(!form||!urlGifPermitida(url))return;let field=form.querySelector('.url-gif-adjunto');if(!field){field=document.createElement('input');field.type='hidden';field.className='url-gif-adjunto';form.append(field);}field.value=url;let preview=form.querySelector('.gif-vista-previa');if(!preview){preview=document.createElement('img');preview.className='gif-vista-previa';preview.alt='GIF seleccionado';preview.loading='lazy';preview.width=200;preview.height=112;form.append(preview);}preview.src=url;}
-    document.addEventListener('click',async event=>{const button=event.target.closest('.abrir-selector-gif');if(!button)return;formularioGifActivo=button.closest('form');const status=document.getElementById('estadoSelectorGif');if(!dialogoGif.open)dialogoGif.showModal();status.textContent='Conectando con GIPHY…';document.getElementById('textoBuscarGifs').focus();status.textContent=await cargarClaveGiphy()?'Busca y toca un GIF para añadirlo.':'La búsqueda está desactivada. La cuenta owner puede configurar una clave pública de GIPHY en Administración.';});
-    document.getElementById('buscarGifs').addEventListener('submit',async event=>{event.preventDefault();const status=document.getElementById('estadoSelectorGif'),results=document.getElementById('resultadosGifs'),query=document.getElementById('textoBuscarGifs').value.trim();if(!await cargarClaveGiphy()){status.textContent='La cuenta owner puede configurar la clave pública de GIPHY en Administración.';return;}status.textContent='Buscando…';results.replaceChildren();try{const url=new URL('https://api.giphy.com/v1/gifs/search');url.searchParams.set('api_key',giphyApiKey);url.searchParams.set('q',query);url.searchParams.set('limit','18');url.searchParams.set('rating','g');url.searchParams.set('lang','es');const response=await fetch(url,{signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const payload=await response.json();for(const gif of payload.data||[]){const full=gif.images?.original?.url,thumb=gif.images?.fixed_width_small?.url;if(!urlGifPermitida(full)||!thumb)continue;const item=document.createElement('button');item.type='button';item.className='gif-resultado';const image=document.createElement('img');image.src=thumb;image.alt=gif.title||'GIF';image.loading='lazy';image.referrerPolicy='no-referrer';item.append(image);item.addEventListener('click',()=>{adjuntarGif(formularioGifActivo,full);dialogoGif.close();formularioGifActivo?.querySelector('input:not([type=hidden])')?.focus();});results.append(item);}status.textContent=results.childElementCount?'Toca un GIF para adjuntarlo.':'No encontramos GIFs para esa búsqueda.';}catch{status.textContent='No se pudieron cargar los GIFs. Inténtalo de nuevo en un momento.';}});
+    document.addEventListener('click',async event=>{const button=event.target.closest('.abrir-selector-gif');if(!button)return;formularioGifActivo=button.closest('form');const status=document.getElementById('estadoSelectorGif');if(!dialogoGif.open)dialogoGif.showModal();status.textContent='Conectando con GIPHY…';document.getElementById('textoBuscarGifs').focus();status.textContent=await cargarClaveGiphy()?'Busca y toca un GIF para añadirlo.':'Inicia sesión para buscar GIFs.';});
+    document.getElementById('buscarGifs').addEventListener('submit',async event=>{event.preventDefault();const status=document.getElementById('estadoSelectorGif'),results=document.getElementById('resultadosGifs'),query=document.getElementById('textoBuscarGifs').value.trim();if(!await cargarClaveGiphy()){status.textContent='Inicia sesión para buscar GIFs.';return;}status.textContent='Buscando…';results.replaceChildren();try{const {data,error}=await db.functions.invoke('giphy',{body:{query}});if(error)throw error;for(const gif of data?.gifs||[]){const full=gif.url,thumb=gif.preview;if(!urlGifPermitida(full)||!urlGifPermitida(thumb))continue;const item=document.createElement('button');item.type='button';item.className='gif-resultado';const image=document.createElement('img');image.src=thumb;image.alt=gif.title||'GIF';image.loading='lazy';image.referrerPolicy='no-referrer';item.append(image);item.addEventListener('click',()=>{adjuntarGif(formularioGifActivo,full);dialogoGif.close();formularioGifActivo?.querySelector('input:not([type=hidden])')?.focus();});results.append(item);}status.textContent=results.childElementCount?'Toca un GIF para adjuntarlo.':'No encontramos GIFs para esa búsqueda.';}catch{status.textContent='No se pudieron cargar los GIFs. Inténtalo de nuevo en un momento.';}});
     let revisionAmigos = 0;
     let canalMensajesPrivados = null, propietarioMensajesPrivados = null;
     let amigoChatActivo = null, mensajesPrivadosCargados = new Set();
@@ -248,13 +247,20 @@
         if (respuesta.error) throw respuesta.error;
         return respuesta.data;
     }
+    function mensajeErrorAccion(error) {
+        if (error?.code === '42501') return 'Tu cuenta no tiene permiso para completar esta acción. Vuelve a iniciar sesión y prueba otra vez.';
+        if (error?.code === '23514' || error?.code === '23502' || error?.code === '22001') return 'Revisa los datos ingresados; alguno no coincide con el catálogo o supera el límite permitido.';
+        if (error?.code === '23503') return 'La sesión o el elemento seleccionado ya no está disponible. Actualiza la página e inténtalo de nuevo.';
+        if (error?.name === 'AbortError' || error?.name === 'TimeoutError') return 'La conexión tardó demasiado. Inténtalo de nuevo.';
+        return 'No se pudo completar la acción. Revisa tu conexión y tu sesión e inténtalo de nuevo.';
+    }
     async function accion(boton, mensaje, tarea) {
         if (boton.disabled) return;
         boton.disabled = true;
         mensaje.textContent = "";
         try { await tarea(); }
         catch (error) {
-            mensaje.textContent = "No se pudo completar la acción. Revisa tu conexión y tu sesión e inténtalo de nuevo.";
+            mensaje.textContent = mensajeErrorAccion(error);
         } finally { boton.disabled = false; }
     }
     function exigirCuenta() {

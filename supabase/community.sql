@@ -71,12 +71,11 @@ create index chat_messages_recent_idx on public.chat_messages(created_at desc,id
 create index chat_messages_user_id_idx on public.chat_messages(user_id);
 alter table public.chat_messages enable row level security;
 revoke all on public.chat_messages from anon,authenticated;
-grant select on public.chat_messages to anon,authenticated;
+grant select on public.chat_messages to authenticated;
 grant insert(body) on public.chat_messages to authenticated;
 grant delete on public.chat_messages to authenticated;
 grant all on public.chat_messages to service_role;
-create policy chat_read on public.chat_messages for select to anon,authenticated using(true);
-create policy chat_visible on public.chat_messages as restrictive for select to anon,authenticated using(not hidden);
+create policy chat_read on public.chat_messages for select to authenticated using(not hidden);
 create policy chat_insert_self on public.chat_messages for insert to authenticated with check(
  user_id=(select auth.uid()) and exists(select 1 from public.profiles where id=user_id and not suspended)
 );

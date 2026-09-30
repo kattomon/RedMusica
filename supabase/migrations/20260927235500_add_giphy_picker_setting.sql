@@ -7,9 +7,10 @@ create table if not exists public.site_gif_settings (
 insert into public.site_gif_settings(id) values(true) on conflict(id) do nothing;
 alter table public.site_gif_settings enable row level security;
 revoke all on public.site_gif_settings from anon,authenticated;
-grant select on public.site_gif_settings to anon,authenticated;
+grant all on public.site_gif_settings to service_role;
 drop policy if exists gif_settings_read on public.site_gif_settings;
-create policy gif_settings_read on public.site_gif_settings for select to anon,authenticated using(true);
+drop policy if exists gif_settings_server on public.site_gif_settings;
+create policy gif_settings_server on public.site_gif_settings to service_role using(true) with check(true);
 
 create or replace function public.set_giphy_api_key(p_key text) returns void
 language plpgsql security definer set search_path='' as $$
@@ -21,6 +22,5 @@ begin
  update public.site_gif_settings set api_key=btrim(coalesce(p_key,'')) where id=true;
 end $$;
 revoke all on function public.set_giphy_api_key(text) from public,anon,authenticated;
-grant execute on function public.set_giphy_api_key(text) to authenticated;
 
 commit;

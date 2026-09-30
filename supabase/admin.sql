@@ -22,8 +22,8 @@ create table public.site_gif_settings (
 insert into public.site_gif_settings(id) values(true);
 alter table public.site_gif_settings enable row level security;
 revoke all on public.site_gif_settings from anon,authenticated;
-grant select on public.site_gif_settings to anon,authenticated;
-create policy gif_settings_read on public.site_gif_settings for select to anon,authenticated using(true);
+grant all on public.site_gif_settings to service_role;
+create policy gif_settings_server on public.site_gif_settings to service_role using(true) with check(true);
 
 create or replace function public.set_giphy_api_key(p_key text) returns void
 language plpgsql security definer set search_path='' as $$
@@ -35,7 +35,6 @@ begin
  update public.site_gif_settings set api_key=btrim(coalesce(p_key,'')) where id=true;
 end $$;
 revoke all on function public.set_giphy_api_key(text) from public,anon,authenticated;
-grant execute on function public.set_giphy_api_key(text) to authenticated;
 create table public.admin_audit (
  id bigint generated always as identity primary key,
  actor uuid references public.profiles(id) on delete set null,
@@ -58,8 +57,8 @@ create policy radio_blocklist_server on public.radio_blocklist to service_role u
 create or replace function public.radio_video_blocked(p_video text) returns boolean
 language sql stable security definer set search_path=''
 as $$ select exists(select 1 from public.radio_blocklist where video_id=p_video) $$;
-revoke all on function public.radio_video_blocked(text) from public;
-grant execute on function public.radio_video_blocked(text) to anon,authenticated,service_role;
+revoke all on function public.radio_video_blocked(text) from public,anon,authenticated;
+grant execute on function public.radio_video_blocked(text) to service_role;
 alter table public.site_settings enable row level security;
 alter table public.admin_audit enable row level security;
 revoke all on public.site_settings,public.admin_audit from anon,authenticated;
