@@ -8,11 +8,11 @@
  const title = document.getElementById('tituloPanelRadio');
  const thumbnail = document.getElementById('miniaturaRadioPanel');
  const liveWidget = document.getElementById('radioEnVivo');
- if (liveWidget) initializeLiveWidget(liveWidget);
+ let frame;
+ const liveStatus = liveWidget ? initializeLiveWidget() : null;
  const defaultTitle = title.textContent;
  let nowPlaying = '';
  let playbackPaused = false;
- let frame;
  const dragKey='redmusica:radio-panel-position:v1';
  function clampPosition(left,top){const rect=panel.getBoundingClientRect(),margin=8;return{left:Math.max(margin,Math.min(left,innerWidth-rect.width-margin)),top:Math.max(margin,Math.min(top,innerHeight-rect.height-margin))};}
  function savePosition(left,top){const p=clampPosition(left,top);panel.style.left=p.left+'px';panel.style.top=p.top+'px';panel.style.right='auto';try{localStorage.setItem(dragKey,JSON.stringify(p));}catch{}}
@@ -67,6 +67,7 @@
  if (liveButton) liveButton.addEventListener('click', () => setOpen(panel.hidden || panel.classList.contains('minimizado')));
  document.addEventListener('keydown', e => { if(e.key==='Escape' && !panel.hidden && !panel.classList.contains('minimizado')) minimizePanel(); });
  window.addEventListener('message', e => {
+  if(frame && !panel.hidden && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-state') liveStatus?.receive(e.data.state);
   if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-now-playing' && typeof e.data.title==='string') {
    nowPlaying=e.data.title.slice(0,80);
    if(typeof e.data.videoId==='string'&&/^[A-Za-z0-9_-]{11}$/.test(e.data.videoId)){thumbnail.src='https://i.ytimg.com/vi/'+e.data.videoId+'/mqdefault.jpg';thumbnail.alt='Miniatura de '+nowPlaying;thumbnail.hidden=false;thumbnail.onerror=()=>{thumbnail.hidden=true;thumbnail.removeAttribute('src');};}
@@ -77,7 +78,7 @@
   if(frame && e.source===frame.contentWindow && e.origin===location.origin && e.data?.type==='radio-close') minimizePanel();
  });
 
- function initializeLiveWidget(widget) {
+ function initializeLiveWidget() {
   const config = window.REDMUSICA_CONFIG;
   const status = document.getElementById('radioEstadoEnVivo');
   const statusText = document.getElementById('radioEstadoEnVivoTexto');
@@ -86,7 +87,7 @@
   const currentDetail = document.getElementById('radioDetalleEnVivo');
   const nextTitle = document.getElementById('radioSiguienteEnVivo');
   const countdown = document.getElementById('radioCuentaAtrasEnVivo');
-  let serverOffset = 0, deadline = 0, tick;
+  let serverOffset = 0, deadline = 0, lastSharedStateAt = 0, requestPending = false, revision = 0;
   const setStatus = (name, label) => { status.dataset.status = name; statusText.textContent = label; };
   const formatTime = seconds => {
    const value = Math.max(0, Math.floor(seconds));
@@ -134,24 +135,37 @@
   }
   async function refresh() {
    if (!navigator.onLine) { setStatus('offline', 'Sin conexión'); return; }
-   if (document.visibilityState === 'hidden') return;
+   if (document.visibilityState === 'hidden' || requestPending) return;
+   // The open player already refreshes the shared schedule every 15 seconds.
+   // Keep the widget's own poll as a fallback when that source stops responding.
+   if (frame && !panel.hidden && lastSharedStateAt && Date.now()-lastSharedStateAt < 45000) return;
+   requestPending = true;
+   const requestRevision = ++revision;
    try {
     const response = await fetch(`${config.supabaseUrl}/functions/v1/radio`, {
      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.supabasePublishableKey },
-     body: JSON.stringify({ action: 'state' }), cache: 'no-store'
+     body: JSON.stringify({ action: 'state' }), cache: 'no-store', signal: AbortSignal.timeout(15000)
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    render(await response.json());
+    const state = await response.json();
+    if (requestRevision === revision) render(state);
    } catch {
+    if (requestRevision !== revision) return;
     setStatus('offline', 'Reconectando');
     if (!currentTitle.textContent || currentTitle.textContent === 'Consultando programación…') currentTitle.textContent = 'No se pudo consultar la radio';
-   }
+   } finally { requestPending = false; }
   }
   refresh();
-  tick = window.setInterval(renderCountdown, 1000);
+  window.setInterval(renderCountdown, 1000);
   window.setInterval(refresh, 25000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
   window.addEventListener('online', refresh);
+  return { receive(state) {
+   if (!state || !Array.isArray(state.queue) || !Number.isFinite(Date.parse(state.now))) return;
+   try { render(state); } catch { return; }
+   lastSharedStateAt = Date.now();
+   revision++;
+  } };
  }
 })();
 

@@ -1,0 +1,123 @@
+/* A quiet, separate workspace for the people caring for the community. */
+.admin-page #administracion {
+  --admin-border: #ddd5ca;
+  --admin-muted: #716b65;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 24px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 5px;
+  background: #fffefa;
+  box-shadow: 0 2px 4px #4030390a;
+}
+.admin-page main > :not(#administracion):not(#estadoConexion):not(#estadoInstalacion):not(#instalarApp):not(#radioEnVivo):not(#navegacion):not(h1):not(p:first-of-type) { display: none !important; }
+#administracion .admin-cabecera {
+  align-items: center;
+  margin: 0;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--admin-border);
+  background: linear-gradient(100deg, #f1e9e6, #faf7ef);
+}
+#administracion .admin-cabecera h2 { color: #4c3d47; font-size: 1.55rem; letter-spacing: -.025em; }
+#administracion .admin-cabecera p { max-width: 54ch; color: #746966; font-size: .84rem; line-height: 1.5; }
+#administracion .admin-kicker { color: #81675a; font-size: .63rem; letter-spacing: .13em; }
+#administracion .admin-cabecera-lado { flex-direction: column; align-items: flex-end; gap: 8px; }
+#administracion .admin-rango { padding: 4px 7px; border: 1px solid #cfbbc4; background: #f3e9ee; color: #674b5c; font-size: .65rem; }
+#administracion button { margin: 0; border-radius: 3px; }
+#administracion .admin-volver { min-height: 34px; border-color: #cfc3b8; background: #fffefa; color: #594b52; font-size: .78rem; }
+#administracion .admin-estado { min-height: 20px; margin: 0; padding: 8px 20px 0; color: var(--admin-muted); font-size: .77rem; }
+#administracion .admin-estado[data-state="error"] { margin: 12px 20px 0; padding: 9px 12px; background: #fff2ee; color: #8d3e35; }
+#administracion .admin-estado[data-state="success"] { color: #4c6e5d; }
+#administracion .admin-resumen { gap: 0; margin: 10px 20px 15px; overflow: hidden; border: 1px solid var(--admin-border); border-radius: 4px; }
+#administracion .admin-resumen article { gap: 3px; padding: 12px 14px; border: 0; border-right: 1px solid var(--admin-border); border-radius: 0; background: #f8f6f0; }
+#administracion .admin-resumen article:last-child { border-right: 0; }
+#administracion .admin-resumen span { color: var(--admin-muted); font-size: .69rem; text-transform: uppercase; letter-spacing: .06em; }
+#administracion .admin-resumen strong { color: #4a5048; font-size: 1.1rem; }
+#administracion .admin-tabs { gap: 3px; margin: 0 20px; padding: 4px; border-color: var(--admin-border); border-radius: 4px; background: #efede6; }
+#administracion .admin-tabs button { min-height: 37px; padding: 7px 11px; border: 1px solid transparent; color: #67615d; font-size: .8rem; }
+#administracion .admin-tabs button:hover { background: #e5ded8; color: #4c3d47; }
+#administracion .admin-tabs button[aria-selected="true"] { border-color: #d4c7cd; background: #fffefa; color: #634e5d; font-weight: 700; box-shadow: 0 1px 2px #4b384414; }
+#administracion .admin-view { min-width: 0; gap: 16px; padding: 20px; outline-offset: -4px; }
+#administracion .admin-bloque { padding: 16px; border: 1px solid var(--admin-border); border-radius: 4px; background: #fff; }
+#administracion .admin-bloque h3 { color: #4a3d46; font-size: 1rem; }
+#administracion .admin-bloque h4 { color: #5e555b; font-size: .85rem; }
+#administracion .admin-bloque > p, #administracion .admin-bloque-titulo p { font-size: .81rem; line-height: 1.55; }
+#administracion .admin-bienvenida { border-color: #d5dacf; background: #f1f4ed; }
+#administracion .admin-bienvenida::after { display: none; }
+#administracion .admin-bienvenida-sello { margin-bottom: 8px; border-color: #bdcabc; background: #fffefa; color: #56725e; font-size: .58rem; }
+#administracion .admin-bienvenida h3 { font-size: 1.2rem; }
+#administracion .admin-bienvenida .admin-ayuda { padding-top: 9px; color: #76756d; font-size: .75rem; }
+#administracion .admin-accesos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+#administracion .admin-acceso { grid-template-columns: 29px minmax(0, 1fr); gap: 4px 9px; min-height: 126px; padding: 14px; border-color: var(--admin-border); background: #fffefa; box-shadow: none; }
+#administracion .admin-acceso:hover { transform: none; border-color: #b6a7ac; background: #f7f2f3; }
+#administracion .admin-acceso-icono { width: 29px; height: 29px; border-color: #d8c9cf; background: #efe7eb; color: #796071; font-size: 1rem; }
+#administracion .admin-acceso strong { font-size: .86rem; }
+#administracion .admin-acceso small, #administracion .admin-acceso-estado { font-size: .73rem; }
+#administracion .admin-acceso-estado { margin-top: 6px; border-top-style: solid; border-color: #ebe5dd; }
+#administracion .admin-ayuda { color: var(--admin-muted); font-size: .76rem; }
+#administracion .admin-bloque-titulo { gap: 10px; }
+#administracion .admin-bloque-titulo > div { min-width: 0; }
+#administracion .admin-bloque-titulo > button { flex: 0 0 auto; min-height: 34px; padding: 5px 9px; font-size: .75rem; }
+#administracion .admin-acciones { gap: 7px; margin: 14px 0; }
+#administracion .admin-acciones button { min-height: 39px; font-size: .8rem; }
+#administracion .admin-buscador { grid-template-columns: minmax(110px, 1fr) minmax(160px, 1.5fr); gap: 7px 10px; padding: 12px; border: 1px solid #e5dfd5; border-radius: 4px; background: #f8f6f1; }
+#administracion .admin-buscador label { font-size: .74rem; }
+#administracion .admin-buscador > button { grid-column: 2; justify-self: end; min-height: 35px; padding: 6px 12px; font-size: .79rem; }
+#administracion input:not([type="checkbox"]), #administracion textarea, #administracion select { min-width: 0; min-height: 38px; padding: 8px 10px; border: 1px solid #cfc7bc; border-radius: 3px; background: #fff; color: #413b3f; font: inherit; font-size: .84rem; }
+#administracion label { color: #63585e; font-size: .79rem; font-weight: 600; }
+#administracion .admin-fila { gap: 6px 8px; padding: 12px; border-color: #e2dcd3; border-radius: 3px; background: #faf9f5; }
+#administracion .admin-fila > strong { color: #4c3d47; font-size: .85rem; }
+#administracion .admin-fila > p { padding: 4px 0; font-size: .83rem; line-height: 1.5; }
+#administracion .admin-fila > small, #administracion .admin-fila > time { color: #79706a; font-size: .72rem; }
+#administracion .admin-fila > button { min-height: 35px; padding: 6px 10px; font-size: .76rem; }
+#administracion .admin-fila-oculta { border-left-color: #ae7465; background: #fbf0eb; }
+#administracion .admin-fila-cancion { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#administracion .admin-fila-cancion > strong, #administracion .admin-fila-cancion > small { grid-column: 1 / -1; }
+#administracion .admin-fila-cancion > a { grid-column: 1 / -1; grid-row: auto; justify-self: start; margin-bottom: 4px; color: #776071; font-size: .74rem; }
+#administracion .admin-fila-cancion > button { grid-column: auto; grid-row: auto; }
+#administracion .admin-fila-cancion .admin-boton-peligro { grid-column: 1 / -1; border: 1px solid #c19b91; background: #f8eeea; color: #8b4c40; }
+#administracion .admin-fila-cancion .admin-boton-peligro:hover { background: #f0dfd8; }
+#administracion .admin-paginacion { align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e5dfd5; }
+#administracion .admin-paginacion button { min-height: 35px; padding: 6px 10px; font-size: .76rem; }
+#administracion .admin-paginacion > span { font-size: .73rem; }
+#administracion .admin-exclusiones { margin: 20px 0 0; }
+#administracion .admin-exclusiones summary { color: #63515d; font-size: .86rem; }
+#administracion .admin-resultados { font-size: .72rem; }
+#administracion .admin-form-settings, #administracion .admin-form-block { gap: 8px; }
+#administracion .admin-form-settings > p { color: var(--admin-muted); font-size: .75rem; line-height: 1.5; }
+@media (min-width: 1100px) {
+  .admin-page #administracion { grid-template-columns: 146px minmax(0, 1fr); }
+  #administracion .admin-cabecera, #administracion .admin-estado, #administracion .admin-resumen { grid-column: 1 / -1; }
+  #administracion .admin-tabs { grid-column: 1; grid-row: 4; flex-direction: column; align-self: stretch; gap: 4px; margin: 0; padding: 15px 10px; overflow: visible; border-width: 1px 1px 0 0; border-radius: 0; background: #f3f0ea; }
+  #administracion .admin-tabs button { width: 100%; text-align: left; }
+  #administracion .admin-view { grid-column: 2; grid-row: 4; border-top: 1px solid var(--admin-border); }
+}
+@media (max-width: 600px) {
+  #administracion .admin-cabecera { align-items: stretch; gap: 14px; padding: 16px 14px; }
+  #administracion .admin-cabecera h2 { font-size: 1.4rem; }
+  #administracion .admin-cabecera-lado { flex-direction: row; align-items: center; justify-content: space-between; }
+  #administracion .admin-volver { flex: 0 0 auto; min-height: 40px; }
+  #administracion .admin-estado { padding-inline: 14px; }
+  #administracion .admin-resumen { margin-inline: 14px; }
+  #administracion .admin-resumen article { padding: 10px 8px; }
+  #administracion .admin-resumen span { font-size: .59rem; }
+  #administracion .admin-resumen strong { font-size: .95rem; }
+  #administracion .admin-tabs { margin-inline: 10px; }
+  #administracion .admin-tabs button { min-height: 42px; }
+  #administracion .admin-view { gap: 12px; padding: 12px 10px; }
+  #administracion .admin-bloque { padding: 12px; }
+  #administracion .admin-accesos { grid-template-columns: minmax(0, 1fr); }
+  #administracion .admin-acceso { min-height: 108px; }
+  #administracion .admin-buscador { grid-template-columns: minmax(0, 1fr); }
+  #administracion .admin-buscador > button { grid-column: 1; width: 100%; }
+  #administracion .admin-buscador label { grid-row: auto; }
+  #administracion .admin-bloque-titulo { flex-wrap: wrap; }
+  #administracion .admin-fila > button, #administracion .admin-acciones > button, #administracion .admin-paginacion > button { min-height: 42px; }
+  #administracion .fila-controles { flex-wrap: wrap; }
+  #administracion .fila-controles input { width: 100%; flex-basis: 100%; }
+}

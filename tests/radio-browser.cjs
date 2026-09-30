@@ -5,9 +5,10 @@ const server=http.createServer((req,res)=>{let file=path.resolve(process.cwd(),'
  await new Promise(r=>server.listen(4180,'127.0.0.1',r));
  for(const engine of [chromium,webkit]){
   const browser=await engine.launch();const ctx=await browser.newContext(engine===webkit?{...devices['iPhone 13']}:{viewport:{width:1200,height:900}});
-  let queue=[],searches=0,requests=0;const errors=[];
+  let queue=[],searches=0,requests=0;const errors=[],stateRequestFrames=[];
+  await ctx.route('https://i.ytimg.com/**',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#888"/></svg>'}));
   await ctx.route('**/vendor/supabase-2.117.2.js',r=>r.fulfill({contentType:'text/javascript',body:`window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:{access_token:'test',user:{id:'listener'}}}}),onAuthStateChange:()=>{}}})};`}));
-  await ctx.route('**/functions/v1/radio',r=>{const body=r.request().postDataJSON();let result={now:new Date().toISOString(),queue};if(body.action==='search'){searches++;assert.equal(body.query,'Candelabro Refugio');result={songs:[{video_id:'abcdefghijk',title:'Candelabro &amp; amigos — Refugio',channel:'Candelabro',duration:180,thumbnail:'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg'}]};}if(body.action==='request'){requests++;queue=[{id:'one',video_id:body.video_id,title:'Candelabro — Refugio',channel:'Candelabro',duration:180,starts_at:new Date(Date.now()-1000).toISOString(),ends_at:new Date(Date.now()+179000).toISOString(),username:'Ana'}];result={now:new Date().toISOString(),queue};}return r.fulfill({contentType:'application/json',body:JSON.stringify(result)});});
+  await ctx.route('**/functions/v1/radio',r=>{const body=r.request().postDataJSON();if(body.action==='state')stateRequestFrames.push(r.request().frame());let result={now:new Date().toISOString(),queue};if(body.action==='search'){searches++;assert.equal(body.query,'Candelabro Refugio');result={songs:[{video_id:'abcdefghijk',title:'Candelabro &amp; amigos — Refugio',channel:'Candelabro',duration:180,thumbnail:'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg'}]};}if(body.action==='request'){requests++;queue=[{id:'one',video_id:body.video_id,title:'Candelabro — Refugio',channel:'Candelabro',duration:180,starts_at:new Date(Date.now()-1000).toISOString(),ends_at:new Date(Date.now()+179000).toISOString(),username:'Ana'}];result={now:new Date().toISOString(),queue};}return r.fulfill({contentType:'application/json',body:JSON.stringify(result)});});
   await ctx.route('https://www.youtube.com/iframe_api',r=>r.fulfill({contentType:'text/javascript',body:`window.YT={Player:function(id,options){window.playerOptions=options;window.playerCalls=[];window.volumeCalls=[];window.pauseCalls=0;window.playCalls=0;this.cueVideoById=p=>window.playerCalls.push(p);this.loadVideoById=p=>window.playerCalls.push(p);this.pauseVideo=()=>window.pauseCalls++;this.playVideo=()=>window.playCalls++;this.stopVideo=()=>{};this.setVolume=v=>window.volumeCalls.push(v);this.mute=()=>window.muted=true;this.unMute=()=>window.muted=false;document.getElementById(id).textContent='Reproductor visible';setTimeout(()=>options.events.onReady(),0);}};window.onYouTubeIframeAPIReady();`}));
   const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto('http://127.0.0.1:4180/radio.html');
   await page.getByText('Todavía no hay canciones. Haz el primer pedido.').waitFor();
@@ -56,7 +57,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(process.cwd(),'
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);assert.deepEqual(errors,[]);
   await ctx.route('**/script.js?*',r=>r.fulfill({contentType:'text/javascript',body:''}));
   const feed=await ctx.newPage();await feed.goto('http://127.0.0.1:4180/index.html?seccion=musica');await feed.locator('#crearPublicacion').evaluate(element=>element.hidden=false);
-  await feed.waitForFunction(()=>document.querySelector('#radioTituloEnVivo')?.textContent==='La que suena al volver');assert.equal(await feed.locator('#radioEstadoEnVivo').getAttribute('data-status'),'live');assert.match(await feed.locator('#radioDetalleEnVivo').innerText(),/@Ana/);assert.match(await feed.locator('#radioCuentaAtrasEnVivo').innerText(),/Termina en/);assert.equal(await feed.locator('#radioPortadaEnVivo').isVisible(),true,'the live status widget shows the current song thumbnail');
+  await feed.waitForFunction(()=>document.querySelector('#radioTituloEnVivo')?.textContent==='La que suena al volver');assert.equal(await feed.locator('#radioEstadoEnVivo').getAttribute('data-status'),'live');assert.match(await feed.locator('#radioDetalleEnVivo').innerText(),/@Ana/);assert.match(await feed.locator('#radioCuentaAtrasEnVivo').innerText(),/Termina en/);assert.equal(await feed.locator('#radioPortadaEnVivo').evaluate(image=>image.hidden),false,'the live status widget prepares the current song thumbnail');if(engine===chromium)assert.equal(await feed.locator('#radioPortadaEnVivo').isVisible(),true,'the desktop live status widget shows the current song thumbnail');
   await feed.locator('#buscarAlbum').fill('Mi búsqueda sin perder');
   const pages=ctx.pages().length;
   await feed.getByRole('button',{name:'Radio ♫'}).click();
@@ -65,6 +66,16 @@ const server=http.createServer((req,res)=>{let file=path.resolve(process.cwd(),'
   await room.getByRole('searchbox',{name:'Artista',exact:true}).fill('Mi artista');
   await room.getByRole('button',{name:'Entrar a escuchar'}).click();
   await room.getByRole('button',{name:'Volver a la canción de la sala'}).waitFor();
+  const widgetRequests=()=>stateRequestFrames.filter(frame=>frame===feed.mainFrame()).length;
+  const beforeSharedRefresh=widgetRequests();
+  queue[0]={...queue[0],title:'La que suena al volver · actualizada'};
+  await feed.evaluate(()=>document.querySelector('#panelRadio iframe').contentWindow.postMessage({type:'radio-open'},location.origin));
+  await feed.waitForFunction(()=>document.querySelector('#radioTituloEnVivo').textContent==='La que suena al volver · actualizada');
+  assert.equal(widgetRequests(),beforeSharedRefresh,'the player updates the live widget without an additional database request');
+  await feed.evaluate(async()=>{window.dispatchEvent(new Event('online'));await new Promise(resolve=>setTimeout(resolve,100));});
+  assert.equal(widgetRequests(),beforeSharedRefresh,'the widget reuses recent player state instead of polling twice');
+  await feed.evaluate(async()=>{window.postMessage({type:'radio-state',state:{now:new Date().toISOString(),queue:[]}},location.origin);await new Promise(resolve=>setTimeout(resolve,0));});
+  assert.equal(await feed.locator('#radioEstadoEnVivo').getAttribute('data-status'),'live','only the actual radio iframe can update the live widget');
   await feed.getByRole('button',{name:'Minimizar sin detener la radio'}).click();
   assert.match(await feed.locator('#tituloPanelRadio').innerText(),/La que suena al volver/,'the minimized radio should display the current track');
   assert.equal(await feed.locator('#miniaturaRadioPanel').isVisible(),true,'the minimized radio shows the current YouTube thumbnail');assert.match(await feed.locator('#miniaturaRadioPanel').getAttribute('src'),/i\.ytimg\.com\/vi\/ponmlkjihgf\/mqdefault\.jpg/);
@@ -77,7 +88,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(process.cwd(),'
   await feed.getByRole('button',{name:'Reanudar radio solo para ti'}).click();await feed.getByRole('button',{name:'Pausar radio solo para ti'}).waitFor();assert.equal(await room.locator('body').evaluate(()=>window.playerCalls.at(-1).videoId),'ponmlkjihgf','resume rejoins the current live track');
   await feed.getByRole('button',{name:'Expandir radio'}).click();
   assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),false);
-  await feed.getByRole('button',{name:'Cerrar la ventana y mantener la radio'}).click();
+  await feed.getByRole('button',{name:engine===webkit?'Minimizar sin detener la radio':'Cerrar la ventana y mantener la radio'}).click();
   assert.equal(await feed.locator('#panelRadio').evaluate(e=>e.classList.contains('minimizado')),true);
   assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),1,'closing the panel must not pause playback');
   await feed.getByRole('button',{name:'Expandir radio'}).click();
@@ -86,6 +97,11 @@ const server=http.createServer((req,res)=>{let file=path.resolve(process.cwd(),'
   await room.locator('body').evaluate(()=>new Promise(resolve=>setTimeout(resolve,0)));
   assert.equal(await room.locator('body').evaluate(()=>window.pauseCalls),2,'the explicit stop control must pause the player');
   assert.equal(await feed.locator('#alternarRadio').isHidden(),true,'stopping hides the personal playback control until listening starts again');
+  const beforeStoppedRefresh=widgetRequests();
+  queue[0]={...queue[0],title:'Programación tras salir del reproductor'};
+  await feed.evaluate(()=>window.dispatchEvent(new Event('online')));
+  await feed.waitForFunction(()=>document.querySelector('#radioTituloEnVivo').textContent==='Programación tras salir del reproductor');
+  assert.equal(widgetRequests(),beforeStoppedRefresh+1,'the live widget resumes its own polling after the player stops');
   await feed.getByRole('button',{name:'Radio ♫'}).click();
   assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).getAttribute('placeholder'),'Nombre del artista');
   assert.equal(await room.getByRole('searchbox',{name:'Artista',exact:true}).evaluate(e=>e.value),'Mi artista');

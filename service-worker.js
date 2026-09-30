@@ -1,28 +1,51 @@
 'use strict';
 
-const SHELL_CACHE = 'redmusica-shell-v3';
+const SHELL_CACHE = 'redmusica-shell-v4';
 const SHELL_FILES = [
     './',
     './index.html',
-    './style.css?v=20260928-41',
-    './site.webmanifest?v=20260928-1',
+    './style.css?v=20260929-52',
+    './layout.css?v=20260929-1',
+    './sections.css?v=20260929-1',
+    './admin-ui.css?v=20260929-1',
+    './interface.js?v=20260929-1',
+    './site.webmanifest?v=20260929-1',
     './app-icon.svg',
     './app-icon-192.png',
     './app-icon-512.png',
     './config.js?v=20260927-18',
-    './radio-panel.js?v=20260928-1',
+    './radio-panel.js?v=20260929-2',
     './radio.html',
-    './radio.js?v=20260927-22',
-    './script.js?v=20260928-3',
+    './radio.js?v=20260929-2',
+    './script.js?v=20260929-8',
     './pwa.js?v=20260928-1',
     './covers.js?v=20260927-18',
     './search.js?v=20260927-18',
     './vendor/supabase-2.117.2.js',
-    './cloud.js?v=20260928-2',
-    './admin.js?v=20260927-19',
+    './cloud.js?v=20260929-6',
+    './admin.js?v=20260929-24',
     './blackjack.js?v=20260928-1',
     './local.js?v=20260927-18'
 ];
+const STATIC_PATHS = new Set(SHELL_FILES.map(file => new URL(file, self.registration.scope).pathname));
+const DOCUMENT_PATHS = new Map([
+    ['./', './index.html'],
+    ['./index.html', './index.html'],
+    ['./radio.html', './radio.html']
+].map(([path, document]) => [new URL(path, self.registration.scope).pathname, document]));
+let cacheWrites = Promise.resolve();
+function saveStatic(request, response) {
+    // Only one version per static file; arbitrary URLs and user content are never cached here.
+    const url = new URL(typeof request === 'string' ? request : request.url, self.registration.scope);
+    if (!STATIC_PATHS.has(url.pathname)) return Promise.resolve();
+    cacheWrites = cacheWrites.catch(() => {}).then(async () => {
+        const cache = await caches.open(SHELL_CACHE);
+        await cache.put(request, response);
+        const keys = await cache.keys();
+        await Promise.all(keys.filter(key => new URL(key.url).pathname === url.pathname && key.url !== url.href).map(key => cache.delete(key)));
+    });
+    return cacheWrites;
+}
 
 self.addEventListener('install', event => {
     event.waitUntil((async () => {
@@ -47,33 +70,34 @@ self.addEventListener('fetch', event => {
     if (url.origin !== self.location.origin) return;
 
     if (request.mode === 'navigate') {
+        const documentPath = DOCUMENT_PATHS.get(url.pathname);
+        if (!documentPath) return;
         event.respondWith((async () => {
             try {
                 const response = await fetch(request);
                 if (response.ok) {
-                    const cache = await caches.open(SHELL_CACHE);
-                    await cache.put('./index.html', response.clone());
+                    await saveStatic(documentPath, response.clone());
                 }
                 return response;
             } catch {
-                return (await caches.match('./index.html')) || Response.error();
+                return (await caches.match(documentPath)) || Response.error();
             }
         })());
         return;
     }
 
+    if (!STATIC_PATHS.has(url.pathname)) return;
     event.respondWith((async () => {
         const cached = await caches.match(request);
         if (cached) return cached;
         try {
             const response = await fetch(request);
             if (response.ok && response.type === 'basic') {
-                const cache = await caches.open(SHELL_CACHE);
-                await cache.put(request, response.clone());
+                await saveStatic(request, response.clone());
             }
             return response;
         } catch {
-            return Response.error();
+            return (await caches.match(request, { ignoreSearch: true })) || Response.error();
         }
     })());
 });

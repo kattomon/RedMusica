@@ -79,6 +79,7 @@
  function current() { const now=Date.now()+offset;return queue.find(s=>Date.parse(s.starts_at)<=now && Date.parse(s.ends_at)>now); }
  function render(data) {
   queue=data.queue;offset=Date.parse(data.now)-Date.now();
+  if(embedded && panelActive) window.parent.postMessage({type:'radio-state',state:{queue,now:data.now,paused:Boolean(data.paused)}},location.origin);
   const changed=roomRevision!==null && data.revision!==undefined && data.revision!==roomRevision;
   roomRevision=data.revision??roomRevision;roomPaused=Boolean(data.paused);
   if(changed){loaded=null;omitted.clear();continuePlaying=joined;}

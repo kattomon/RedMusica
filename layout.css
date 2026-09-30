@@ -1,0 +1,224 @@
+/* The social shell has one layout at each breakpoint. No image/font downloads. */
+.social-app {
+    --rm-page:#efeeeb; --rm-surface:#fffefd; --rm-soft:#f6f4f1; --rm-line:#dedbd5;
+    --rm-ink:#353438; --rm-muted:#77736e; --rm-plum:#584651; --rm-teal:#50736a;
+    --rm-accent:#a15c4d; --rm-accent-hover:#854638; --rm-accent-soft:#efe2dc;
+    --rm-radius:5px; --rm-shadow:0 1px 2px #342c2210;
+    background:var(--rm-page); font-size:14px; line-height:1.5;
+}
+.social-app [hidden] { display:none !important; }
+.social-app :focus-visible { outline:2px solid var(--rm-teal); outline-offset:3px; }
+.social-app :where(section, h2, h3) { scroll-margin-top:116px; }
+.saltar-contenido { position:fixed; left:12px; top:-100px; z-index:300; padding:12px; background:white; }
+.saltar-contenido:focus { top:8px; }
+.cabecera-sitio { position:sticky; z-index:100; top:0; padding-top:env(safe-area-inset-top); background:#54434e; border-bottom:1px solid #3e323a; box-shadow:0 1px 4px #34253228; }
+.cabecera-interior { max-width:1320px; height:56px; display:flex; align-items:center; gap:24px; margin:auto; padding:0 20px; }
+.marca-sitio { display:flex; align-items:center; gap:8px; flex:0 0 174px; color:#fff9f1; text-decoration:none; }
+.marca-sitio:hover { color:white; }
+.marca-sitio h1 { font-size:22px; letter-spacing:-.8px; line-height:1; margin:0; color:inherit; }
+.marca-disco { display:grid; place-items:center; width:29px; height:29px; border:1px solid #fff9f155; border-radius:50%; background:#77616d; color:#efe0cb; font:italic bold 28px Georgia,serif; }
+.acciones-cabecera { margin-left:auto; display:flex; align-items:center; gap:5px; height:100%; flex:0 0 auto; }
+.acciones-cabecera svg { width:19px; height:19px; flex:none; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.acciones-cabecera #abrirRadio, .acciones-cabecera #abrirDockAmigos,
+.acciones-cabecera #abrirNotificaciones, .acciones-cabecera .perfil-cabecera {
+    position:relative; inset:auto; display:inline-flex; align-items:center; justify-content:center; gap:7px; width:auto; min-width:40px; min-height:40px; height:40px;
+    margin:0; padding:0 10px; border:1px solid transparent; border-radius:4px; box-shadow:none; background:transparent; color:#fff7ed; font-size:12px; text-decoration:none;
+}
+.acciones-cabecera #abrirRadio:hover, .acciones-cabecera #abrirDockAmigos:hover,
+.acciones-cabecera #abrirNotificaciones:hover, .acciones-cabecera .perfil-cabecera:hover { background:#ffffff15; border-color:#ffffff20; }
+.acciones-cabecera #abrirNotificaciones { width:40px; padding:8px; }
+.acciones-cabecera #abrirNotificaciones[aria-expanded=true] { background:#ffffff20; }
+.acciones-cabecera .notificaciones-contador { top:1px; right:1px; }
+.acciones-cabecera #abrirNotificaciones.con-no-leidas svg { fill:#ead3b5; }
+.acciones-cabecera #abrirDockAmigos { display:none; }
+.perfil-cabecera .avatar { width:27px; height:27px; font-size:10px; border:1px solid #ffffff60; border-radius:3px; }
+.perfil-cabecera-nombre { max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+.buscador-secciones { position:relative; flex:1; display:flex; max-width:450px; margin:0; }
+.buscador-secciones input { width:100%; min-width:0; height:32px; min-height:32px; padding:6px 40px 6px 11px; border:1px solid #43313d; border-radius:3px; background:#fffdf9; color:var(--rm-ink); font:inherit; font-size:13px; }
+.buscador-secciones > button { position:absolute; right:1px; top:1px; height:30px; min-height:30px; width:34px; padding:0; background:#f1eeeb; border:0; border-radius:0 2px 2px 0; color:#54434e; font-size:25px; box-shadow:none; }
+#resultadosSecciones { position:absolute; top:38px; inset-inline:0; padding:5px; background:white; border:1px solid var(--rm-line); box-shadow:0 5px 20px #35272b25; border-radius:4px; }
+#resultadosSecciones button { display:block; width:100%; min-height:40px; margin:0; padding:7px 10px; background:white; color:var(--rm-ink); text-align:left; font-size:13px; box-shadow:none; border:0; }
+#resultadosSecciones button:hover { background:var(--rm-soft); }
+#resultadosSecciones p { padding:4px 10px; color:var(--rm-muted); font-size:13px; }
+.site-layout { display:grid; grid-template-columns:174px minmax(0,1fr) 238px; align-items:start; gap:20px; width:calc(100% - 40px); max-width:1280px; margin:20px auto 0; }
+.social-app .site-layout > main { min-width:0; width:100%; max-width:none; margin:0; padding:0 0 50px; }
+.sidebar-nav { position:sticky; top:76px; min-width:0; max-height:calc(100dvh - 90px); overflow-y:auto; scrollbar-width:thin; }
+.etiqueta-lateral { margin:13px 10px 6px; color:#8c847c; font-size:10px; font-weight:750; letter-spacing:.1em; }
+.perfil-lateral { display:flex; align-items:center; gap:10px; padding:6px 8px 13px; color:var(--rm-ink); text-decoration:none; border-bottom:1px solid var(--rm-line); }
+.perfil-lateral > span:last-child { min-width:0; }
+.perfil-lateral strong { display:block; max-width:117px; overflow:hidden; text-overflow:ellipsis; font-size:13px; }
+.perfil-lateral small { display:block; color:var(--rm-muted); font-size:11px; }
+.perfil-lateral .avatar { width:36px; height:36px; font-size:13px; border-radius:4px; border:1px solid #d0c7bb; }
+.social-app #navegacion { position:static; display:flex; flex-direction:column; align-items:stretch; gap:2px; flex-wrap:nowrap; width:100%; margin:0; padding:0; overflow:visible; background:transparent; border:0; border-radius:0; box-shadow:none; }
+.social-app #navegacion::after { display:none; }
+.social-app #navegacion a, .social-app #navegacion button { position:relative; display:flex; justify-content:flex-start; align-items:center; gap:9px; min-height:34px; padding:6px 9px; border:1px solid transparent; border-radius:4px; background:transparent; color:#585553; font-size:13px; text-decoration:none; box-shadow:none; }
+.social-app #navegacion a::before { content:""; display:inline-block; width:17px; height:17px; flex:0 0 17px; background-image:var(--nav-icon); background-size:contain; background-repeat:no-repeat; opacity:.85; }
+.social-app #navegacion a:hover, .social-app #navegacion button:hover { background:#e6e2dc; color:#463f42; }
+.social-app #navegacion a[aria-current=page], .social-app #navegacion button[aria-current=page] { border-color:#d8cdc3; background:#e6ddd4; box-shadow:inset 3px 0 var(--rm-accent); color:#55404a; font-weight:700; }
+.social-app #navegacion #musicaNav, .social-app #navegacion #amigosNav, .social-app #navegacion button { margin-top:8px; }
+.sidebar-pie { margin:17px 9px 0; padding-top:12px; border-top:1px solid var(--rm-line); color:#8b847c; font-size:11px; }
+.sidebar-pie p { margin:0 0 10px; }
+.sidebar-pie span { display:block; margin:10px 0; font-size:10px; }
+.sidebar-pie #instalarApp { margin:0; min-height:34px; padding:6px 9px; font-size:11px; background:white; color:var(--rm-plum); box-shadow:none; border:1px solid var(--rm-line); }
+.sidebar-comunidad { position:sticky; top:76px; display:grid; gap:16px; min-width:0; }
+.sidebar-comunidad .radio-en-vivo { display:grid; grid-template-columns:46px minmax(0,1fr); gap:10px; margin:0; padding:14px; border:1px solid var(--rm-line); border-top:3px solid var(--rm-teal); border-radius:5px; background:var(--rm-surface); box-shadow:var(--rm-shadow); }
+.sidebar-comunidad .radio-en-vivo-estado { grid-column:1/-1; grid-row:1; width:fit-content; font-size:10px; }
+.sidebar-comunidad .radio-en-vivo-portada { width:46px; height:46px; border-radius:3px; grid-column:1; grid-row:2; }
+.sidebar-comunidad .radio-en-vivo-cancion { grid-row:2; grid-column:2; min-width:0; }
+.sidebar-comunidad .radio-en-vivo-portada[hidden]+.radio-en-vivo-cancion { grid-column:1/-1; }
+.sidebar-comunidad .radio-en-vivo-cancion strong { font-size:13px; line-height:1.4; white-space:normal; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.sidebar-comunidad #radioEtiquetaEnVivo { font-size:10px; text-transform:uppercase; letter-spacing:.06em; }
+.sidebar-comunidad #radioDetalleEnVivo { font-size:11px; }
+.sidebar-comunidad .radio-en-vivo-proximo { grid-column:1/-1; grid-row:auto; display:grid; grid-template-columns:1fr; gap:2px; margin:0; padding:9px 0 0; border:0; border-top:1px solid var(--rm-line); font-size:11px; }
+.sidebar-comunidad .radio-en-vivo > button { grid-column:1/-1; grid-row:auto; width:100%; min-height:34px; padding:6px; font-size:12px; background:#55746b; color:white; border-radius:3px; box-shadow:none; }
+.sidebar-comunidad #dockAmigos { position:static; display:flex; width:100%; max-height:calc(100dvh - 390px); min-height:120px; margin:0; padding:0; border:1px solid var(--rm-line); border-radius:5px; box-shadow:var(--rm-shadow); background:var(--rm-surface); }
+.sidebar-comunidad #dockAmigos::before { display:none; }
+.sidebar-comunidad #dockAmigos header { padding:6px 11px; background:#f7f5f1; }
+.sidebar-comunidad #dockAmigos header h2 { font-size:13px; }
+.sidebar-comunidad #dockAmigos header button { min-width:30px; min-height:30px; padding:2px; background:transparent; color:var(--rm-muted); border:0; box-shadow:none; }
+.sidebar-comunidad #dockAmigos #cerrarDockAmigos { display:none; }
+.sidebar-comunidad #listaDockAmigos { overflow:auto; }
+.sidebar-comunidad #estadoDockAmigos { font-size:11px; padding:0 10px; }
+.sidebar-comunidad .amigo-dock { gap:8px; padding:9px; }
+.sidebar-comunidad .amigo-dock .avatar { width:31px; height:31px; flex:0 0 31px; border-radius:3px; }
+.sidebar-comunidad .amigo-nombre { font-size:12px; }
+.sidebar-comunidad .estado-presencia-amigo { font-size:10px; }
+.sidebar-comunidad .boton-chat-amigo { padding:4px 6px; min-height:30px; font-size:10px; box-shadow:none; background:#eeeae3; border:1px solid #ddd6cb; color:#62544d; }
+.nota-comunidad { margin:0; padding:0 11px; color:var(--rm-muted); }
+.nota-comunidad .etiqueta-lateral { margin:0; }
+.nota-comunidad h2 { margin:8px 0; color:#736059; font:normal 20px/1.25 Georgia,serif; }
+.nota-comunidad p { font-size:12px; }
+.firma-comunidad { font-size:10px; color:#a29990; }
+.social-app #notificaciones { border-top-color:var(--rm-plum); }
+.social-app #panelRadio { z-index:120; top:70px; border-color:#b6aaa7; border-radius:6px; }
+.social-app #panelRadio header { min-height:54px; padding:8px; gap:7px; background:#f9f6f0; }
+.social-app #panelRadio header h2 { font-size:14px; }
+.social-app #panelRadio .controles-panel-radio { gap:3px; }
+.social-app #panelRadio .controles-panel-radio button { min-height:34px; padding:5px 7px; font-size:11px; border:1px solid #d5cdc1; box-shadow:none; background:#eee8de; color:#5d4a53; }
+.social-app #panelRadio.minimizado { height:60px; top:auto; bottom:16px; }
+.social-app #ventanaChatAmigo { z-index:90; border-color:#c9bdb7; border-radius:5px 5px 0 0; box-shadow:0 2px 20px #2c22282b; }
+.social-app #ventanaChatAmigo > header { background:#60505a; color:#fff8ef; }
+.social-app #ventanaChatAmigo > header button { background:transparent; color:inherit; box-shadow:none; border:1px solid #ffffff30; }
+.social-app #ventanaChatAmigo header h2 { font-size:13px; }
+.social-app #flujoPublicaciones { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; margin:0; padding:0; border:0; background:transparent; box-shadow:none; min-width:0; }
+.social-app #tituloFeed { display:inline-block; margin:18px 0 12px; padding:0; border:0; background:none; color:#6c6059; font-size:13px; font-weight:700; letter-spacing:.02em; }
+.social-app #actualizarFeed { grid-column:2; grid-row:1; min-height:30px; margin:12px 0; width:auto; padding:4px 9px; font-size:11px; color:#746b64; background:transparent; border:1px solid var(--rm-line); box-shadow:none; }
+.social-app #flujoPublicaciones > :not(#tituloFeed):not(#actualizarFeed) { grid-column:1 / -1; }
+.social-app #estadoFeed { margin:0; font-size:12px; }
+.social-app #estadoFeed:empty { display:none; }
+
+/* Profile: identity above, a short personal sidebar beside the actual wall. */
+.social-app #perfilPublico { display:block; padding:0; margin:0 0 16px; border:0; border-radius:5px; background:transparent; box-shadow:none; overflow:visible; }
+.social-app .perfil-portada-publica { min-height:220px; margin:0; border:1px solid #c7b9b2; border-radius:5px 5px 0 0; overflow:hidden; }
+.social-app .perfil-portada-fondo { background:radial-gradient(ellipse at 85% 12%,#c1a78066,transparent 50%),repeating-radial-gradient(circle at 78% 150%,transparent 0 26px,#ffffff0b 27px 28px,transparent 29px 54px),linear-gradient(120deg,#4d625b,#686155 42%,#74545e); }
+.social-app .perfil-portada-fondo::after { background:linear-gradient(0deg,#33232eaa,transparent 85%); }
+.social-app .perfil-portada-datos { left:20px; right:20px; bottom:16px; gap:16px; }
+.social-app #fotoPerfilPublico .avatar { width:106px; height:106px; border:4px solid #fffefb; border-radius:4px; box-shadow:0 1px 6px #28212380; }
+.social-app .perfil-portada-texto { min-width:0; }
+.social-app #perfilPublico .perfil-portada-publica h2 { font-size:25px; letter-spacing:-.4px; overflow-wrap:anywhere; }
+.social-app #perfilPublico .perfil-portada-publica #fechaPerfilPublico { font-size:11px; }
+.perfil-relaciones { display:flex; align-items:center; flex-wrap:wrap; gap:7px 10px; padding:10px 14px; border:1px solid var(--rm-line); border-top:0; background:var(--rm-surface); }
+.perfil-relaciones p { margin:0; color:var(--rm-muted); font-size:11px; }
+.perfil-relaciones button { min-height:30px; padding:5px 8px; font-size:11px; border:1px solid #d5c8bb; background:#f3ede5; color:#63514c; box-shadow:none; }
+.perfil-relaciones #conteoSeguidores { margin-right:auto; }
+#perfilPublico #compartirPerfil { display:none; padding:12px; margin:0; border:1px solid var(--rm-line); background:var(--rm-surface); }
+#perfilPublico #compartirPerfil.compartir-abierto { display:block; }
+#perfilPublico #compartirPerfil input { width:100%; min-width:0; }
+#perfilCuenta:not(:empty) { padding:10px 14px; border:1px solid var(--rm-line); border-top:0; background:var(--rm-surface); }
+#perfilCuenta #sesionPerfil { margin:0; padding:0; }
+#perfilCuenta #editarPerfil:not([open]) { display:inline-block; margin:0; }
+#perfilCuenta #cerrarSesion { min-height:30px; padding:5px 10px; margin-left:10px; font-size:11px; background:transparent; border:1px solid var(--rm-line); color:var(--rm-muted); box-shadow:none; }
+.social-app #perfilPublico > .secciones-perfil { margin:0 0 16px; padding:0 10px; gap:0; border:1px solid var(--rm-line); border-top:0; background:var(--rm-surface); border-radius:0 0 5px 5px; }
+.social-app #perfilPublico > .secciones-perfil a { display:flex; align-items:center; min-height:44px; padding:10px 12px; color:#6d605d; font-size:12px; font-weight:600; }
+.social-app #perfilPublico > .secciones-perfil a[aria-current=page] { color:#51404c; border-bottom-color:var(--rm-accent); background:#faf5ee; }
+.perfil-columnas { display:grid; grid-template-columns:205px minmax(0,1fr); gap:14px; align-items:start; }
+#perfilResumen, #perfilTimeline { min-width:0; }
+#perfilResumen > .bloque-perfil { margin:0 0 12px; padding:12px; border:1px solid var(--rm-line); border-radius:4px; background:var(--rm-surface); box-shadow:var(--rm-shadow); }
+#perfilResumen .bloque-perfil > h3 { margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--rm-line); font-size:12px; color:#786657; }
+#perfilResumen .bloque-perfil > p { font-size:12px; line-height:1.6; }
+#perfilPublico[data-tab=muro] #mediosPerfil figure { margin:0; min-width:0; }
+#perfilPublico[data-tab=muro] #mediosPerfil img { width:100%; height:auto; aspect-ratio:1; object-fit:cover; }
+#perfilPublico[data-tab=muro] #mediosPerfil figcaption { font-size:10px; overflow-wrap:anywhere; }
+#perfilPublico:not([data-tab=muro]) .perfil-columnas { grid-template-columns:minmax(0,1fr); }
+#perfilPublico:not([data-tab=muro]) #perfilResumen > .bloque-perfil { padding:18px; }
+#perfilTimeline #muroPersonal { margin:0; padding:0; border:0; background:transparent; box-shadow:none; }
+#perfilTimeline #muroPersonal h3 { margin:0; font-size:16px; }
+#perfilTimeline #resumenPerfilPublico { margin:3px 0 12px; color:var(--rm-muted); font-size:11px; }
+#perfilTimeline #tituloFeed { display:none; }
+#perfilTimeline #actualizarFeed { float:none; display:block; margin:0 0 12px auto; }
+.social-app.admin-page .site-layout > main { grid-column:2 / 4; }
+.social-app.admin-page .sidebar-comunidad { display:none; }
+
+@media (max-width:1100px) {
+    .site-layout { grid-template-columns:154px minmax(0,1fr) 210px; gap:14px; width:calc(100% - 28px); }
+    .cabecera-interior { padding-inline:14px; gap:14px; }
+    .marca-sitio { flex-basis:154px; }
+    .sidebar-comunidad .radio-en-vivo { padding:11px; }
+    .perfil-columnas { grid-template-columns:175px minmax(0,1fr); gap:10px; }
+}
+@media (max-width:950px) {
+    .site-layout { grid-template-columns:154px minmax(0,1fr); max-width:860px; }
+    .sidebar-comunidad { display:contents; }
+    .sidebar-comunidad .radio-en-vivo, .nota-comunidad { display:none; }
+    .acciones-cabecera #abrirDockAmigos { display:inline-flex; }
+    .sidebar-comunidad #dockAmigos { position:fixed; inset:auto 14px 14px auto; z-index:92; display:none; width:300px; max-height:60dvh; }
+    .sidebar-comunidad #dockAmigos.abierto { display:flex; }
+    .sidebar-comunidad #dockAmigos #cerrarDockAmigos { display:block; }
+    .social-app.admin-page .site-layout > main { grid-column:2; }
+}
+@media (max-width:700px) {
+    .social-app { font-size:14px; }
+    .cabecera-interior { height:54px; padding-inline:10px; gap:6px; }
+    .marca-sitio { flex:1; gap:5px; min-width:0; }
+    .marca-sitio h1 { font-size:19px; }
+    .marca-disco { display:none; }
+    .buscador-secciones { display:none; }
+    .acciones-cabecera { gap:0; }
+    .acciones-cabecera #abrirRadio,.acciones-cabecera #abrirDockAmigos { width:40px; padding:8px; font-size:0; }
+    .acciones-cabecera .perfil-cabecera { width:36px; min-width:36px; padding:4px; }
+    .perfil-cabecera-nombre { display:none; }
+    .site-layout { display:block; width:100%; margin:0 auto; }
+    .sidebar-nav { position:sticky; z-index:65; top:calc(55px + env(safe-area-inset-top)); max-height:none; overflow:visible; background:var(--rm-surface); border-bottom:1px solid var(--rm-line); }
+    .sidebar-nav .perfil-lateral,.sidebar-nav > .etiqueta-lateral,.sidebar-pie { display:none; }
+    .social-app #navegacion { display:flex; flex-direction:row; overflow-x:auto; gap:2px; padding:0 8px; scrollbar-width:none; scroll-snap-type:x proximity; }
+    .social-app #navegacion::-webkit-scrollbar { display:none; }
+    .social-app #navegacion a,.social-app #navegacion button { min-height:44px; flex:0 0 auto; gap:5px; padding:8px 10px; font-size:12px; border-radius:0; }
+    .social-app #navegacion a::before { width:15px; height:15px; flex-basis:15px; }
+    .social-app #navegacion #musicaNav,.social-app #navegacion #amigosNav,.social-app #navegacion button { margin-top:0; }
+    .social-app #navegacion a[aria-current=page] { box-shadow:inset 0 -3px var(--rm-accent); border-color:transparent; }
+    .social-app .site-layout > main { width:calc(100% - 20px); padding:14px 0 calc(30px + env(safe-area-inset-bottom)); margin:0 auto; max-width:620px; }
+    .sidebar-comunidad #dockAmigos { inset:auto 0 0; width:100%; border-radius:12px 12px 0 0; max-height:65dvh; padding-bottom:env(safe-area-inset-bottom); }
+    .sidebar-comunidad #dockAmigos header { min-height:52px; padding:8px 14px; }
+    .sidebar-comunidad #dockAmigos header button { min-height:40px; min-width:40px; }
+    .sidebar-comunidad #dockAmigos .amigo-dock { padding:12px 16px; }
+    .sidebar-comunidad .amigo-nombre { font-size:14px; }
+    .sidebar-comunidad .estado-presencia-amigo { font-size:11px; }
+    .sidebar-comunidad .boton-chat-amigo { min-height:40px; padding:8px 12px; font-size:12px; }
+    .social-app #ventanaChatAmigo:not(.minimizado) { inset:auto 0 0; width:100%; max-width:none; height:min(58dvh,480px); border-radius:12px 12px 0 0; }
+    .social-app #ventanaChatAmigo > header { min-height:46px; }
+    .social-app #ventanaChatAmigo.minimizado { bottom:calc(8px + env(safe-area-inset-bottom)); }
+    .social-app #panelRadio { top:108px; right:10px; width:calc(100vw - 20px); height:calc(100dvh - 128px - env(safe-area-inset-top)); max-height:740px; }
+    .social-app #panelRadio.minimizado { top:auto; width:min(300px,calc(100vw - 20px)); height:60px; }
+    .social-app:has(#ventanaChatAmigo:not([hidden])) #panelRadio.minimizado,
+    .social-app:has(#dockAmigos.abierto) #panelRadio.minimizado { top:108px; bottom:auto; }
+    .social-app #panelRadio .controles-panel-radio button { min-height:40px; padding:6px; }
+    .social-app #panelRadio #cerrarRadio { display:none; }
+    .social-app #notificaciones { max-height:calc(100dvh - 84px); }
+    .perfil-columnas { display:flex; flex-direction:column; gap:0; }
+    #perfilResumen,#perfilTimeline { width:100%; }
+    #perfilPublico[data-tab=muro] #perfilResumen #mediosPerfil { display:none; }
+    #perfilPublico[data-tab=muro] #sobrePerfil { padding:10px 12px; }
+    #perfilPublico[data-tab=muro] #sobrePerfil h3 { display:none; }
+    #perfilPublico[data-tab=muro] #sobrePerfil p { margin:2px 0; }
+    .social-app .perfil-portada-publica { min-height:188px; }
+    .social-app .perfil-portada-datos { left:14px; right:14px; gap:12px; bottom:14px; }
+    .social-app #fotoPerfilPublico .avatar { width:80px; height:80px; }
+    .social-app #perfilPublico .perfil-portada-publica h2 { font-size:21px; }
+    .social-app #perfilPublico > .secciones-perfil { padding-inline:4px; overflow-x:auto; flex-wrap:nowrap; }
+    .social-app #perfilPublico > .secciones-perfil a { flex:none; padding-inline:10px; }
+    .perfil-relaciones { gap:7px; padding:9px 10px; }
+    .perfil-relaciones button { min-height:38px; }
+    .perfil-relaciones #conteoSeguidores { flex:1 1 70%; }
+    #perfilCuenta #cerrarSesion { min-height:38px; }
+}
+@media (prefers-reduced-motion:reduce) { .social-app { scroll-behavior:auto; } .social-app * { scroll-behavior:auto; } }

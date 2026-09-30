@@ -228,7 +228,8 @@
         cuenta.hidden=!(inicio&&(!usuario||recuperacion));
         const sesion=document.getElementById('sesionPerfil');
         const miPropioPerfil=Boolean(usuario&&viendoPerfil&&perfilSolicitado===usuario.id);
-        if(miPropioPerfil&&sesion.parentElement!==document.getElementById('perfilPublico'))document.getElementById('perfilPublico').append(sesion);
+        const destinoSesion=document.getElementById('perfilCuenta')||document.getElementById('perfilPublico');
+        if(miPropioPerfil&&sesion.parentElement!==destinoSesion)destinoSesion.append(sesion);
         else if(!miPropioPerfil&&sesion.parentElement!==cuenta)cuenta.append(sesion);
         sesion.hidden=!usuario||recuperacion;
         document.getElementById('nombrePerfil').hidden=miPropioPerfil;
@@ -278,6 +279,7 @@
         document.getElementById('musicaNav').hidden = !usuario;
         document.getElementById('videosNav').hidden = !usuario;
         document.getElementById('juegosNav').hidden = !usuario;
+        document.getElementById('librosNav').hidden = !usuario;
         document.getElementById('diarioNav').hidden = !usuario;
         document.getElementById('memesNav').hidden = sesionLista&&!usuario;
         document.getElementById('peliculasNav').hidden = sesionLista&&!usuario;
@@ -305,6 +307,7 @@
         miPerfil.hidden = !usuario || !perfil;
         if (usuario) miPerfil.href = "?perfil=" + encodeURIComponent(usuario.id);
         else miPerfil.removeAttribute("href");
+        window.redmusicaUI?.setAccount(usuario,perfil);
     }
     function renderizarListas(){
         const box=document.getElementById('listaColecciones');box.replaceChildren();
@@ -446,7 +449,7 @@
             }
             if (revision !== revisionSesion) return;
             actualizarAcceso();
-            aplicarRuta();
+            aplicarRuta(false);
             document.body.classList.remove('sesion-pendiente');
             if(usuario){if(!chatChannel||chatOwner!==usuario.id){iniciarChatRealtime();await cargarChat();}}
             else if(chatChannel){db.removeChannel(chatChannel);chatChannel=null;chatOwner=null;realtimeChat=false;mensajesChat.clear();perfilesChat.clear();listaChat.replaceChildren();}
@@ -626,7 +629,7 @@
         } catch(e) { if(revision === revisionSesion) estadoEdicion.textContent = e.message || 'No se pudo guardar. Inténtalo otra vez.'; }
         finally { guardandoPerfil = false; botones.forEach(b => b.disabled = false); document.getElementById('quitarFoto').disabled = !perfil?.avatar_updated_at; }
     }
-    async function prepararFoto(file, maxDimension = 512) {
+    async function prepararFoto(file, maxDimension = 512, targetBytes = maxDimension > 512 ? 600*1024 : 180*1024) {
         if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type)) throw Error('Elige una imagen JPG, PNG o WebP.');
         if (file.size > 10*1024*1024) throw Error('La imagen no puede superar 10 MB.');
         const url = URL.createObjectURL(file);
@@ -638,10 +641,14 @@
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#eeeeee'; ctx.fillRect(0,0,canvas.width,canvas.height);
             ctx.drawImage(img,0,0,canvas.width,canvas.height);
-            let quality=0.84, blob;
-            do { blob = await new Promise(resolve => canvas.toBlob(resolve,'image/jpeg',quality)); quality -= 0.12; } while(blob && blob.size > 900000 && quality > 0.48);
-            if (!blob || blob.size>1048576) throw Error('No se pudo preparar la foto. Elige otra imagen.');
-            return blob;
+            for(let sizeAttempt=0;sizeAttempt<3;sizeAttempt++){
+                if(sizeAttempt){canvas.width=Math.max(1,Math.round(canvas.width*.8));canvas.height=Math.max(1,Math.round(canvas.height*.8));ctx.fillStyle='#eeeeee';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);}
+                for(const quality of [.84,.72,.60,.48]){
+                    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+                    if(blob&&blob.size<=targetBytes)return blob;
+                }
+            }
+            throw Error('No se pudo reducir la foto. Elige otra imagen.');
         } finally { URL.revokeObjectURL(url); }
     }
     document.getElementById('formularioFoto').addEventListener('submit',e=>{
@@ -747,7 +754,7 @@
             if(!album)album=resultado(await db.from('profile_photo_albums').insert({name:albumName}).select('id').single());
             for(const file of files){
                 const blob=await prepararFotoAlbum(file),path=usuario.id+'/'+crypto.randomUUID()+'.jpg';
-                resultado(await db.storage.from('profile-photos').upload(path,blob,{contentType:'image/jpeg',cacheControl:'3600'}));
+                resultado(await db.storage.from('profile-photos').upload(path,blob,{contentType:'image/jpeg',cacheControl:'31536000'}));
                 try{resultado(await db.from('profile_photos').insert({album_id:album.id,object_path:path,caption}).select('id').single());}
                 catch(error){await db.storage.from('profile-photos').remove([path]);throw error;}
             }
@@ -1169,7 +1176,7 @@
         estadoFeed.textContent = "Cargando publicaciones…";
         const inicio = reiniciar ? 0 : desplazamiento;
         try {
-            if (viendoPerfil) {
+            if (viendoPerfil && reiniciar) {
                 const publico = idPerfilValido ? resultado(await db.from("profiles").select("username,created_at,role,bio,status_text,avatar_updated_at").eq("id", perfilSolicitado).maybeSingle()) : null;
                 if (revision !== revisionFeed) return;
                 if (!publico) {
@@ -1236,7 +1243,7 @@
                 respuesta=await db.from('posts').select(seleccionPosts).in('id',postIds);
                 datos=resultado(respuesta);const byId=new Map(datos.map(post=>[post.id,post]));datos=postIds.map(id=>byId.get(id)).filter(Boolean);
             }else if(postIds===null&&!(friendAuthors&&friendAuthors.length===0)){
-                let consulta=db.from('posts').select(seleccionPosts,viendoPerfil?{count:'exact'}:{});
+                let consulta=db.from('posts').select(seleccionPosts,viendoPerfil&&reiniciar?{count:'exact'}:{});
                 if(viendoPerfil)consulta=consulta.eq('user_id',perfilSolicitado);
                 else if(friendAuthors)consulta=consulta.in('user_id',friendAuthors);
                 else consulta=consulta.eq('post_type',viendoMemes?'meme':viendoPeliculas?'film':viendoLibros?'book':viendoDiario?'blog':viendoMusica?'album':'status');
@@ -1251,7 +1258,7 @@
                 ]);propios=resultado(propios);guardados=resultado(guardados);
             }
             if (revision !== revisionFeed) return;
-            if (viendoPerfil) document.getElementById("resumenPerfilPublico").textContent = respuesta.count + (respuesta.count === 1 ? " publicación" : " publicaciones");
+            if (viendoPerfil && reiniciar) document.getElementById("resumenPerfilPublico").textContent = respuesta.count + (respuesta.count === 1 ? " publicación" : " publicaciones");
             if (reiniciar) feed.textContent = "";
             datos.forEach(function (post) { feed.appendChild(crearPublicacion(post, propios.some(like => like.post_id === post.id),guardados.some(saved=>saved.post_id===post.id))); });
             desplazamiento = inicio + (postIds!==null?rowsEnFuente:datos.length);
@@ -1267,7 +1274,7 @@
     refrescar.addEventListener("click", function () { cargarFeed(true); });
     mas.addEventListener("click", function () { cargarFeed(false); });
 
-    function aplicarRuta() {
+    function aplicarRuta(cargar=true) {
         if (rutaProtegidaPendiente && location.search && location.search !== rutaProtegidaPendiente) {
             rutaProtegidaPendiente = null;
             clearTimeout(temporizadorRutaPendiente);
@@ -1345,7 +1352,8 @@
             document.getElementById('amistadPerfil').hidden=true;
             document.getElementById('rechazarAmistad').hidden=true;
         }
-        cargarFeed(true);
+        window.redmusicaUI?.updateRoute();
+        if(cargar!==false)return cargarFeed(true);
     }
     document.addEventListener('click', event => {
         const target = event.target instanceof Element ? event.target : event.target.parentElement;
@@ -1594,7 +1602,7 @@
             acciones.append(editar, borrar);
             articulo.appendChild(editor);
         }
-        articulo.classList.add('publicacion-' + post.post_type);
+        articulo.classList.add('publicacion-' + (post.post_type || 'album'));
         articulo.classList.toggle('publicacion-pelicula',esPelicula);
         articulo.classList.toggle('publicacion-libro',esLibro);
         articulo.classList.toggle('publicacion-diario',esDiario);
@@ -1625,7 +1633,7 @@
             }
             try{resultado(await db.from('posts').insert({post_type:'status',body,link_url:linkUrl,image_path:path}));}
             catch(error){if(path)await db.storage.from('post-images').remove([path]);throw error;}
-            form.reset();status.textContent='Publicación compartida.';await cargarFeed(true);
+            form.reset();form.querySelector('.compositor-adjuntos')?.removeAttribute('open');status.textContent='Publicación compartida.';await cargarFeed(true);
         });
     });
 
@@ -1654,6 +1662,7 @@
         }
         const movies=Array.isArray(catalogData?.results)?catalogData.results:[];
         cachePeliculas.set(key,{movies,expira:Date.now()+15*60*1000});
+        if(cachePeliculas.size>24)cachePeliculas.delete(cachePeliculas.keys().next().value);
         return movies;
     }
     function normalizarTitulo(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').replace(/[^a-z0-9]+/g,' ').trim();}    async function buscarAfichesWikipedia(movies){
@@ -1816,19 +1825,7 @@
         if(!file||!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type))throw Error('Elige una imagen JPG, PNG, WebP o GIF.');
         if(file.size>10*1024*1024)throw Error('La imagen no puede superar 10 MB.');
         if(file.type==='image/gif'){if(file.size>1048576)throw Error('El GIF no puede superar 1 MB para cuidar el espacio de almacenamiento.');return file;}
-        const url=URL.createObjectURL(file);
-        try{
-            const img=new Image();img.src=url;await img.decode();
-            if(!img.naturalWidth||!img.naturalHeight||img.naturalWidth*img.naturalHeight>50000000)throw Error('La imagen es demasiado grande para procesarla.');
-            const scale=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight));
-            const canvas=document.createElement('canvas');canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
-            canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-            for(const quality of [.84,.72,.60]){
-                const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
-                if(blob&&blob.size<=1048576)return blob;
-            }
-            throw Error('La imagen aún ocupa más de 1 MB tras reducirla. Elige una imagen más sencilla.');
-        } finally {URL.revokeObjectURL(url);}
+        return prepararFoto(file,1280,512*1024);
     }
     document.getElementById('formularioMeme').addEventListener('submit',e=>{
         e.preventDefault();const button=document.getElementById('publicarMeme'),status=document.getElementById('estadoMeme');

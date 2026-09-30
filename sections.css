@@ -1,0 +1,347 @@
+/* Content panels: compact social cards, quiet borders and room for the actual posts. */
+#contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+#seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+#compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario) {
+    --section-accent: var(--rm-plum);
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0 0 16px;
+    padding: 16px;
+    border: 1px solid var(--rm-line);
+    border-radius: 5px;
+    background: var(--rm-surface);
+    box-shadow: 0 1px 2px #352c3010;
+}
+#contenidoPrincipal :is(#crearPublicacion, #seccionAmigos, #seccionVideos, #chatComunitario) { --section-accent: var(--rm-teal); }
+#contenidoPrincipal :is(#seccionEventos, #seccionLibros) { --section-accent: #9a783d; }
+#contenidoPrincipal :is(#crearMeme, #seccionJuegos) { --section-accent: var(--rm-accent); }
+#contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+#seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+#compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario) > h2 {
+    margin: -16px -16px 14px;
+    padding: 11px 15px;
+    border: 0;
+    border-bottom: 1px solid var(--rm-line);
+    border-left: 3px solid var(--section-accent);
+    border-radius: 4px 4px 0 0;
+    background: #f6f3ef;
+    color: var(--rm-plum);
+    font-size: 1.06rem;
+    font-weight: 750;
+    line-height: 1.35;
+}
+#contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+#seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+#compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario) > p {
+    margin: 8px 0 14px;
+    color: var(--rm-muted);
+    font-size: .88rem;
+    line-height: 1.55;
+}
+#contenidoPrincipal :is(#crearPublicacion, #seccionEventos, #seccionJuegos) > h3 { margin: 18px 0 10px; font-size: .95rem; }
+#contenidoPrincipal #crearPublicacion > h3 { margin-top: 0; }
+#contenidoPrincipal :is(#estadoBusqueda, #estadoPublicacion, #estadoMuro, #estadoMeme,
+#estadoBusquedaPeliculas, #estadoBusquedaLibros, #estadoEventos, #estadoInvitaciones,
+#estadoJuegos, #estadoVideos, #estadoAmigos, #estadoListas, #estadoDiario):empty { display: none; }
+
+/* Controls are deliberately scoped: radio, moderation and game controls keep their own layout. */
+#contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+#seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+#compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario, #editarPerfil) label {
+    margin-bottom: 5px;
+    color: #574e52;
+    font-size: .84rem;
+    font-weight: 650;
+}
+#contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+#seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+#compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario, #editarPerfil) :where(input, select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+    border-color: #cfc8c5;
+    border-radius: 4px;
+    background: #fff;
+    font-size: .94rem;
+    box-shadow: inset 0 1px 2px #302b3006;
+}
+#contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+#seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+#compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario, #editarPerfil) button {
+    min-height: 38px;
+    padding: 7px 13px;
+    border-radius: 4px;
+    font-size: .85rem;
+    font-weight: 650;
+    box-shadow: inset 0 1px #ffffff15;
+}
+#contenidoPrincipal :is(#cuenta, #crearMeme, #compositorMuro, #editarPerfil) input[type="file"] {
+    width: 100%; padding: 7px; background: #faf8f5; font-size: .8rem;
+}
+#contenidoPrincipal input[type="file"]::file-selector-button {
+    margin-right: 10px; padding: 6px 9px; border: 1px solid #d4ccc6; border-radius: 3px;
+    background: #fff; color: #594b54; font: inherit; cursor: pointer;
+}
+#contenidoPrincipal :is(#formularioBusqueda, #formularioBusquedaPeliculas,
+#formularioBusquedaLibros, #formularioBusquedaJuegos, #formularioBusquedaDiario) {
+    margin: 12px 0; padding: 12px; border: 1px solid #e5ddd4; border-radius: 4px; background: #f8f6f2;
+}
+#contenidoPrincipal #ayudaBusqueda { margin: 0 0 10px; color: var(--rm-muted); font-size: .84rem; }
+#contenidoPrincipal .campos-busqueda { gap: 12px; margin-bottom: 10px; }
+#contenidoPrincipal .fila-controles { gap: 8px; }
+#contenidoPrincipal :is(#formularioMeme, #formularioResenaPelicula, #formularioResenaLibro) { display: grid; gap: 8px; }
+#contenidoPrincipal :is(#formularioMeme, #formularioResenaPelicula, #formularioResenaLibro) > button { justify-self: end; margin-top: 4px; }
+#contenidoPrincipal #textoMeme { width: 100%; min-height: 110px; resize: vertical; }
+
+/* The wall opens with a short thought; optional attachments live behind one clear action. */
+#contenidoPrincipal #compositorMuro { margin-top: 0; }
+#contenidoPrincipal #formularioMuro { gap: 9px; }
+#contenidoPrincipal #textoMuro { min-height: 82px; border-color: #ded5d1; background: #fff; line-height: 1.5; }
+#contenidoPrincipal #publicarMuro { justify-self: end; min-width: 105px; }
+#contenidoPrincipal .compositor-adjuntos { margin: 0; padding: 0; border: 0; background: transparent; }
+#contenidoPrincipal .compositor-adjuntos > summary {
+    width: fit-content; min-height: 36px; padding: 7px 10px; border: 1px solid #ded5ce;
+    border-radius: 3px; background: #f7f4f0; color: #65545d; font-size: .82rem; font-weight: 650; cursor: pointer;
+}
+#contenidoPrincipal .compositor-adjuntos[open] { padding-bottom: 4px; }
+#contenidoPrincipal .compositor-adjuntos[open] > summary { margin-bottom: 12px; }
+#contenidoPrincipal .compositor-adjuntos > input { margin-bottom: 10px; }
+#contenidoPrincipal #compositorDiario > p { max-width: 60ch; }
+#contenidoPrincipal #textoDiario { min-height: 200px; font-family: Georgia, serif; font-size: 1rem; line-height: 1.75; }
+
+/* Shared catalog rhythm: image, identity and one obvious next action. */
+#contenidoPrincipal #resultadosBusqueda { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 12px; margin-top: 14px; }
+#contenidoPrincipal .tarjeta-album {
+    padding: 9px; border: 1px solid #ded6cc; border-radius: 4px;
+    background: #fff; color: var(--rm-ink); box-shadow: 0 1px 2px #352c3008;
+}
+#contenidoPrincipal .tarjeta-album h3 { margin: 10px 0 4px; color: var(--rm-plum); font-size: .92rem; line-height: 1.35; }
+#contenidoPrincipal .tarjeta-album p { margin: 3px 0 8px; color: var(--rm-muted); font-size: .79rem; }
+#contenidoPrincipal .tarjeta-album .portada-resultado { border: 1px solid #e7e0d8; border-radius: 2px; background: #f1ede6; }
+#contenidoPrincipal .tarjeta-album .boton-elegir { min-height: 34px; margin-top: auto; font-size: .8rem; }
+#contenidoPrincipal #resultadosPeliculas, #contenidoPrincipal #resultadosLibros { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; }
+#contenidoPrincipal :is(.tarjeta-pelicula, .tarjeta-libro) {
+    grid-template-columns: 84px minmax(0,1fr); gap: 5px 13px; margin: 0; padding: 12px;
+    border: 1px solid var(--rm-line); border-radius: 4px; background: #fff; box-shadow: none;
+}
+#contenidoPrincipal :is(.tarjeta-pelicula, .tarjeta-libro) h3 { color: var(--rm-plum); font-size: 1rem; line-height: 1.35; }
+#contenidoPrincipal :is(.tarjeta-pelicula, .tarjeta-libro) p { color: var(--rm-muted); font-size: .84rem; }
+#contenidoPrincipal :is(.tarjeta-pelicula, .tarjeta-libro) a { justify-self: start; font-size: .78rem; }
+#contenidoPrincipal :is(.tarjeta-pelicula, .tarjeta-libro) button { justify-self: start; margin-top: 5px; }
+#contenidoPrincipal .tarjeta-pelicula .marco-afiche-resultado { grid-column: 1; grid-row: 1 / 5; width: 84px; }
+#contenidoPrincipal .tarjeta-pelicula :is(h3, p, a, button) { grid-column: 2; }
+#contenidoPrincipal .tarjeta-libro .miniatura-libro { width: 84px; }
+#contenidoPrincipal :is(#resultadoAlbum, #reseñaPelicula, #reseñaLibro) {
+    display: grid; grid-template-columns: 112px minmax(0,1fr); align-items: start; gap: 7px 14px;
+    margin: 16px 0 0; padding: 14px; border: 1px solid #c7d3c9; border-top: 3px solid var(--rm-teal);
+    border-radius: 4px; background: #f7faf6; box-shadow: none;
+}
+#contenidoPrincipal :is(#portadaAlbum, #posterSeleccionPelicula, #portadaSeleccionLibro) {
+    grid-column: 1; grid-row: 1 / span 3; width: 112px; max-width: 100%; height: auto; margin: 0; border-radius: 3px;
+}
+#contenidoPrincipal :is(#resultadoAlbum, #reseñaPelicula, #reseñaLibro) > :is(h3, p, #cambiarPelicula, #cambiarLibro) { grid-column: 2; margin: 0; }
+#contenidoPrincipal :is(#resultadoAlbum, #reseñaPelicula, #reseñaLibro) > h3 { align-self: end; font-size: 1rem; }
+#contenidoPrincipal :is(#resultadoAlbum, #reseñaPelicula, #reseñaLibro) > p { color: var(--rm-muted); font-size: .85rem; }
+#contenidoPrincipal :is(#cambiarPelicula, #cambiarLibro) { justify-self: start; align-self: start; background: #fff; color: #526b61; border-color: #c6d3c9; }
+#contenidoPrincipal :is(#resultadoAlbum, #reseñaPelicula, #reseñaLibro) > :is(form, label, textarea, #botonPublicar, [role="status"]) { grid-column: 1 / -1; }
+#contenidoPrincipal #resultadoAlbum > label { margin-top: 10px; }
+#contenidoPrincipal :is(#formularioResenaPelicula, #formularioResenaLibro) { padding-top: 12px; border-top: 1px solid #d8e0d6; }
+#contenidoPrincipal :is(#opinionPelicula, #opinionLibro, #comentarioPublicacion) { width: 100%; min-height: 110px; resize: vertical; }
+#contenidoPrincipal :is(#notaPelicula, #notaLibro) { width: 100%; max-width: 250px; margin-bottom: 12px; }
+#contenidoPrincipal #botonPublicar { justify-self: end; min-width: 110px; }
+#contenidoPrincipal .atribucion-catalogo { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e5ded5; color: var(--rm-muted); font-size: .74rem; }
+#contenidoPrincipal .atribucion-catalogo h3 { margin: 0 0 8px; font-size: .8rem; }
+#contenidoPrincipal .atribucion-catalogo p { margin: 6px 0 0; }
+
+/* Feed: the person comes first, media remains sharp and actions read as one toolbar. */
+#flujoPublicaciones { min-width: 0; }
+#flujoPublicaciones > #tituloFeed { margin: 4px 0 10px; padding: 0 0 8px; border-bottom: 1px solid var(--rm-line); color: var(--rm-plum); font-size: 1rem; }
+#flujoPublicaciones :is(#actualizarFeed, #verMas) {
+    min-height: 35px; padding: 6px 11px; border: 1px solid #d8cec7; border-radius: 4px;
+    background: #f9f6f2; color: #66515c; font-size: .8rem; font-weight: 650; box-shadow: none;
+}
+#flujoPublicaciones #actualizarFeed:hover, #flujoPublicaciones #verMas:hover { background: #eee7df; }
+#flujoPublicaciones #verMas { width: 100%; margin: 3px 0 18px; }
+#flujoPublicaciones #estadoFeed { margin: 7px 0; color: var(--rm-muted); font-size: .8rem; }
+#flujoPublicaciones #estadoFeed:empty { display: none; }
+#flujoPublicaciones #feed { width: 100%; margin: 0; }
+#flujoPublicaciones #feed > article {
+    margin: 12px 0; padding: 15px; border: 1px solid var(--rm-line); border-radius: 5px;
+    background: var(--rm-surface); box-shadow: 0 1px 2px #352c300e;
+}
+#flujoPublicaciones #feed > article > .autor-publicacion {
+    display: grid; grid-template-columns: 38px minmax(0,1fr) auto; grid-template-rows: auto auto;
+    align-items: center; gap: 1px 9px; margin: 0 0 13px; padding: 0 0 10px; border-bottom: 1px solid #eee7e0;
+}
+#flujoPublicaciones .autor-publicacion .avatar { grid-column: 1; grid-row: 1 / 3; width: 38px; height: 38px; border: 1px solid #ddd4cc; border-radius: 4px; }
+#flujoPublicaciones .autor-publicacion .enlace-usuario { grid-column: 2; grid-row: 1; min-width: 0; overflow-wrap: anywhere; color: #63505c; font-size: .88rem; text-decoration: none; }
+#flujoPublicaciones .autor-publicacion .enlace-usuario:hover { text-decoration: underline; }
+#flujoPublicaciones .autor-publicacion .rango-perfil { grid-column: 3; grid-row: 1 / 3; padding: 2px 6px; font-size: .65rem; font-weight: 600; }
+#flujoPublicaciones .autor-publicacion .fecha-publicacion { grid-column: 2; grid-row: 2; margin: 0; color: #837b77; font-size: .7rem; font-weight: 400; }
+#flujoPublicaciones #feed > article > h3 { margin-top: 0; color: var(--rm-plum); font-size: 1.07rem; }
+#flujoPublicaciones #feed > article > .opinion { font-size: .94rem; line-height: 1.65; }
+#flujoPublicaciones #feed > article.publicacion-status > .opinion { padding: 0; border: 0; color: var(--rm-ink); font-family: inherit; font-size: .98rem; }
+#flujoPublicaciones #feed > article.publicacion-muro > h3 { color: var(--rm-muted); font-size: .75rem; font-weight: 500; }
+#flujoPublicaciones #feed > article.publicacion-album { display: grid; grid-template-columns: 116px minmax(0,1fr); gap: 5px 14px; }
+#flujoPublicaciones #feed > article.publicacion-album > :is(.autor-publicacion, .acciones, .opinion, [role="status"], .zona-comentarios, form) { grid-column: 1 / -1; }
+#flujoPublicaciones #feed > article.publicacion-album > img { grid-column: 1; grid-row: 2 / span 2; width: 116px; height: 116px; border: 1px solid #e5ddd4; border-radius: 3px; object-fit: cover; }
+#flujoPublicaciones #feed > article.publicacion-album > h3 { grid-column: 2; margin: 0; align-self: end; }
+#flujoPublicaciones #feed > article.publicacion-album > h3 + p { grid-column: 2; margin: 0; color: var(--rm-muted); font-size: .86rem; }
+#flujoPublicaciones #feed > article.publicacion-album > .opinion { margin: 9px 0 0; }
+#flujoPublicaciones #feed > article:is(.publicacion-pelicula, .publicacion-libro) { grid-template-columns: 84px minmax(0,1fr); gap: 4px 13px; }
+#flujoPublicaciones #feed > article:is(.publicacion-pelicula, .publicacion-libro) > :is(.poster-pelicula, .poster-libro, .portada-libro-vacia) { width: 84px; height: 126px; }
+#flujoPublicaciones #feed > article:is(.publicacion-pelicula, .publicacion-libro) > :is(.poster-pelicula, .poster-libro, .portada-libro-vacia) { grid-row: 2 / 6; min-height: 0; }
+#flujoPublicaciones #feed > article:is(.publicacion-pelicula, .publicacion-libro) > .opinion { grid-column: 1 / -1; grid-row: 6; margin: 10px 0 0; }
+#flujoPublicaciones #feed > article .poster-pelicula-alternativo { gap: 7px; padding: 9px; }
+#flujoPublicaciones #feed > article .poster-pelicula-alternativo strong { font-size: .82rem; overflow-wrap: anywhere; }
+#flujoPublicaciones #feed > article .poster-pelicula-alternativo span { font-size: .57rem; letter-spacing: .06em; }
+#flujoPublicaciones #feed > article .fuente-pelicula { font-size: .74rem; }
+#flujoPublicaciones #feed > article .nota-pelicula { color: #8d6b2c; font-size: .88rem; }
+#flujoPublicaciones #feed > article.publicacion-diario > h3 { font-family: Georgia, serif; font-size: 1.4rem; line-height: 1.35; }
+#flujoPublicaciones #feed > article.publicacion-diario > .opinion { font-family: Georgia, serif; font-size: 1.03rem; line-height: 1.8; }
+#flujoPublicaciones #feed > article :is(.imagen-muro, .imagen-meme) { max-height: 620px; width: auto; max-width: 100%; height: auto; margin: 12px auto; border: 1px solid #e8e0d8; border-radius: 3px; object-fit: contain; box-shadow: none; }
+#flujoPublicaciones #feed > article > .acciones { gap: 4px 6px; margin: 13px -3px 0; padding: 8px 0 0; border-top: 1px solid #e8e0d8; }
+#flujoPublicaciones #feed > article > .acciones button {
+    min-height: 34px; padding: 5px 8px; border: 1px solid transparent; border-radius: 3px;
+    background: transparent; color: #735260; font-size: .79rem; font-weight: 650; box-shadow: none;
+}
+#flujoPublicaciones #feed > article > .acciones button:hover { border-color: #e2d6ce; background: #f3ece6; }
+#flujoPublicaciones #feed > article > .acciones button[aria-pressed="true"] { color: #8a443d; background: #f4e7e1; }
+#flujoPublicaciones #feed > article > .acciones select { min-width: 0; max-width: 100%; min-height: 34px; padding: 5px 8px; border: 1px solid #d8cec7; border-radius: 3px; background: #fff; color: var(--rm-ink); font-size: .79rem; }
+#flujoPublicaciones #feed > article > form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rm-line); }
+#flujoPublicaciones #feed > article > form textarea { flex-basis: 100%; width: 100%; min-height: 130px; padding: 10px; border-color: #d3cac3; font-size: .94rem; line-height: 1.6; resize: vertical; }
+#flujoPublicaciones #feed > article > form button { min-height: 38px; padding: 7px 12px; font-size: .85rem; }
+#flujoPublicaciones #feed > article > [role="status"] { margin: 8px 0 0; color: var(--rm-muted); font-size: .8rem; }
+#flujoPublicaciones #feed > article > [role="status"]:empty { display: none; }
+#flujoPublicaciones .enlace-muro { display: block; padding: 12px; border: 1px solid #dcd3ca; border-left: 3px solid var(--rm-teal); border-radius: 3px; background: #f6f4ef; font-size: .86rem; }
+#flujoPublicaciones .zona-comentarios { margin: 10px -15px -15px; padding: 12px 15px; border: 0; border-top: 1px solid #e0d7ce; border-radius: 0 0 4px 4px; background: #f5f2ee; }
+#flujoPublicaciones .comentario-publicado { margin-bottom: 7px; padding: 8px 0; border-bottom: 1px solid #e4dbd3; font-size: .86rem; }
+#flujoPublicaciones .comentario-publicado > p { padding: 0; background: transparent; }
+#flujoPublicaciones .comentario-respuesta { margin-left: 15px; padding-left: 10px; border-left: 2px solid #bfd0c5; background: transparent; }
+#flujoPublicaciones .zona-comentarios .fila-controles { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px; }
+#flujoPublicaciones .zona-comentarios .fila-controles input:not([type="hidden"]) { flex: 1 1 180px; width: auto; min-height: 38px; padding: 8px; border-color: #d3cac3; border-radius: 3px; background: #fff; font-size: .88rem; }
+#flujoPublicaciones .zona-comentarios button { min-height: 34px; padding: 5px 9px; border-radius: 3px; font-size: .77rem; }
+#flujoPublicaciones .zona-comentarios .fila-controles button { flex: 0 0 auto; width: auto; }
+#flujoPublicaciones .zona-comentarios [role="status"] { margin: 5px 0 9px; font-size: .8rem; }
+
+/* Directory sections share small cards without turning every row into another panel. */
+#contenidoPrincipal :is(#listaEventos, #listaInvitaciones, #listaJuegos, #resultadosBusquedaJuegos, #listaColecciones) {
+    display: grid; grid-template-columns: minmax(0,1fr); gap: 10px;
+}
+#contenidoPrincipal :is(.tarjeta-evento, .tarjeta-recomendacion-juego, .tarjeta-juego-catalogo, .tarjeta-lista) {
+    margin: 0; padding: 13px; border: 1px solid var(--rm-line); border-radius: 4px; background: #fff; box-shadow: none;
+}
+#contenidoPrincipal :is(.tarjeta-evento, .tarjeta-recomendacion-juego, .tarjeta-juego-catalogo, .tarjeta-lista) :is(h3, h4) { margin: 0 0 7px; color: var(--rm-plum); font-size: 1rem; }
+#contenidoPrincipal :is(.tarjeta-evento, .tarjeta-recomendacion-juego, .tarjeta-juego-catalogo, .tarjeta-lista) p { margin: 7px 0; font-size: .86rem; }
+#contenidoPrincipal .tarjeta-recomendacion-juego .plataforma-juego { display: inline-block; margin: 0; padding: 3px 7px; border: 1px solid #d5dfd5; border-radius: 3px; background: #f0f5ee; color: #586f5f; font-size: .75rem; }
+#contenidoPrincipal :is(.tarjeta-recomendacion-juego, .tarjeta-lista) time { display: block; margin: 8px 0; color: var(--rm-muted); font-size: .74rem; }
+#contenidoPrincipal :is(.tarjeta-juego-catalogo, .tarjeta-lista) > button { margin: 8px 6px 0 0; }
+#contenidoPrincipal :is(#crearEventoCaja, #crearJuegoCaja) { margin: 12px 0 18px; padding: 0; border: 1px solid var(--rm-line); border-radius: 4px; background: #f8f5f0; }
+#contenidoPrincipal :is(#crearEventoCaja, #crearJuegoCaja) > summary { min-height: 42px; padding: 10px 12px; color: #65505a; font-size: .86rem; }
+#contenidoPrincipal :is(#crearEventoCaja, #crearJuegoCaja) > form { margin: 0; padding: 0 12px 12px; }
+#contenidoPrincipal .formulario-evento { grid-template-columns: minmax(0,1fr); gap: 5px; max-width: none; }
+#contenidoPrincipal .formulario-evento :is(input, textarea, button) { grid-column: 1; }
+#contenidoPrincipal .formulario-evento label { margin: 9px 0 0; }
+#contenidoPrincipal .formulario-evento > button { justify-self: start; margin-top: 8px; }
+#contenidoPrincipal .invitar-amigos-evento { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e8e1d8; }
+#contenidoPrincipal .rejilla-videos { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+#contenidoPrincipal .tarjeta-video { margin: 0; padding: 0; border: 1px solid var(--rm-line); border-radius: 4px; background: #fff; box-shadow: none; }
+#contenidoPrincipal .tarjeta-video h3 { font-size: .89rem; line-height: 1.4; }
+#contenidoPrincipal .tarjeta-video :is(p, span) { font-size: .76rem; }
+#contenidoPrincipal #actualizarVideos { margin-top: 14px; }
+#contenidoPrincipal #listaAmigos .tarjeta-amigo { grid-template-columns: minmax(0,1fr) auto; gap: 6px 10px; margin: 0; padding: 13px 0; border: 0; border-bottom: 1px solid #e6ddd5; border-radius: 0; background: transparent; box-shadow: none; }
+#contenidoPrincipal #listaAmigos .amigo-identidad { flex-wrap: wrap; gap: 7px; }
+#contenidoPrincipal #listaAmigos .avatar { width: 40px; height: 40px; flex-basis: 40px; border-radius: 4px; }
+#contenidoPrincipal #listaAmigos .enlace-usuario { max-width: 100%; font-size: .87rem; }
+#contenidoPrincipal #listaAmigos .rango-perfil { font-size: .65rem; }
+#contenidoPrincipal #listaAmigos .estado-presencia-amigo { font-size: .72rem; }
+#contenidoPrincipal #listaAmigos .estado-amistad { margin-left: 47px; font-size: .78rem; }
+#contenidoPrincipal #listaAmigos .acciones { margin-left: 47px; gap: 6px; }
+
+/* Account editing and community conversation stay readable on a narrow profile. */
+#contenidoPrincipal #sesionPerfil { min-width: 0; }
+#contenidoPrincipal #editarPerfil { max-width: none; margin: 12px 0; padding: 0; border: 1px solid var(--rm-line); border-radius: 4px; background: #fff; }
+#contenidoPrincipal #editarPerfil > summary { padding: 12px; color: var(--rm-plum); font-size: .9rem; }
+#contenidoPrincipal #editarPerfil > :not(summary) { margin-right: 14px; margin-left: 14px; }
+#contenidoPrincipal #editarPerfil form { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e6ddd5; }
+#contenidoPrincipal #editarPerfil form p { color: var(--rm-muted); font-size: .77rem; }
+#contenidoPrincipal #miFoto .avatar { width: 86px; height: 86px; border-radius: 5px; }
+#contenidoPrincipal #mensajesChat { gap: 0; max-height: 340px; padding: 0 12px; border: 1px solid #e3dbd2; border-radius: 4px; background: #faf8f4; }
+#contenidoPrincipal #mensajesChat .mensaje-chat { margin: 0; padding: 10px 0; border: 0; border-bottom: 1px solid #e6ded6; border-radius: 0; background: transparent; box-shadow: none; font-size: .85rem; }
+#contenidoPrincipal #mensajesChat .mensaje-chat:last-child { border-bottom: 0; }
+#contenidoPrincipal #mensajesChat time { color: var(--rm-muted); font-size: .7rem; }
+#contenidoPrincipal #formularioChat { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px; }
+#contenidoPrincipal #formularioChat input:not([type="hidden"]) { flex: 1 1 190px; width: auto; }
+#contenidoPrincipal #formularioChat button { flex: 0 0 auto; width: auto; }
+
+/* Albums retain their names; each album owns its photo grid. */
+#contenidoPrincipal #albumesPerfil { grid-template-columns: minmax(0,1fr); gap: 18px; }
+#contenidoPrincipal .album-fotos-perfil h4 { margin: 0 0 9px; color: var(--rm-plum); font-size: .9rem; }
+#contenidoPrincipal .galeria-perfil { grid-template-columns: repeat(auto-fill,minmax(min(140px,100%),1fr)); gap: 10px; }
+#contenidoPrincipal .galeria-perfil figure { display: flex; flex-direction: column; border-color: var(--rm-line); border-radius: 3px; background: #fff; }
+#contenidoPrincipal .galeria-perfil figcaption { padding: 8px; color: var(--rm-muted); font-size: .79rem; line-height: 1.45; }
+#contenidoPrincipal .galeria-perfil .quitar-foto-perfil { align-self: start; width: auto; min-height: 34px; margin-top: auto; padding: 5px 8px; background: #f6f2ed; color: #735260; border: 1px solid #e0d5cd; font-size: .74rem; }
+#contenidoPrincipal #perfilPublico[data-tab="muro"] #albumesPerfil { gap: 10px; }
+#contenidoPrincipal #perfilPublico[data-tab="muro"] .album-fotos-perfil h4 { margin-bottom: 5px; font-size: .72rem; }
+#contenidoPrincipal #perfilPublico[data-tab="muro"] .galeria-perfil { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; }
+#contenidoPrincipal #perfilPublico[data-tab="muro"] .album-fotos-perfil:nth-child(n+3),
+#contenidoPrincipal #perfilPublico[data-tab="muro"] .galeria-perfil figure:nth-child(n+4),
+#contenidoPrincipal #perfilPublico[data-tab="muro"] .galeria-perfil :is(figcaption, .quitar-foto-perfil) { display: none; }
+#contenidoPrincipal #conciertosPerfil :is(.busqueda-conciertos, .formulario-concierto) { grid-template-columns: minmax(110px,.45fr) minmax(0,1fr); gap: 9px 12px; padding: 12px; border: 1px solid var(--rm-line); border-radius: 4px; background: #f8f6f2; }
+#contenidoPrincipal #conciertosPerfil :is(.busqueda-conciertos, .formulario-concierto) label { margin: 0; color: #574e52; font-size: .84rem; }
+#contenidoPrincipal #conciertosPerfil :is(input, textarea) { min-width: 0; min-height: 40px; border-color: #cfc8c5; border-radius: 4px; font-size: .94rem; }
+#contenidoPrincipal #conciertosPerfil .formulario-concierto textarea { grid-column: 2; }
+#contenidoPrincipal #conciertosPerfil :is(button, summary) { min-height: 38px; font-size: .82rem; }
+#contenidoPrincipal #conciertosPerfil .tarjeta-concierto { margin: 0; padding: 12px; border-radius: 4px; box-shadow: none; }
+#contenidoPrincipal #conciertosPerfil .tarjeta-concierto p { font-size: .84rem; }
+#contenidoPrincipal #conciertosPerfil .tarjeta-concierto h4 { color: var(--rm-plum); font-size: .95rem; }
+#contenidoPrincipal #conciertosPerfil .agregar-concierto-caja > summary { padding: 10px 0; color: var(--rm-plum); cursor: pointer; }
+
+@media (max-width: 700px) {
+    #contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+    #seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+    #compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario) { margin-bottom: 12px; padding: 13px; }
+    #contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+    #seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+    #compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario) > h2 { margin: -13px -13px 12px; padding: 11px 12px; }
+    #contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+    #seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+    #compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario, #editarPerfil) :where(input, select, textarea) { font-size: 16px; }
+    #contenidoPrincipal :is(#cuenta, #crearPublicacion, #crearMeme, #seccionPeliculas,
+    #seccionLibros, #seccionEventos, #seccionVideos, #seccionJuegos, #seccionDiario,
+    #compositorDiario, #compositorMuro, #seccionAmigos, #seccionListas, #chatComunitario, #editarPerfil) button { min-height: 44px; }
+    #contenidoPrincipal .campos-busqueda { grid-template-columns: minmax(0,1fr); gap: 10px; }
+    #contenidoPrincipal #resultadosBusqueda { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+    #contenidoPrincipal :is(#formularioBusquedaPeliculas, #formularioBusquedaLibros, #formularioBusquedaJuegos) .fila-controles { flex-direction: row; align-items: stretch; }
+    #contenidoPrincipal :is(#formularioBusquedaPeliculas, #formularioBusquedaLibros, #formularioBusquedaJuegos) .fila-controles > button { flex: 0 0 auto; width: auto; }
+    #contenidoPrincipal :is(#resultadoAlbum, #reseñaPelicula, #reseñaLibro) { grid-template-columns: 80px minmax(0,1fr); gap: 7px 10px; padding: 11px; }
+    #contenidoPrincipal :is(#portadaAlbum, #posterSeleccionPelicula, #portadaSeleccionLibro) { width: 80px; }
+    #flujoPublicaciones #feed > article { margin: 10px 0; padding: 12px; }
+    #flujoPublicaciones #feed > article.publicacion-album { grid-template-columns: 90px minmax(0,1fr); gap: 5px 10px; }
+    #flujoPublicaciones #feed > article.publicacion-album > img { width: 90px; height: 90px; }
+    #flujoPublicaciones #feed > article > .acciones button { min-height: 44px; padding-inline: 7px; }
+    #flujoPublicaciones #feed > article > .acciones select { min-height: 44px; font-size: 16px; }
+    #flujoPublicaciones #feed > article > form textarea { font-size: 16px; }
+    #flujoPublicaciones #feed > article > form button { min-height: 44px; }
+    #flujoPublicaciones .zona-comentarios { margin-inline: -12px; margin-bottom: -12px; padding: 10px 12px; }
+    #flujoPublicaciones .zona-comentarios .fila-controles input:not([type="hidden"]) { min-height: 44px; font-size: 16px; }
+    #flujoPublicaciones .zona-comentarios button { min-height: 44px; }
+    #contenidoPrincipal #listaAmigos .tarjeta-amigo { grid-template-columns: minmax(0,1fr); }
+    #contenidoPrincipal #listaAmigos .estado-presencia-amigo { grid-column: 1; margin-left: 47px; }
+    #contenidoPrincipal #listaAmigos .acciones { margin-left: 0; }
+    #contenidoPrincipal .galeria-perfil { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+    #contenidoPrincipal .galeria-perfil .quitar-foto-perfil { min-height: 44px; }
+    #contenidoPrincipal #conciertosPerfil :is(.busqueda-conciertos, .formulario-concierto) { grid-template-columns: minmax(0,1fr); gap: 6px; padding: 10px; }
+    #contenidoPrincipal #conciertosPerfil :is(.busqueda-conciertos, .formulario-concierto) label { margin-top: 5px; }
+    #contenidoPrincipal #conciertosPerfil .formulario-concierto textarea { grid-column: 1; }
+    #contenidoPrincipal #conciertosPerfil :is(input, textarea, button, summary) { min-height: 44px; }
+    #contenidoPrincipal #conciertosPerfil :is(input, textarea) { font-size: 16px; }
+}
+@media (max-width: 390px) {
+    #contenidoPrincipal :is(.tarjeta-pelicula, .tarjeta-libro) { grid-template-columns: 64px minmax(0,1fr); padding: 10px; gap: 5px 10px; }
+    #contenidoPrincipal .tarjeta-pelicula .marco-afiche-resultado, #contenidoPrincipal .tarjeta-libro .miniatura-libro { width: 64px; }
+    #contenidoPrincipal .rejilla-videos { grid-template-columns: minmax(0,1fr); }
+    #flujoPublicaciones .autor-publicacion .rango-perfil { max-width: 68px; text-align: center; }
+    #flujoPublicaciones #feed > article:is(.publicacion-pelicula, .publicacion-libro) { grid-template-columns: 70px minmax(0,1fr); gap: 4px 10px; }
+    #flujoPublicaciones #feed > article:is(.publicacion-pelicula, .publicacion-libro) > :is(.poster-pelicula, .poster-libro, .portada-libro-vacia) { width: 70px; height: 105px; }
+}
