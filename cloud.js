@@ -421,7 +421,7 @@
         const [spanish,english]=await Promise.all([buscarIdioma('es'),buscarIdioma('en')]);
         const matches=[...new Map([...spanish,...english].map(item=>[item.id,item])).values()].slice(0,24);
         if(!matches.length)return [];
-        const detailsUrl=new URL(api);detailsUrl.search=new URLSearchParams({action:'wbgetentities',ids:matches.map(item=>item.id).join('|'),props:'labels|descriptions|claims',languages:'es|en',languagefallback:'1',format:'json',origin:'*'}).toString();
+        const detailsUrl=new URL(api);detailsUrl.search=new URLSearchParams({action:'wbgetentities',ids:matches.map(item=>item.id).join('|'),props:'labels|descriptions|claims|sitelinks',languages:'es|en',languagefallback:'1',format:'json',origin:'*'}).toString();
         const detailsResponse=await fetch(detailsUrl,{headers:{Accept:'application/json'}});if(!detailsResponse.ok)throw new Error('No se pudieron consultar las fichas');
         const entities=Object.values((await detailsResponse.json()).entities||{});
         const valid=entities.filter(entity=>{
@@ -437,11 +437,55 @@
             const cover=typeof filename==='string'?'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(filename)+'?width=480':null;
             return {wikidata_id:entity.id,title:etiquetaEntidad(entity)||matches.find(item=>item.id===entity.id)?.label||'',platforms:[...new Set(idsWikidata(claims,'P400').map(id=>etiquetaEntidad(referenceEntities[id])).filter(Boolean))].slice(0,4).join(', ')||'Plataformas no especificadas',genre:[...new Set(idsWikidata(claims,'P136').map(id=>etiquetaEntidad(referenceEntities[id])).filter(Boolean))].slice(0,2).join(', '),release_year:(date.match(/[+-](\d{4})-/)||[])[1]?Number((date.match(/[+-](\d{4})-/)||[])[1]):null,summary:(entity.descriptions?.es?.value||entity.descriptions?.en?.value||'').slice(0,500),cover_url:cover,external_url:'https://www.wikidata.org/wiki/'+entity.id};
         }).filter(game=>game.title);
+        await completarPortadasJuegos(games,valid,term);
         cacheBusquedaJuegos.set(key,games);if(cacheBusquedaJuegos.size>30)cacheBusquedaJuegos.delete(cacheBusquedaJuegos.keys().next().value);return games;
+    }
+    async function buscarPortadasSteam(term){
+        try{
+            const {data,error}=await db.functions.invoke('game-catalog',{body:{query:term}});if(error||!Array.isArray(data?.results))return [];
+            return data.results.filter(item=>typeof item.title==='string'&&Number.isSafeInteger(item.steam_id)&&item.steam_id>0).map(item=>({title:item.title,cover:'https://cdn.akamai.steamstatic.com/steam/apps/'+item.steam_id+'/library_600x900.jpg'}));
+        }catch{return [];}
+    }
+    async function completarPortadasJuegos(games,entities,term){
+        const pending=games.filter(game=>!game.cover_url);if(!pending.length)return;
+        const pageMatches=new Map();
+        for(const language of ['es','en']){
+            const titles=entities.filter(entity=>pending.some(game=>game.wikidata_id===entity.id)).map(entity=>entity.sitelinks?.[language+'wiki']?.title).filter(Boolean);
+            if(!titles.length)continue;
+            try{
+                const url=new URL('https://'+language+'.wikipedia.org/w/api.php');url.search=new URLSearchParams({action:'query',titles:[...new Set(titles)].join('|'),prop:'pageimages',piprop:'thumbnail',pithumbsize:'480',format:'json',origin:'*'}).toString();
+                const response=await fetch(url,{headers:{Accept:'application/json'}});if(!response.ok)continue;
+                const pages=Object.values((await response.json()).query?.pages||{});
+                for(const page of pages)if(page.thumbnail?.source)pageMatches.set(page.title.replace(/_/g,' ').toLocaleLowerCase(),page.thumbnail.source);
+            }catch{}
+        }
+        for(const entity of entities){
+            const game=pending.find(item=>item.wikidata_id===entity.id);if(!game)continue;
+            const title=entity.sitelinks?.eswiki?.title||entity.sitelinks?.enwiki?.title;
+            const image=title&&pageMatches.get(title.replace(/_/g,' ').toLocaleLowerCase());if(image)game.cover_url=image;
+        }
+        if(games.every(game=>game.cover_url)||!term.trim())return;
+        try{
+            const url=new URL('https://commons.wikimedia.org/w/api.php');url.search=new URLSearchParams({action:'query',generator:'search',gsrsearch:term,gsrnamespace:'6',gsrlimit:'24',prop:'imageinfo',iiprop:'url',iiurlwidth:'480',format:'json',origin:'*'}).toString();
+            const response=await fetch(url,{headers:{Accept:'application/json'}});if(!response.ok)return;
+            const pages=Object.values((await response.json()).query?.pages||{}),normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').replace(/[^a-z0-9]+/g,' ').trim();
+            for(const game of games){
+                if(game.cover_url)continue;
+                const tokens=normalize(game.title).split(' ').filter(token=>token.length>2&&!['the','and','del','los','las','game','juego'].includes(token));if(!tokens.length)continue;
+                const candidate=pages.map(page=>{
+                    const name=normalize((page.title||'').replace(/^File:/i,'').replace(/\.[^.]+$/,''));
+                    const matched=tokens.filter(token=>name.includes(token)).length;
+                    const preferred=/cover|box|logo|poster|artwork|key art|portada/.test(name)?0.2:0;
+                    const noisy=/cosplay|esport|tournament|championship|screenshot|gameplay/.test(name)?0.4:0;
+                    return {page,score:matched/tokens.length+preferred-noisy};
+                }).filter(item=>item.score>=0.8).sort((a,b)=>b.score-a.score)[0];
+                const image=candidate?.page?.imageinfo?.[0]?.thumburl;if(image)game.cover_url=image;
+            }
+        }catch{}
     }
     function crearPortadaJuego(game){
         const raw=game?.cover_url||game?.cover;
-        if(raw){try{const url=new URL(raw);if(url.protocol==='https:'&&url.hostname==='commons.wikimedia.org'&&url.pathname.startsWith('/wiki/Special:FilePath/')){const image=document.createElement('img');image.className='poster-juego portada-juego';image.loading='lazy';image.alt='Portada de '+(game.title||'juego');image.src=url.href;image.onerror=()=>{const fallback=document.createElement('div');fallback.className='poster-juego portada-juego-vacia';fallback.textContent=game.title||'Juego';image.replaceWith(fallback);};return image;}}catch{}}
+        if(raw){try{const url=new URL(raw),commonsFile=url.protocol==='https:'&&url.hostname==='commons.wikimedia.org'&&url.pathname.startsWith('/wiki/Special:FilePath/'),wikiThumbnail=url.protocol==='https:'&&url.hostname==='thumb.wikimedia.org'&&url.pathname.startsWith('/wikipedia/'),steamCover=url.protocol==='https:'&&url.hostname==='cdn.akamai.steamstatic.com'&&/^\/steam\/apps\/[0-9]{1,12}\/library_600x900\.jpg$/.test(url.pathname);if(commonsFile||wikiThumbnail||steamCover){const image=document.createElement('img');image.className='poster-juego portada-juego';image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';image.alt='Imagen de '+(game.title||'juego');image.src=url.href;image.onerror=()=>{const fallback=document.createElement('div');fallback.className='poster-juego portada-juego-vacia';fallback.textContent=game.title||'Juego';image.replaceWith(fallback);};return image;}}catch{}}
         const fallback=document.createElement('div');fallback.className='poster-juego portada-juego-vacia';fallback.textContent=game?.title||'Juego';return fallback;
     }
     function abrirResenaJuego(game,catalogId){
@@ -453,7 +497,7 @@
         const card=document.createElement('article');card.className='tarjeta-juego-catalogo';card.append(crearPortadaJuego(game));const text=document.createElement('div'),title=document.createElement('h3'),meta=document.createElement('p'),description=document.createElement('p');title.textContent=game.title;meta.textContent=[game.platforms,game.release_year,game.genre].filter(Boolean).join(' · ');description.textContent=game.summary||'';text.append(title,meta);if(description.textContent)text.append(description);card.append(text);
         const pick=crearBoton(game.id?'Escribir reseña':'Agregar al catálogo y reseñar');pick.addEventListener('click',async()=>{
             if(!exigirCuenta())return;pick.disabled=true;
-            try{let id=game.id;if(!id){id=resultado(await db.rpc('add_external_game_catalog',{p_wikidata_id:game.wikidata_id,p_title:game.title.slice(0,120),p_platforms:(game.platforms||'Plataformas no especificadas').slice(0,120),p_genre:(game.genre||'').slice(0,60),p_external_url:game.external_url,p_cover_url:game.cover_url,p_release_year:game.release_year,p_summary:(game.summary||'').slice(0,500)}));game.id=id;}abrirResenaJuego(game,id);}
+            try{let id=game.id;if(!id||game.wikidata_id&&game.cover_url){const steamCover=/^https:\/\/cdn\.akamai\.steamstatic\.com\/steam\/apps\/[0-9]{1,12}\/library_600x900\.jpg$/.test(game.cover_url||'');id=resultado(await db.rpc('add_external_game_catalog',{p_wikidata_id:game.wikidata_id,p_title:game.title.slice(0,120),p_platforms:(game.platforms||'Plataformas no especificadas').slice(0,120),p_genre:(game.genre||'').slice(0,60),p_external_url:game.external_url,p_cover_url:steamCover?null:game.cover_url,p_release_year:game.release_year,p_summary:(game.summary||'').slice(0,500)}));game.id=id;if(steamCover)resultado(await db.rpc('set_game_catalog_cover',{p_game_id:id,p_cover_url:game.cover_url}));}abrirResenaJuego(game,id);}
             catch(error){document.getElementById('estadoBusquedaJuegos').textContent=mensajeErrorAccion(error);}
             finally{pick.disabled=false;}
         });card.append(pick);box.append(card);
@@ -480,15 +524,19 @@
     });
     document.getElementById('formularioBusquedaJuegos').addEventListener('submit',async event=>{
         event.preventDefault();if(!exigirCuenta())return;const term=document.getElementById('buscarJuegoCatalogo').value.trim(),status=document.getElementById('estadoBusquedaJuegos'),box=document.getElementById('resultadosBusquedaJuegos'),button=event.currentTarget.querySelector('button');
-        if(term.length<2){status.textContent='Escribe al menos dos caracteres.';return;}if(term.length>80){status.textContent='La búsqueda puede tener hasta 80 caracteres.';return;}button.disabled=true;status.textContent='Buscando en el catálogo de RedMusica y Wikidata…';box.replaceChildren();document.getElementById('reseñaJuego').hidden=true;
+        if(term.length<2){status.textContent='Escribe al menos dos caracteres.';return;}if(term.length>80){status.textContent='La búsqueda puede tener hasta 80 caracteres.';return;}button.disabled=true;status.textContent='Buscando en RedMusica, Steam y Wikidata…';box.replaceChildren();document.getElementById('reseñaJuego').hidden=true;
         try{
             const safe=term.replace(/[,%()]/g,' ');const localPromise=db.from('games_catalog').select('id,title,platforms,genre,external_url,cover_url,release_year,summary,wikidata_id').eq('hidden',false).or('title.ilike.%'+safe+'%,platforms.ilike.%'+safe+'%,genre.ilike.%'+safe+'%').order('title').limit(20);
-            const [localResult,external]=await Promise.allSettled([localPromise,buscarCatalogoWikidata(term)]);
-            const localOk=localResult.status==='fulfilled'&&!localResult.value.error;const local=localOk?localResult.value.data||[]:[];const remote=external.status==='fulfilled'?external.value:[];const seen=new Set();
-            local.forEach(game=>{const key=game.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');seen.add(key);mostrarJuegoCatalogo(game,box);});
+            const [localResult,external,steamResult]=await Promise.allSettled([localPromise,buscarCatalogoWikidata(term),buscarPortadasSteam(term)]);
+            const localOk=localResult.status==='fulfilled'&&!localResult.value.error;const local=localOk?localResult.value.data||[]:[];const remote=external.status==='fulfilled'?external.value:[];const steam=steamResult.status==='fulfilled'?steamResult.value:[];const seen=new Set();
+            const normalizeTitle=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
+            const coversToSave=[];
+            remote.forEach(game=>{if(!game.cover_url){const match=steam.find(item=>normalizeTitle(item.title)===normalizeTitle(game.title));if(match)game.cover_url=match.cover;}});
+            local.forEach(game=>{const key=normalizeTitle(game.title),match=remote.find(item=>normalizeTitle(item.title)===key),steamMatch=steam.find(item=>normalizeTitle(item.title)===key);seen.add(key);if(match){game.wikidata_id=game.wikidata_id||match.wikidata_id;game.external_url=game.external_url||match.external_url;if(!game.cover_url&&match.cover_url){game.cover_url=match.cover_url;coversToSave.push({p_game_id:game.id,p_cover_url:match.cover_url});}game.release_year=game.release_year||match.release_year;game.summary=game.summary||match.summary;}if(!game.cover_url&&steamMatch){game.cover_url=steamMatch.cover;coversToSave.push({p_game_id:game.id,p_cover_url:steamMatch.cover});}mostrarJuegoCatalogo(game,box);});
+            await Promise.allSettled(coversToSave.map(cover=>db.rpc('set_game_catalog_cover',cover)));
             remote.filter(game=>!seen.has(game.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es'))).forEach(game=>mostrarJuegoCatalogo(game,box));
             const total=local.length+remote.filter(game=>!seen.has(game.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es'))).length;
-            status.textContent=total?total+' juego(s) encontrado(s). Elige uno para agregarlo y reseñarlo.':external.status==='rejected'?'Wikidata no respondió y el catálogo de RedMusica no tiene coincidencias. Inténtalo de nuevo.':'No encontramos coincidencias. Prueba con otro título o recomiéndalo manualmente.';
+            status.textContent=total?total+' juego(s) encontrado(s). Elige uno para agregarlo y reseñarlo.':external.status==='rejected'?'Los catálogos externos no respondieron y RedMusica no tiene coincidencias. Inténtalo de nuevo.':'No encontramos coincidencias. Prueba con otro título o recomiéndalo manualmente.';
         }catch{status.textContent='No se pudo consultar el catálogo. Revisa tu conexión e inténtalo de nuevo.';}finally{button.disabled=false;}
     });
     document.getElementById('formularioResenaJuego').addEventListener('submit',event=>{
@@ -1073,6 +1121,36 @@
             try{await cambiarAmistad(other,action);}catch{status.textContent='No se pudo actualizar la solicitud. Inténtalo de nuevo.';}
         }
     }
+    let revisionBusquedaUsuarios=0;
+    document.getElementById('formularioBuscarUsuarios').addEventListener('submit',async event=>{
+        event.preventDefault();if(!exigirCuenta())return;
+        const form=event.currentTarget,input=document.getElementById('buscarUsuarios'),status=document.getElementById('estadoBuscarUsuarios'),box=document.getElementById('resultadosBuscarUsuarios'),button=form.querySelector('button'),term=input.value.trim();
+        if(term.length<2){status.textContent='Escribe al menos dos caracteres.';return;}
+        const revision=++revisionBusquedaUsuarios;button.disabled=true;status.textContent='Buscando usuarios…';box.replaceChildren();
+        try{
+            const pattern=term.replace(/[\\%_]/g,'\\$&');
+            const [people,friendships]=await Promise.all([
+                db.from('profiles').select('id,username,role,avatar_updated_at').neq('id',usuario.id).ilike('username','%'+pattern+'%').order('username').limit(20),
+                db.from('friendships').select('user_a,user_b,requested_by,status').or('user_a.eq.'+usuario.id+',user_b.eq.'+usuario.id).limit(500)
+            ]);
+            if(revision!==revisionBusquedaUsuarios)return;
+            const users=resultado(people),rows=resultado(friendships),states=new Map(rows.map(row=>[row.user_a===usuario.id?row.user_b:row.user_a,row]));
+            users.forEach(person=>{
+                const card=document.createElement('article');card.className='tarjeta-amigo resultado-usuario';
+                const identity=document.createElement('div');identity.className='amigo-identidad';identity.append(fotoPerfil(person.id,person),enlaceUsuario(person.id,person.username),rangoPerfil(person.role));card.append(identity);
+                const online=document.createElement('span');online.className='estado-presencia-amigo';online.textContent=presenciaEnLinea.has(person.id)?'En línea':'Desconectado';card.append(online);
+                const state=states.get(person.id),actions=document.createElement('div');actions.className='acciones';
+                const addAction=(label,action)=>{const buttonAction=crearBoton(label);buttonAction.addEventListener('click',async()=>{buttonAction.disabled=true;try{await cambiarAmistad(person.id,action);status.textContent=action==='send'?'Solicitud enviada a @'+person.username+'.':action==='accept'?'Ahora tú y @'+person.username+' son amigos.':'Solicitud actualizada.';form.requestSubmit();}catch{status.textContent='No se pudo actualizar la solicitud. Inténtalo de nuevo.';buttonAction.disabled=false;}});actions.append(buttonAction);};
+                if(!state||state.status==='declined')addAction('Agregar amigo','send');
+                else if(state.status==='accepted'){const done=crearBoton('Amigos');done.disabled=true;actions.append(done);}
+                else if(state.requested_by===usuario.id)addAction('Cancelar solicitud','cancel');
+                else{addAction('Aceptar','accept');addAction('Rechazar','decline');}
+                card.append(actions);box.append(card);
+            });
+            status.textContent=users.length?users.length+' usuario(s) encontrado(s).': 'No encontramos usuarios con ese nombre.';
+        }catch{if(revision===revisionBusquedaUsuarios)status.textContent='No se pudo buscar usuarios. Inténtalo de nuevo.';}
+        finally{if(revision===revisionBusquedaUsuarios)button.disabled=false;}
+    });
     document.getElementById('actualizarAmigos').addEventListener('click',cargarAmigos);
     setInterval(()=>{if(viendoAmigos&&!document.hidden)cargarAmigos();},60000);
     async function cargarAmigosDock(){

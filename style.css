@@ -328,6 +328,17 @@ input, textarea { min-width: 0; padding: 12px; border: 1px solid #aaaaaa; border
 .tarjeta-amigo .amigo-identidad .enlace-usuario::after { display: none; }
 .tarjeta-amigo .estado-presencia-amigo { grid-column: 2; white-space: nowrap; }
 .tarjeta-amigo .estado-amistad { grid-column: 1 / -1; margin: 0 0 0 54px; }
+.busqueda-usuarios { max-width: 760px; margin: 16px 0 6px; padding: 14px; border: 1px solid var(--rm-line,#ded8cf); border-radius: 8px; background: #faf8f4; }
+.busqueda-usuarios > label { display: block; margin-bottom: 7px; font-weight: 700; }
+.busqueda-usuarios .fila-controles { display: flex; gap: 8px; }
+.busqueda-usuarios input { min-width: 0; flex: 1; }
+.resultados-usuarios { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 10px; max-width: 900px; margin: 10px 0 16px; }
+.resultado-usuario { margin: 0; }
+@media (max-width: 600px) {
+    .busqueda-usuarios { padding: 11px; }
+    .busqueda-usuarios .fila-controles { align-items: stretch; }
+    .busqueda-usuarios button { flex-shrink: 0; }
+}
 .tarjeta-amigo .acciones { grid-column: 1 / -1; }
 
 /* Perfil con secciones, álbumes personales y actividades comunitarias. */
