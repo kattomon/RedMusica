@@ -104,3 +104,27 @@ El chat es una sala general compartida: leer es público, escribir requiere inic
 La radio se reduce a una barra en el mismo feed; el iframe sigue montado mientras se navega dentro de la página. Cerrar la pestaña o el navegador sí termina la reproducción, según las reglas del navegador y de YouTube.
 
 `tests/community-database.cjs` comprueba rutas y límites de imágenes, autorización del chat, longitud y retención. `tests/browser.cjs` prueba publicar un meme, volver a cargarlo y enviar/cargar mensajes con el SDK simulado.
+
+# Pool bola 8 en línea
+
+El pool está dentro de la sección Juegos (`?seccion=juegos`). Una persona crea una sala y comparte el código de seis caracteres o el enlace `?seccion=juegos&pool=CÓDIGO`; la segunda persona que entra empieza la partida. Las victorias y derrotas aparecen en el perfil público.
+
+## Arquitectura
+
+- `supabase/functions/pool/engine.js`: física y reglas. La simulación solo usa suma, resta, multiplicación, división y `Math.sqrt`, operaciones exactas en IEEE 754, así que el servidor (Deno) y cualquier navegador obtienen la misma trayectoria a partir de la misma entrada. El navegador importa este mismo archivo para animar el tiro; nunca decide el resultado.
+- `supabase/functions/pool/rooms.js`: entrar, salir (abandonar una partida en curso la pierde), reclamar la victoria si el rival no tira en cinco minutos y revancha (ambos deben aceptarla; saca quien perdió).
+- `supabase/functions/pool/index.ts`: acciones `create`, `join`, `state`, `shoot`, `rematch`, `claim` y `leave`. Valida la sesión con `auth.getUser`, rechaza cuentas suspendidas, limita el cuerpo a 2 KiB y protege cada escritura con `updated_at` (dos cambios simultáneos no se pisan). El navegador solo envía dirección, fuerza y, con bola en mano, la posición de la blanca; el servidor valida todo y simula.
+- `supabase/migrations/20260930200000_pool_rooms_and_stats.sql`: `pool_rooms` (salas de 24 horas) y `pool_matches` (historial) solo para `service_role`; `pool_stats` es de lectura pública y nadie más que el servidor la escribe. `record_pool_result` registra cada partida una sola vez (el id de partida es la clave) y solo puede ejecutarla `service_role`. Si registrar falla, se reintenta en la siguiente consulta de la sala.
+- `pool.js` y `pool.css`: mesa en canvas (vertical en pantallas angostas), apuntar tocando o arrastrando, flechas y Enter en el teclado, control de fuerza, bola en mano, revancha y la línea de victorias del perfil. Consulta el estado cada 3 s mientras espera al rival y cada 10 s en su propio turno; se detiene con la pestaña oculta o fuera de Juegos.
+
+Reglas simplificadas: no se canta tronera; la bola 8 que entra en el saque vuelve a su punto; una falta en el saque da bola en mano en toda la mesa.
+
+## Publicación (en este orden)
+
+1. Aplicar la migración: `supabase db push` o pegar el archivo en SQL Editor. Revisar después en Database → Policies que las tres tablas tengan RLS activo.
+2. Desplegar la función: `supabase functions deploy pool`. Usa `SUPABASE_URL` y la clave de servicio que Supabase ya inyecta; no necesita secretos nuevos. Mantener la verificación de JWT activada (valor por defecto).
+3. Recién entonces integrar la rama en `main` para que GitHub Pages publique la interfaz. Si la interfaz se publica antes, el pool muestra «El pool todavía no está disponible» y el resto del sitio sigue funcionando.
+
+## Pruebas
+
+`tests/pool-logic.cjs` (reglas, saque, faltas, bola 8, salas), `tests/pool-database.cjs` (RLS, permisos, registro único, borrado de cuentas) y `tests/pool-browser.cjs` (dos jugadores contra un servidor simulado con el motor real: saque con teclado, bola en mano tocando la mesa, victoria, revancha, salida, móvil sin desplazamiento lateral, contador en el perfil y trayectorias idénticas entre navegador y servidor).

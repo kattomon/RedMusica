@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="layout.css?v=20260929-1">
     <link rel="stylesheet" href="sections.css?v=20260929-1">
     <link rel="stylesheet" href="admin-ui.css?v=20260929-1">
+    <link rel="stylesheet" href="pool.css?v=20260930-1">
 </head>
 <body class="social-app">
 <a class="saltar-contenido" href="#contenidoPrincipal">Saltar al contenido</a>
@@ -53,7 +54,7 @@
             <div class="perfil-portada-datos"><div id="fotoPerfilPublico"></div><div class="perfil-portada-texto"><div id="rangoPerfilPublico"></div><h2 id="tituloPerfilPublico">Cargando perfil…</h2><p id="fechaPerfilPublico"></p></div></div>
         </header>
  <div class="perfil-relaciones"><p id="presenciaPerfil" class="indicador-presencia" data-user-id=""></p>
-        <p id="conteoSeguidores"></p><button id="seguirPerfil" type="button" hidden></button>
+        <p id="conteoSeguidores"></p><p id="poolPerfil" class="pool-perfil" hidden></p><button id="seguirPerfil" type="button" hidden></button>
         <button id="amistadPerfil" type="button" hidden></button><button id="rechazarAmistad" type="button" hidden>Rechazar solicitud</button>
         <p id="estadoAmistadPerfil" role="status"></p>
         <button id="compartirPerfilBoton" type="button">Compartir perfil</button></div>
@@ -112,6 +113,35 @@
     <section id="seccionJuegos" aria-labelledby="tituloJuegos" hidden>
         <h2 id="tituloJuegos">Juegos de la comunidad</h2>
         <p>Busca juegos de distintas plataformas, agrégalos al catálogo común y publica tu reseña.</p>
+        <section id="poolJuegos" class="pool" aria-labelledby="tituloPool">
+            <div class="pool-cabecera"><h3 id="tituloPool">Pool bola 8 en línea</h3><p>Reta a otra persona de RedMusica con un código de sala. Las victorias quedan en tu perfil.</p></div>
+            <p id="poolAcceso" hidden><a href="./">Inicia sesión desde Inicio</a> para crear una sala o unirte con un código.</p>
+            <div id="poolEntrada" class="pool-entrada">
+                <button id="poolCrear" type="button">Crear una sala</button>
+                <form id="poolUnirse" class="fila-controles"><label for="poolCodigo">Código de sala</label><input id="poolCodigo" maxlength="6" minlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123" required><button type="submit">Unirme</button></form>
+            </div>
+            <p id="poolEstado" class="pool-estado" role="status" aria-live="polite"></p>
+            <div id="poolMesa" hidden>
+                <div class="pool-barra"><strong>Sala <span id="poolCodigoSala"></span></strong><button id="poolInvitar" type="button">Copiar invitación</button><button id="poolSalir" class="pool-secundario" type="button">Salir</button></div>
+                <ol id="poolJugadores" class="pool-jugadores" aria-label="Jugadores"></ol>
+                <p id="poolTurno" class="pool-turno" aria-live="polite"></p>
+                <div id="poolLienzo" class="pool-lienzo"><canvas id="poolCanvas" tabindex="0" role="application" aria-roledescription="mesa de pool" aria-label="Mesa de pool"></canvas></div>
+                <div id="poolControles" class="pool-controles" hidden>
+                    <div class="pool-fuerza"><label for="poolFuerza">Fuerza <output id="poolFuerzaValor" for="poolFuerza">60%</output></label><input id="poolFuerza" type="range" min="5" max="100" step="1" value="60"></div>
+                    <div class="pool-botones"><button id="poolGirarIzq" type="button" aria-label="Girar la puntería a la izquierda">↺</button><button id="poolGirarDer" type="button" aria-label="Girar la puntería a la derecha">↻</button><button id="poolMoverBlanca" class="pool-secundario" type="button" aria-pressed="false" hidden>Mover la blanca</button><button id="poolTirar" class="pool-tirar" type="button">Tirar</button></div>
+                    <p class="pool-ayuda">Toca o arrastra sobre la mesa para apuntar; la línea muestra la primera bola que golpearás.<span class="pool-ayuda-teclado"> En el teclado: flechas para apuntar y ajustar la fuerza, Enter para tirar.</span></p>
+                </div>
+                <div id="poolFinal" class="pool-final" hidden><p id="poolResultado"></p><button id="poolRevancha" type="button">Pedir revancha</button></div>
+                <button id="poolReclamar" class="pool-secundario" type="button" hidden>Tu rival no tira hace 5 minutos: reclamar la victoria</button>
+            </div>
+            <details class="pool-reglas"><summary>Reglas de esta mesa</summary><ul>
+                <li>Quien crea la sala saca primero; en la revancha saca quien perdió.</li>
+                <li>La mesa queda abierta tras el saque. La primera bola que metas después define si juegas con lisas (1–7) o rayadas (9–15).</li>
+                <li>Es falta meter la blanca, no tocar ninguna bola, tocar primero una bola que no es tuya o que ninguna bola toque una banda después del contacto. Tras una falta, el rival tiene bola en mano.</li>
+                <li>Ganas al meter la 8 después de terminar tu grupo y sin falta. Si la metes antes o con falta, pierdes. Si entra en el saque, vuelve a su lugar.</li>
+                <li>Si sales de una partida en curso, o no tiras durante cinco minutos y tu rival lo reclama, pierdes.</li>
+            </ul></details>
+        </section>
         <form id="formularioBusquedaJuegos" class="busqueda-juegos" role="search"><label for="buscarJuegoCatalogo">Nombre del juego, saga o plataforma</label><div class="fila-controles"><input id="buscarJuegoCatalogo" type="search" maxlength="120" placeholder="Ej.: Chrono Trigger, Hollow Knight, Zelda" autocomplete="off"><button type="submit">Buscar</button></div></form>
         <p id="estadoBusquedaJuegos" role="status"></p><div id="resultadosBusquedaJuegos" class="lista-juegos-catalogo"></div>
         <section id="reseñaJuego" class="editor-resena-juego" aria-labelledby="tituloResenaJuego" hidden>
@@ -440,7 +470,7 @@
 <script src="interface.js?v=20260930-1" defer></script>
 <script src="radio-panel.js?v=20260929-2" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20260930-5" defer></script>
+<script src="script.js?v=20260930-6" defer></script>
 <script src="pwa.js?v=20260928-1" defer></script>
 </body>
 </html>

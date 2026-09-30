@@ -1,0 +1,76 @@
+/* Online 8-ball pool inside the Juegos section and its line on profiles. */
+#contenidoPrincipal #seccionJuegos .pool,
+.pool {
+    margin: 4px 0 22px;
+    padding: 14px;
+    border: 1px solid var(--rm-line, #dfd5c9);
+    border-left: 4px solid var(--rm-teal, #547d78);
+    border-radius: var(--rm-radius, 9px);
+    background: linear-gradient(180deg, var(--rm-teal-soft, #e4efeb) 0, var(--rm-surface, #fffdf9) 120px);
+}
+.pool-cabecera h3 { margin: 0 0 2px; color: var(--rm-plum, #51404c); font-size: 1.08rem; }
+.pool-cabecera p { margin: 0 0 12px; color: var(--rm-muted, #746d69); font-size: .92rem; }
+.pool-entrada { display: grid; gap: 10px; }
+.pool-entrada > button { justify-self: start; padding: 0 18px; }
+#poolUnirse { align-items: end; flex-wrap: wrap; }
+#poolUnirse label { flex-basis: 100%; margin: 0; font-size: .88rem; font-weight: 600; }
+#poolUnirse input { max-width: 12rem; text-transform: uppercase; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+.pool-estado:empty { display: none; }
+.pool-estado { margin: 10px 0 0; padding: 8px 10px; border-radius: 7px; background: var(--rm-soft, #f6f1e8); font-size: .92rem; }
+
+.pool-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 10px; }
+.pool-barra strong { margin-right: auto; color: var(--rm-plum, #51404c); }
+.pool-barra strong span { font-variant-numeric: tabular-nums; letter-spacing: .1em; }
+.pool-barra button { min-height: 38px; padding: 0 12px; }
+#contenidoPrincipal .pool .pool-secundario,
+.pool .pool-secundario { border-color: var(--rm-line, #dfd5c9); background: var(--rm-surface, #fffdf9); color: var(--rm-ink, #332f32); box-shadow: none; }
+#contenidoPrincipal .pool .pool-secundario:hover,
+.pool .pool-secundario:hover { background: var(--rm-soft, #f6f1e8); }
+
+.pool-jugadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 0 0 8px; padding: 0; list-style: none; }
+.pool-jugador { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--rm-line, #dfd5c9); border-radius: 8px; background: var(--rm-surface, #fffdf9); font-size: .9rem; }
+.pool-jugador span { color: var(--rm-muted, #746d69); }
+.pool-jugador.pool-turno-activo { border-color: var(--rm-teal, #547d78); box-shadow: inset 4px 0 0 var(--rm-teal, #547d78); }
+.pool-jugador.pool-turno-activo strong::after { content: ' · le toca'; color: var(--rm-teal, #547d78); font-weight: 600; }
+.pool-esperando { color: var(--rm-muted, #746d69); font-style: italic; }
+.pool-restantes { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.pool-restantes i { width: 11px; height: 11px; border-radius: 50%; background: var(--bola); box-shadow: inset 0 0 0 1px #0002; }
+.pool-restantes i.rayada { background: linear-gradient(180deg, #f7f3ea 0 28%, var(--bola) 28% 72%, #f7f3ea 72%); }
+.pool-turno { min-height: 1.5em; margin: 4px 0 8px; font-weight: 600; color: var(--rm-ink, #332f32); }
+
+.pool-lienzo { display: flex; justify-content: center; width: 100%; }
+.pool-lienzo canvas { display: block; max-width: 100%; border-radius: 12px; box-shadow: 0 6px 16px #2d1d1433; touch-action: pan-y; }
+.pool-lienzo.pool-interactivo canvas { touch-action: none; cursor: crosshair; }
+.pool-lienzo canvas:focus-visible { outline: 3px solid var(--rm-gold, #b28a48); outline-offset: 3px; }
+
+.pool-controles { display: grid; gap: 10px; margin-top: 12px; }
+.pool-fuerza { display: grid; gap: 4px; }
+.pool-fuerza label { font-weight: 600; font-size: .9rem; }
+.pool-fuerza output { font-variant-numeric: tabular-nums; color: var(--rm-accent, #a85449); }
+.pool-fuerza input[type=range] { width: 100%; min-height: 32px; accent-color: var(--rm-accent, #a85449); }
+.pool-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+#contenidoPrincipal .pool .pool-botones button,
+.pool-botones button { min-height: 44px; min-width: 48px; font-size: 1.05rem; }
+#contenidoPrincipal .pool .pool-botones .pool-tirar,
+.pool-botones .pool-tirar { flex: 1 1 140px; font-weight: 700; letter-spacing: .02em; }
+#poolMoverBlanca[aria-pressed=true] { border-color: var(--rm-teal, #547d78); background: var(--rm-teal-soft, #e4efeb); }
+.pool-ayuda { margin: 0; color: var(--rm-muted, #746d69); font-size: .84rem; }
+.pool-final { margin-top: 12px; }
+.pool-final p:empty { display: none; }
+#poolReclamar { margin-top: 10px; }
+.pool button:disabled { opacity: .55; cursor: not-allowed; }
+
+.pool-reglas { margin-top: 14px; font-size: .9rem; }
+.pool-reglas summary { cursor: pointer; font-weight: 600; color: var(--rm-plum, #51404c); }
+.pool-reglas ul { margin: 8px 0 0; padding-left: 1.2rem; }
+.pool-reglas li + li { margin-top: 4px; }
+
+.pool-perfil { margin: 4px 0; color: var(--rm-plum, #51404c); font-weight: 600; font-size: .92rem; }
+.pool-perfil::before { content: '●'; display: inline-block; margin-right: 6px; color: #1f1c1f; transform: scale(1.2); }
+
+@media (max-width: 560px) {
+    .pool { padding: 12px 10px; }
+    .pool-barra strong { flex-basis: 100%; }
+    #poolUnirse input { max-width: none; }
+}
+@media (pointer: coarse) { .pool-ayuda-teclado { display: none; } }
