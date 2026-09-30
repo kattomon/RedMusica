@@ -185,8 +185,12 @@
         let cssW = width;
         if (view.portrait) cssW = Math.min(width, Math.max(240, window.innerHeight * 0.74) * worldW / worldH);
         const cssH = cssW * worldH / worldW, dpr = Math.min(window.devicePixelRatio || 1, 2);
-        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
-        canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+        const cssWidth = cssW + 'px', cssHeight = cssH + 'px';
+        if (canvas.style.width !== cssWidth) canvas.style.width = cssWidth;
+        if (canvas.style.height !== cssHeight) canvas.style.height = cssHeight;
+        const pixelWidth = Math.round(cssW * dpr), pixelHeight = Math.round(cssH * dpr);
+        if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+        if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
         view.scale = canvas.width / worldW; view.width = canvas.width; view.height = canvas.height; view.dpr = dpr;
         draw();
     }
@@ -375,7 +379,12 @@
         try { await navigator.clipboard.writeText(url.href); status('Enlace de invitación copiado.'); } catch { status('Comparte este código: ' + roomCode); }
     });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && roomCode) refresh(); });
-    if (window.ResizeObserver) new ResizeObserver(resize).observe(frame); else window.addEventListener('resize', resize);
+    let resizeFrame = 0;
+    const scheduleResize = () => {
+        if (resizeFrame) return;
+        resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; resize(); });
+    };
+    if (window.ResizeObserver) new ResizeObserver(scheduleResize).observe(frame); else window.addEventListener('resize', scheduleResize);
     window.addEventListener('resize', resize);
 
     // ---------- session ----------

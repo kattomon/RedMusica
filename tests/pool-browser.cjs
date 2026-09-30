@@ -47,7 +47,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
   }
   const tableLabel=page=>page.locator('#poolCanvas').getAttribute('aria-label');
   const serverLabel=()=>'Bolas en la mesa: '+(room.state.game.balls.filter(b=>!b.p&&b.n).map(b=>b.n).join(', ')||'ninguna');
-  async function tap(page,x,y){const box=await page.locator('#poolCanvas').boundingBox();const portrait=box.width<560;const scale=box.width/(portrait?568:1068);const [sx,sy]=portrait?[(34+y)*scale,(34+x)*scale]:[(34+x)*scale,(34+y)*scale];await page.mouse.click(box.x+sx,box.y+sy);}
+  async function tap(page,x,y){const canvas=page.locator('#poolCanvas');await canvas.scrollIntoViewIfNeeded();const box=await canvas.boundingBox();const portrait=box.width<560;const scale=box.width/(portrait?568:1068);const [sx,sy]=portrait?[(34+y)*scale,(34+x)*scale]:[(34+x)*scale,(34+y)*scale];await page.mouse.click(box.x+sx,box.y+sy);}
 
   const host=await open('host');
   assert.equal(await host.getByRole('heading',{name:'Pool bola 8 en línea'}).isVisible(),true);
