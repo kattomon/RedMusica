@@ -541,7 +541,17 @@
     });
     document.getElementById('formularioResenaJuego').addEventListener('submit',event=>{
         event.preventDefault();if(!exigirCuenta()||!juegoSeleccionado?.id)return;const form=event.currentTarget,button=document.getElementById('publicarResenaJuego'),status=document.getElementById('estadoResenaJuego');
-        accion(button,status,async()=>{const body=document.getElementById('opinionJuego').value.trim();if(!body)throw Error('Escribe tu reseña antes de publicarla.');resultado(await db.from('posts').insert({post_type:'game',game_id:juegoSeleccionado.id,game_rating:Number(document.getElementById('notaJuego').value),body}));form.reset();document.getElementById('reseñaJuego').hidden=true;document.getElementById('estadoBusquedaJuegos').textContent='Reseña publicada en el muro de juegos.';await cargarFeed(true);});
+        accion(button,status,async()=>{
+            const body=document.getElementById('opinionJuego').value.trim();
+            if(!body)throw Error('Escribe tu reseña antes de publicarla.');
+            const publicada=resultado(await db.from('posts').insert({post_type:'game',game_id:juegoSeleccionado.id,game_rating:Number(document.getElementById('notaJuego').value),body}).select('id').single());
+            form.reset();document.getElementById('reseñaJuego').hidden=true;
+            document.getElementById('estadoBusquedaJuegos').textContent='Reseña publicada. Bajando a tu publicación…';
+            await cargarFeed(true);
+            const tarjeta=document.getElementById(publicada.id);
+            if(tarjeta){tarjeta.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('estadoBusquedaJuegos').textContent='Reseña publicada en el muro de juegos.';}
+            else status.textContent='La reseña quedó guardada, pero el muro no se actualizó. Pulsa “Actualizar publicaciones” para volver a cargarla.';
+        });
     });
     async function sincronizarSesion(session, evento) {
         if (session && usuario && session.user.id === usuario.id && perfil && evento !== "PASSWORD_RECOVERY") return;

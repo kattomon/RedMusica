@@ -52,7 +52,7 @@
         const params=new URLSearchParams(location.search),profile=params.get('perfil'),section=params.get('seccion')||'inicio';
         document.body.dataset.section=profile?'perfil':section;
         document.body.classList.toggle('profile-page',Boolean(profile));
-        flow.hidden=!profile&&['amigos','blackjack','eventos','videos','juegos','administracion'].includes(section);
+        flow.hidden=!profile&&['amigos','blackjack','eventos','videos','administracion'].includes(section);
         const destination=profile?$('perfilTimeline'):main;
         if(profile){if(flow.parentElement!==destination)destination.append(flow);}
         else if(flow.parentElement!==main)main.insertBefore(flow,$('chatComunitario'));
