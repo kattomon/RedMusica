@@ -69,15 +69,15 @@ create policy settings_read on public.site_settings for select to anon,authentic
 create policy settings_server on public.site_settings to service_role using(true) with check(true);
 create policy audit_server on public.admin_audit to service_role using(true) with check(true);
 
--- Restrictive policies also apply to existing owner-write policies.
-create policy posts_active_insert on public.posts as restrictive for insert to authenticated with check(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)
+-- Restrict all post writes to the active author, while honoring the site-wide posting switch.
+create policy posts_active_insert on public.posts as permissive for insert to authenticated with check(
+ user_id=(select auth.uid()) and exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)
  and (select accept_posts from public.site_settings where id=1));
-create policy posts_active_update on public.posts as restrictive for update to authenticated using(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)) with check(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended));
-create policy posts_active_delete on public.posts as restrictive for delete to authenticated using(
- exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended));
+create policy posts_active_update on public.posts as permissive for update to authenticated using(
+ user_id=(select auth.uid()) and exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)) with check(
+ user_id=(select auth.uid()) and exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended));
+create policy posts_active_delete on public.posts as permissive for delete to authenticated using(
+ user_id=(select auth.uid()) and exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended));
 create policy likes_active_insert on public.likes as restrictive for insert to authenticated with check(
  exists(select 1 from public.profiles where id=(select auth.uid()) and not suspended)
  and exists(select 1 from public.posts where id=post_id));
