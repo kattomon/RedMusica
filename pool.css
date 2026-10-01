@@ -1,5 +1,8 @@
-/* Online 8-ball pool inside the Juegos section and its line on profiles. */
-#contenidoPrincipal #seccionJuegos .pool,
+/* Online 8-ball pool in its own section and its line on profiles. */
+#contenidoPrincipal #seccionPool { width: 100%; margin: 0 0 16px; padding: 16px; border: 1px solid var(--rm-line, #dfd5c9); border-top: 3px solid var(--rm-teal, #547d78); border-radius: 5px; background: var(--rm-surface, #fffdf9); }
+#contenidoPrincipal #seccionPool > h2 { margin: -16px -16px 14px; padding: 11px 15px; border-bottom: 1px solid var(--rm-line, #dfd5c9); background: var(--rm-soft, #f6f1e8); color: var(--rm-plum, #51404c); font-size: 1.06rem; }
+body.sesion-pendiente #seccionPool { display: none !important; }
+#contenidoPrincipal #seccionPool .pool,
 .pool {
     margin: 4px 0 22px;
     padding: 14px;
@@ -93,8 +96,10 @@
 .pool-perfil::before { content: '●'; display: inline-block; margin-right: 6px; color: #1f1c1f; transform: scale(1.2); }
 
 @media (max-width: 560px) {
+    #contenidoPrincipal #seccionPool { padding: 13px; }
+    #contenidoPrincipal #seccionPool > h2 { margin: -13px -13px 12px; }
     .pool { padding: 7px 5px; }
-    #contenidoPrincipal #seccionJuegos .pool:has(#poolMesa:not([hidden])) { margin-inline: -16px; }
+    #contenidoPrincipal #seccionPool .pool:has(#poolMesa:not([hidden])) { margin-inline: -12px; }
     .pool:has(#poolMesa:not([hidden])) .pool-cabecera { display: none; }
     .pool:has(#poolMesa:not([hidden])) .pool-estado { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin: 2px 0; padding: 3px 6px; font-size: .75rem; }
     .pool-barra { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 36px); gap: 4px; margin: 2px 0 4px; }

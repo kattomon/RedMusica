@@ -107,7 +107,7 @@ La radio se reduce a una barra en el mismo feed; el iframe sigue montado mientra
 
 # Pool bola 8 en línea
 
-El pool está dentro de la sección Juegos (`?seccion=juegos`). Una persona crea una sala y comparte el código de seis caracteres o el enlace `?seccion=juegos&pool=CÓDIGO`; la segunda persona que entra empieza la partida. Las victorias y derrotas aparecen en el perfil público.
+El pool tiene su propia sección (`?seccion=pool`). Una persona crea una sala y comparte el código de seis caracteres o el enlace `?seccion=pool&pool=CÓDIGO`; la segunda persona que entra empieza la partida. Los enlaces antiguos de Juegos con un código de pool se redirigen a esta sección. Las victorias y derrotas aparecen en el perfil público.
 
 ## Arquitectura
 

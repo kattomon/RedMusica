@@ -1,4 +1,4 @@
-// Online 8-ball pool inside the Juegos section, plus the win counter on profiles.
+// Online 8-ball pool in its own section, plus the win counter on profiles.
 // The pool Edge Function decides every shot; this file only draws the table,
 // replays the server's result with the shared engine and sends the player's aim.
 (function () {
@@ -73,7 +73,7 @@
         const mine = room && room.status === 'playing' && room.game && room.game.turn === user?.id;
         timer = setTimeout(refresh, !visible() || document.hidden ? 6000 : mine ? 10000 : 3000);
     }
-    const visible = () => !$('seccionJuegos') || !$('seccionJuegos').hidden;
+    const visible = () => !$('seccionPool') || !$('seccionPool').hidden;
 
     // Broadcast carries no game state. The server remains authoritative and polling remains a fallback.
     function subscribeRoom(code) {
@@ -158,7 +158,7 @@
     function rememberInvite() {
         const url = new URL(location.href);
         if (url.searchParams.get('pool') === roomCode) return;
-        url.searchParams.set('seccion', 'juegos'); url.searchParams.set('pool', roomCode);
+        url.searchParams.set('seccion', 'pool'); url.searchParams.set('pool', roomCode);
         history.replaceState(null, '', url);
     }
     const nameOf = id => room?.players.find(p => p.user_id === id)?.username || 'Rival';
@@ -637,10 +637,13 @@
         run('leave');
     });
     $('poolInvitar').addEventListener('click', async () => {
-        const url = new URL(location.href); url.search = ''; url.hash = ''; url.searchParams.set('seccion', 'juegos'); url.searchParams.set('pool', roomCode);
+        const url = new URL(location.href); url.search = ''; url.hash = ''; url.searchParams.set('seccion', 'pool'); url.searchParams.set('pool', roomCode);
         try { await navigator.clipboard.writeText(url.href); status('Enlace de invitación copiado.'); } catch { status('Comparte este código: ' + roomCode); }
     });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && roomCode) { refresh(); if (myTurn()) scrollPoolIntoView(); } });
+    const resumePool = () => setTimeout(() => { if (roomCode && visible()) { refresh(true); scrollPoolIntoView(); } }, 0);
+    document.addEventListener('click', event => { if (event.target.closest?.('#poolNav')) resumePool(); });
+    window.addEventListener('popstate', resumePool);
     let resizeFrame = 0;
     const scheduleResize = () => {
         if (resizeFrame) return;
