@@ -42,16 +42,18 @@ const server = http.createServer((req, res) => {
     await page.evaluate(async () => { await navigator.serviceWorker.ready; });
     await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 10000 });
     assert.equal(await page.evaluate(() => Boolean(navigator.serviceWorker.controller)), true, 'the shell worker controls the installed web app');
-    assert.equal(await page.evaluate(async () => (await caches.keys()).includes('redmusica-shell-v12')), true, 'the static app shell is cached');
-    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v12')).match('./pool.js?v=20261001-2'))), true, 'the current pool script is precached');
-    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v12')).match('./pool.css?v=20261001-1'))), true, 'the current pool styles are precached');
-    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v12')).match('./script.js?v=20261001-1'))), true, 'the current app loader is precached');
+    assert.equal(await page.evaluate(async () => (await caches.keys()).includes('redmusica-shell-v13')), true, 'the static app shell is cached');
+    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v13')).match('./pool.js?v=20261001-3'))), true, 'the current pool script is precached');
+    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v13')).match('./pool.css?v=20261001-2'))), true, 'the current pool styles are precached');
+    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v13')).match('./script.js?v=20261001-2'))), true, 'the current app loader is precached');
+    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v13')).match('./interface.js?v=20261001-1'))), true, 'the current navigation script is precached');
+    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v13')).match('./cloud.js?v=20261001-1'))), true, 'the current route script is precached');
     await page.evaluate(async () => {
         for(let version=1;version<=4;version++)await fetch('./layout.css?v=cache-test-'+version);
     });
-    assert.equal(await page.evaluate(async () => (await (await caches.open('redmusica-shell-v12')).keys()).filter(key=>new URL(key.url).pathname.endsWith('/layout.css')).length),1,'only one cached version of each static file remains');
+    assert.equal(await page.evaluate(async () => (await (await caches.open('redmusica-shell-v13')).keys()).filter(key=>new URL(key.url).pathname.endsWith('/layout.css')).length),1,'only one cached version of each static file remains');
     await page.evaluate(async () => { await fetch('./README.md?cache-test=1'); });
-    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v12')).match('./README.md', { ignoreSearch: true }))), false, 'successful requests outside the static allowlist are not cached');
+    assert.equal(await page.evaluate(async () => Boolean(await (await caches.open('redmusica-shell-v13')).match('./README.md', { ignoreSearch: true }))), false, 'successful requests outside the static allowlist are not cached');
 
     await page.evaluate(() => {
         const prompt = new Event('beforeinstallprompt', { cancelable: true });

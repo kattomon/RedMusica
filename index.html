@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="layout.css?v=20260929-1">
     <link rel="stylesheet" href="sections.css?v=20260929-1">
     <link rel="stylesheet" href="admin-ui.css?v=20260929-1">
-    <link rel="stylesheet" href="pool.css?v=20261001-1">
+    <link rel="stylesheet" href="pool.css?v=20261001-2">
 </head>
 <body class="social-app">
 <a class="saltar-contenido" href="#contenidoPrincipal">Saltar al contenido</a>
@@ -29,7 +29,7 @@
   <a id="perfilLateral" class="perfil-lateral" hidden><span id="avatarLateral" aria-hidden="true"></span><span><strong id="nombreLateral"></strong><small>Ver mi perfil</small></span></a>
   <p class="etiqueta-lateral">TU COMUNIDAD</p>
       <nav id="navegacion" aria-label="Navegación principal" hidden>
-        <a id="inicioNav" href="./">Inicio</a><a id="diarioNav" href="?seccion=diario" hidden>Diario</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="peliculasNav" href="?seccion=peliculas" hidden>Películas</a><a id="librosNav" href="?seccion=libros" hidden>Libros</a><a id="memesNav" href="?seccion=memes" hidden>Memes</a><a id="blackjackNav" href="?seccion=blackjack" hidden>Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a>
+        <a id="inicioNav" href="./">Inicio</a><a id="diarioNav" href="?seccion=diario" hidden>Diario</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="poolNav" href="?seccion=pool" hidden>Pool</a><a id="peliculasNav" href="?seccion=peliculas" hidden>Películas</a><a id="librosNav" href="?seccion=libros" hidden>Libros</a><a id="memesNav" href="?seccion=memes" hidden>Memes</a><a id="blackjackNav" href="?seccion=blackjack" hidden>Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a>
     </nav>
   <div class="sidebar-pie"><p id="descripcionSitio">Un lugar para compartir lo que escuchamos.</p>    <button id="instalarApp" type="button" aria-controls="estadoInstalacion" hidden>Instalar RedMusica</button><span>Música, historias y buena compañía.</span></div>
  </aside>
@@ -110,9 +110,8 @@
         <p id="estadoVideos" role="status"></p><div id="listaVideos" class="rejilla-videos"></div>
         <button id="actualizarVideos" type="button">Buscar recomendaciones</button>
     </section>
-    <section id="seccionJuegos" aria-labelledby="tituloJuegos" hidden>
-        <h2 id="tituloJuegos">Juegos de la comunidad</h2>
-        <p>Busca juegos de distintas plataformas, agrégalos al catálogo común y publica tu reseña.</p>
+    <section id="seccionPool" aria-labelledby="tituloSeccionPool" hidden>
+        <h2 id="tituloSeccionPool">Pool</h2>
         <section id="poolJuegos" class="pool" aria-labelledby="tituloPool">
             <div class="pool-cabecera"><h3 id="tituloPool">Pool bola 8 en línea</h3><p>Reta a otra persona de RedMusica con un código de sala. Las victorias quedan en tu perfil.</p></div>
             <p id="poolAcceso" hidden><a href="./">Inicia sesión desde Inicio</a> para crear una sala o unirte con un código.</p>
@@ -149,6 +148,10 @@
                 <li>Si sales de una partida en curso, o no tiras durante cinco minutos y tu rival lo reclama, pierdes.</li>
             </ul></details>
         </section>
+    </section>
+    <section id="seccionJuegos" aria-labelledby="tituloJuegos" hidden>
+        <h2 id="tituloJuegos">Juegos de la comunidad</h2>
+        <p>Busca juegos de distintas plataformas, agrégalos al catálogo común y publica tu reseña.</p>
         <form id="formularioBusquedaJuegos" class="busqueda-juegos" role="search"><label for="buscarJuegoCatalogo">Nombre del juego, saga o plataforma</label><div class="fila-controles"><input id="buscarJuegoCatalogo" type="search" maxlength="120" placeholder="Ej.: Chrono Trigger, Hollow Knight, Zelda" autocomplete="off"><button type="submit">Buscar</button></div></form>
         <p id="estadoBusquedaJuegos" role="status"></p><div id="resultadosBusquedaJuegos" class="lista-juegos-catalogo"></div>
         <section id="reseñaJuego" class="editor-resena-juego" aria-labelledby="tituloResenaJuego" hidden>
@@ -474,10 +477,10 @@
     <form id="buscarGifs"><label class="solo-lectores" for="textoBuscarGifs">Buscar GIFs</label><input id="textoBuscarGifs" type="search" maxlength="50" placeholder="Buscar GIFs…" required><button type="submit">Buscar</button></form>
     <div id="resultadosGifs" aria-live="polite"></div>
 </dialog>
-<script src="interface.js?v=20260930-1" defer></script>
+<script src="interface.js?v=20261001-1" defer></script>
 <script src="radio-panel.js?v=20260929-2" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20261001-1" defer></script>
+<script src="script.js?v=20261001-2" defer></script>
 <script src="pwa.js?v=20260928-1" defer></script>
 </body>
 </html>

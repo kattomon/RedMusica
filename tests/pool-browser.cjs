@@ -36,7 +36,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
   });
   async function open(user,query=''){
    const page=await ctx.newPage();page.on('pageerror',e=>errors.push(label+': '+e.stack));
-   await page.goto('http://127.0.0.1:4183/index.html?seccion=juegos'+query);
+   await page.goto('http://127.0.0.1:4183/index.html?seccion=pool'+query);
    await page.evaluate(id=>{window.REDMUSICA_CONFIG.supabaseUrl='https://test.invalid';window.REDMUSICA_CONFIG.supabasePublishableKey='test';
     const stats={host:{wins:3,losses:1}};
     window.__poolRealtime={received:0,stateReads:0,subscribed:false};
@@ -45,7 +45,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
      channel:topic=>{const wire=new BroadcastChannel(topic);let listener=null;const channel={topic:'realtime:'+topic,on:(_type,_filter,fn)=>{listener=fn;return channel;},subscribe:fn=>{wire.onmessage=event=>{window.__poolRealtime.received++;listener?.({payload:event.data.payload});};setTimeout(()=>{window.__poolRealtime.subscribed=true;fn('SUBSCRIBED');},0);return channel;},send:async message=>{wire.postMessage(message);return 'ok';},unsubscribe:()=>wire.close()};return channel;},
      removeChannel:async channel=>{channel.unsubscribe();return 'ok';},
      from:table=>{const q={_id:null,select:()=>q,eq:(c,v)=>{q._id=v;return q;},maybeSingle:async()=>({data:table==='pool_stats'?stats[q._id]||null:null,error:null})};return q;}};
-    window.supabase={createClient:()=>window.redmusicaClient};document.getElementById('seccionJuegos').hidden=false;},user);
+    window.supabase={createClient:()=>window.redmusicaClient};document.getElementById('seccionPool').hidden=false;},user);
    await page.addScriptTag({content:fs.readFileSync('pool.js','utf8')});
    return page;
   }
@@ -56,10 +56,11 @@ const out=process.env.POOL_SCREENSHOTS||'';
 
   const host=await open('host');
   assert.equal(await host.getByRole('heading',{name:'Pool bola 8 en línea'}).isVisible(),true);
+  assert.equal(await host.locator('#seccionJuegos').isVisible(),false,'the pool is outside the games section');
   await host.getByRole('button',{name:'Crear una sala'}).click();
   await host.waitForFunction(()=>document.querySelector('#poolCodigoSala').textContent==='POOL23');
   assert.match(await host.locator('#poolTurno').innerText(),/Comparte el código POOL23/);
-  assert.match(host.url(),/pool=POOL23/,'the invitation code is kept in the address');
+  assert.match(host.url(),/seccion=pool&pool=POOL23/,'the invitation points to the dedicated pool section');
   const guest=await open('guest','&pool=POOL23');
   await guest.waitForFunction(()=>document.querySelector('#poolJugadores').innerText.includes('Kattomon'));
   assert.match(await guest.locator('#poolTurno').innerText(),/Turno de Kattomon/);
