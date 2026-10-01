@@ -1,4 +1,5 @@
-/* Online 8-ball pool in its own section and its line on profiles. */
+/* 8-ball pool in its own section, its full-screen game mode for phones and its line on profiles. */
+.pool [hidden], .pool-efecto-panel[hidden] { display: none !important; }
 #contenidoPrincipal #seccionPool { width: 100%; margin: 0 0 16px; padding: 16px; border: 1px solid var(--rm-line, #dfd5c9); border-top: 3px solid var(--rm-teal, #547d78); border-radius: 5px; background: var(--rm-surface, #fffdf9); }
 #contenidoPrincipal #seccionPool > h2 { margin: -16px -16px 14px; padding: 11px 15px; border-bottom: 1px solid var(--rm-line, #dfd5c9); background: var(--rm-soft, #f6f1e8); color: var(--rm-plum, #51404c); font-size: 1.06rem; }
 body.sesion-pendiente #seccionPool { display: none !important; }
@@ -13,14 +14,42 @@ body.sesion-pendiente #seccionPool { display: none !important; }
 }
 .pool-cabecera h3 { margin: 0 0 2px; color: var(--rm-plum, #51404c); font-size: 1.08rem; }
 .pool-cabecera p { margin: 0 0 12px; color: var(--rm-muted, #746d69); font-size: .92rem; }
-.pool-entrada { display: grid; gap: 10px; }
-.pool-entrada > button { justify-self: start; padding: 0 18px; }
-#poolUnirse { align-items: end; flex-wrap: wrap; }
-#poolUnirse label { flex-basis: 100%; margin: 0; font-size: .88rem; font-weight: 600; }
-#poolUnirse input { max-width: 12rem; text-transform: uppercase; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
 .pool-estado:empty { display: none; }
 .pool-estado { margin: 10px 0 0; padding: 8px 10px; border-radius: 7px; background: var(--rm-soft, #f6f1e8); font-size: .92rem; }
+.pool button:disabled { opacity: .55; cursor: not-allowed; }
 
+/* ---------- menu ---------- */
+.pool-menu { display: grid; gap: 12px; }
+.pool-portada { display: grid; place-items: center; height: 118px; border-radius: 14px; background: linear-gradient(135deg, #7a4f35, #4f3022); box-shadow: inset 0 0 0 1px #0002, 0 6px 14px #2d1d1426; }
+.pool-portada-mesa { position: relative; width: min(78%, 300px); height: 76px; border-radius: 6px; background: radial-gradient(circle at 50% 50%, #44917a, #2f6f5c); box-shadow: inset 0 0 0 5px #255a4b; }
+.pool-portada-mesa i { position: absolute; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: #141112; }
+.pool-portada-mesa i:nth-child(1) { left: 3px; top: 3px; } .pool-portada-mesa i:nth-child(2) { left: 50%; top: 1px; } .pool-portada-mesa i:nth-child(3) { right: -3px; top: 3px; }
+.pool-portada-mesa i:nth-child(4) { left: 3px; bottom: -3px; } .pool-portada-mesa i:nth-child(5) { left: 50%; bottom: -5px; } .pool-portada-mesa i:nth-child(6) { right: -3px; bottom: -3px; }
+.pool-portada-mesa b { position: absolute; right: 22%; top: 50%; width: 30px; height: 34px; margin-top: -17px;
+    background: radial-gradient(circle at 15% 50%, #e3b22f 4px, transparent 4.5px), radial-gradient(circle at 45% 33%, #c23b30 4px, transparent 4.5px), radial-gradient(circle at 45% 67%, #2b4f9e 4px, transparent 4.5px),
+        radial-gradient(circle at 75% 17%, #2e7445 4px, transparent 4.5px), radial-gradient(circle at 75% 50%, #1f1c1f 4px, transparent 4.5px), radial-gradient(circle at 75% 83%, #dd7430 4px, transparent 4.5px); }
+.pool-portada-mesa b::before { content: ''; position: absolute; left: -110px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%; background: #f6f2e9; box-shadow: -60px 0 0 -2px transparent; }
+.pool-record { margin: 0; padding: 8px 12px; border-radius: 9px; background: var(--rm-soft, #f6f1e8); color: var(--rm-plum, #51404c); font-weight: 600; font-size: .92rem; }
+.pool-modos { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.pool-modo { display: grid; align-content: start; gap: 8px; padding: 12px; border: 1px solid var(--rm-line, #dfd5c9); border-radius: 11px; background: var(--rm-surface, #fffdf9); }
+.pool-modo h4 { margin: 0; color: var(--rm-plum, #51404c); font-size: 1rem; }
+.pool-modo > p { margin: 0; color: var(--rm-muted, #746d69); font-size: .86rem; }
+.pool-modo > button, .pool-niveles button, .pool-unirse button { min-height: 44px; }
+.pool-modo > button { justify-self: stretch; }
+.pool-unirse { display: grid; gap: 4px; margin: 0; }
+.pool-unirse label { font-size: .84rem; font-weight: 600; }
+.pool-unirse-fila { display: flex; gap: 6px; }
+.pool-unirse input { flex: 1; min-width: 0; min-height: 44px; text-transform: uppercase; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+.pool-niveles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.pool-niveles button { padding: 0 6px; }
+.pool-preferencias { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 8px 12px 10px; border: 1px solid var(--rm-line, #dfd5c9); border-radius: 11px; font-size: .9rem; }
+.pool-preferencias legend { padding: 0 4px; font-weight: 600; color: var(--rm-plum, #51404c); }
+.pool-preferencias label { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; }
+.pool-preferencias input { width: 20px; height: 20px; accent-color: var(--rm-teal, #547d78); }
+@media (pointer: fine) { .pool-preferencias label:has(#poolPrefCompleta) { display: none; } }
+
+/* ---------- table (page view) ---------- */
+.pool-hud { display: contents; }
 .pool-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 10px; }
 .pool-barra strong { margin-right: auto; color: var(--rm-plum, #51404c); }
 .pool-barra strong span { font-variant-numeric: tabular-nums; letter-spacing: .1em; }
@@ -35,49 +64,52 @@ body.sesion-pendiente #seccionPool { display: none !important; }
 .pool-jugador { display: grid; grid-template-columns: 46px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; padding: 7px 9px; border: 1px solid var(--rm-line, #dfd5c9); border-radius: 9px; background: var(--rm-surface, #fffdf9); font-size: .88rem; }
 .pool-jugador-datos { display: grid; gap: 2px; min-width: 0; }
 .pool-jugador-datos strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--rm-ink, #332f32); }
-.pool-jugador-datos > span:not(.pool-restantes) { color: var(--rm-muted, #746d69); font-size: .76rem; }
+.pool-jugador-datos > span:not(.pool-restantes) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--rm-muted, #746d69); font-size: .76rem; }
 .pool-jugador.pool-turno-activo { border-color: var(--rm-teal, #547d78); background: var(--rm-teal-soft, #e4efeb); }
 .pool-jugador.pool-turno-activo strong::after { content: ' · juega'; color: var(--rm-teal, #547d78); font-weight: 700; }
 .pool-avatar { --turn-progress: 100%; display: grid; place-items: center; width: 44px; height: 44px; padding: 3px; border-radius: 50%; background: var(--rm-line, #dfd5c9); }
 .pool-turno-activo .pool-avatar { background: conic-gradient(var(--rm-gold, #b28a48) var(--turn-progress), var(--rm-line, #dfd5c9) 0); }
 .pool-avatar-cara { position: relative; display: grid; place-items: center; overflow: hidden; width: 100%; height: 100%; border-radius: 50%; background: var(--rm-plum, #51404c); color: #fffdf9; font-weight: 700; }
+.pool-avatar-cara.pool-avatar-cpu { background: #2f6f5c; }
 .pool-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .pool-esperando { display: flex; color: var(--rm-muted, #746d69); font-style: italic; }
 .pool-restantes { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
 .pool-restantes i { width: 11px; height: 11px; border-radius: 50%; background: var(--bola); box-shadow: inset 0 0 0 1px #0002; }
 .pool-restantes i.rayada { background: linear-gradient(180deg, #f7f3ea 0 28%, var(--bola) 28% 72%, #f7f3ea 72%); }
 .pool-turno { min-height: 1.5em; margin: 4px 0 8px; font-weight: 600; color: var(--rm-ink, #332f32); }
+.pool-turno-urgente { color: var(--rm-accent, #a85449); }
 
-.pool-arena { display: grid; grid-template-columns: minmax(0, 1fr) 64px; align-items: stretch; gap: 9px; width: 100%; max-width: 1160px; margin: 0 auto; }
-.pool-lienzo { display: flex; justify-content: center; align-items: flex-start; min-width: 0; width: 100%; }
-.pool-lienzo canvas { display: block; max-width: 100%; border-radius: 12px; box-shadow: 0 6px 16px #2d1d1433; touch-action: pan-y; }
+.pool-arena { display: grid; grid-template-columns: minmax(0, 1fr) 64px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "lienzo herr" "lienzo carga"; gap: 9px; width: 100%; max-width: 1160px; margin: 0 auto; }
+.pool-lienzo { grid-area: lienzo; position: relative; display: flex; justify-content: center; align-items: flex-start; min-width: 0; width: 100%; }
+.pool-marco { position: relative; max-width: 100%; line-height: 0; }
+.pool-final { line-height: 1.4; }
+.pool-lienzo canvas { display: block; max-width: 100%; border-radius: 12px; box-shadow: 0 6px 16px #2d1d1433; touch-action: pan-y; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
 .pool-lienzo.pool-interactivo canvas { touch-action: none; cursor: crosshair; }
 .pool-lienzo canvas:focus-visible { outline: 3px solid var(--rm-gold, #b28a48); outline-offset: 3px; }
-.pool-herramientas { display: flex; flex-direction: column; align-items: stretch; gap: 10px; min-width: 0; padding: 5px 4px; border: 1px solid var(--rm-line, #dfd5c9); border-radius: 10px; background: var(--rm-soft, #f6f1e8); }
+.pool-herramientas, .pool-carga { min-width: 0; padding: 5px 4px; border: 1px solid var(--rm-line, #dfd5c9); border-radius: 10px; background: var(--rm-soft, #f6f1e8); }
+.pool-herramientas { grid-area: herr; display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
 .pool-herramienta-titulo, .pool-carga-pista { display: block; text-align: center; color: var(--rm-muted, #746d69); font-size: .65rem; line-height: 1.2; }
-.pool-canaleta { min-height: 74px; }
+.pool-canaleta { min-height: 60px; }
 .pool-canaleta-bolas { display: grid; grid-template-columns: repeat(2, 19px); justify-content: center; gap: 3px; max-height: 142px; overflow: auto; margin-top: 5px; }
 .pool-bola-metida { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--bola); box-shadow: inset -2px -2px 3px #0005; color: white; font-size: .62rem; font-weight: 700; line-height: 1; }
 .pool-bola-metida.rayada { background: linear-gradient(90deg, #f7f3ea 0 22%, var(--bola) 22% 78%, #f7f3ea 78%); color: #241c20; }
-.pool-ajuste { display: grid; gap: 4px; justify-items: center; }
-.pool-rueda { display: grid; place-items: center; width: 46px; height: 58px; border: 2px solid var(--rm-line, #dfd5c9); border-radius: 25px; background: repeating-linear-gradient(0deg, var(--rm-surface, #fffdf9) 0 5px, var(--rm-teal-soft, #e4efeb) 5px 10px); color: var(--rm-plum, #51404c); cursor: ns-resize; touch-action: none; user-select: none; }
+.pool-ajuste, .pool-efecto { display: grid; gap: 4px; justify-items: center; }
+.pool-rueda { display: grid; place-items: center; width: 46px; height: 58px; border: 2px solid var(--rm-line, #dfd5c9); border-radius: 25px; background: repeating-linear-gradient(0deg, var(--rm-surface, #fffdf9) 0 5px, var(--rm-teal-soft, #e4efeb) 5px 10px); color: var(--rm-plum, #51404c); cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pool-rueda span { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 50%; background: var(--rm-surface, #fffdf9); box-shadow: 0 1px 4px #332f3233; transform: rotate(var(--rueda-angulo, 0deg)); }
-.pool-efecto { display: grid; gap: 4px; justify-items: center; }
-.pool-efecto-bola { position: relative; width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #ffffff, #ece7dc 62%, #cfc7b6); box-shadow: inset 0 0 0 2px var(--rm-line, #dfd5c9), 0 1px 4px #332f3233; cursor: pointer; touch-action: none; user-select: none; }
-.pool-efecto-bola::before, .pool-efecto-bola::after { content: ''; position: absolute; background: #8a80744d; }
-.pool-efecto-bola::before { left: 50%; top: 18%; bottom: 18%; width: 1px; }
-.pool-efecto-bola::after { top: 50%; left: 18%; right: 18%; height: 1px; }
-#poolEfectoPunto { position: absolute; left: calc(50% + var(--efecto-x, 0) * 34%); top: calc(50% - var(--efecto, 0) * 34%); width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--rm-accent, #a85449); box-shadow: 0 0 0 2px #ffffffb3; transition: top .12s ease, left .12s ease; }
+.pool-efecto-bola { position: relative; width: 42px; height: 42px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #ffffff, #ece7dc 62%, #cfc7b6); box-shadow: inset 0 0 0 2px var(--rm-line, #dfd5c9), 0 1px 4px #332f3233; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.pool-efecto-bola::before, .pool-efecto-bola::after, .pool-efecto-grande::before, .pool-efecto-grande::after { content: ''; position: absolute; background: #8a80744d; }
+.pool-efecto-bola::before, .pool-efecto-grande::before { left: 50%; top: 18%; bottom: 18%; width: 1px; }
+.pool-efecto-bola::after, .pool-efecto-grande::after { top: 50%; left: 18%; right: 18%; height: 1px; }
+#poolEfectoPunto, .pool-efecto-grande span { position: absolute; left: calc(50% + var(--efecto-x, 0) * 34%); top: calc(50% - var(--efecto, 0) * 34%); width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--rm-accent, #a85449); box-shadow: 0 0 0 2px #ffffffb3; transition: top .12s ease, left .12s ease; }
 .pool-efecto-bola[aria-disabled=true] { opacity: .55; cursor: default; }
-.pool-efecto-bola:focus-visible { outline: 3px solid var(--rm-gold, #b28a48); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { #poolEfectoPunto { transition: none; } }
-.pool-carga { display: grid; justify-items: center; gap: 4px; flex: 1; min-height: 180px; }
-.pool-potencia { position: relative; width: 42px; min-height: 145px; height: 100%; max-height: 270px; overflow: hidden; border: 2px solid var(--rm-plum, #51404c); border-radius: 24px; background: var(--rm-surface, #fffdf9); cursor: ns-resize; touch-action: none; user-select: none; }
+.pool-efecto-bola:focus-visible, .pool-rueda:focus-visible, .pool-potencia:focus-visible { outline: 3px solid var(--rm-gold, #b28a48); outline-offset: 2px; }
+.pool-carga { grid-area: carga; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; justify-items: center; gap: 4px; min-height: 180px; }
+.pool-potencia { position: relative; width: 42px; min-height: 120px; height: 100%; max-height: 300px; overflow: hidden; border: 2px solid var(--rm-plum, #51404c); border-radius: 24px; background: var(--rm-surface, #fffdf9); cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none; }
 #poolPotenciaLleno { position: absolute; inset: 0 0 auto; height: 60%; border-radius: 20px; background: linear-gradient(180deg, var(--rm-gold, #b28a48), var(--rm-accent, #a85449)); opacity: .82; }
 .pool-potencia-agarre { position: absolute; left: 3px; right: 3px; top: calc(var(--power, 60%) - 7px); height: 13px; border: 2px solid var(--rm-surface, #fffdf9); border-radius: 10px; background: var(--rm-plum, #51404c); box-shadow: 0 1px 3px #0004; }
 .pool-potencia.pool-cargando { box-shadow: 0 0 0 3px var(--rm-gold, #b28a48); }
-.pool-rueda:focus-visible, .pool-potencia:focus-visible { outline: 3px solid var(--rm-gold, #b28a48); outline-offset: 2px; }
 .pool-rueda[aria-disabled=true], .pool-potencia[aria-disabled=true] { opacity: .5; cursor: default; }
+@media (prefers-reduced-motion: reduce) { #poolEfectoPunto, .pool-efecto-grande span { transition: none; } }
 
 .pool-controles { display: grid; gap: 10px; margin-top: 12px; }
 .pool-fuerza { display: grid; gap: 4px; }
@@ -91,10 +123,32 @@ body.sesion-pendiente #seccionPool { display: none !important; }
 .pool-botones .pool-tirar { flex: 1 1 140px; font-weight: 700; letter-spacing: .02em; }
 #poolMoverBlanca[aria-pressed=true] { border-color: var(--rm-teal, #547d78); background: var(--rm-teal-soft, #e4efeb); }
 .pool-ayuda { margin: 0; color: var(--rm-muted, #746d69); font-size: .84rem; }
-.pool-final { margin-top: 12px; }
-.pool-final p:empty { display: none; }
+@media (pointer: coarse) { .pool-ayuda-teclado, .pool-ayuda-raton { display: none; } }
+@media (pointer: fine) { .pool-ayuda-tactil { display: none; } }
+.pool-cantar { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--rm-gold, #b28a48); border-radius: 8px; background: var(--rm-soft, #f6f1e8); }
+.pool-cantar label { font-weight: 700; font-size: .88rem; color: var(--rm-plum, #51404c); }
+.pool-cantar select { min-height: 40px; }
 #poolReclamar { margin-top: 10px; }
-.pool button:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Result card over the table. */
+.pool-final { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: 6px; padding: 16px; border-radius: 12px; background: rgba(24, 16, 20, .62); color: #fffaf2; text-align: center; animation: pool-aparecer .25s ease-out; }
+.pool-final p { margin: 0; max-width: 34ch; }
+.pool-final p:empty { display: none; }
+.pool-final-titulo { font-size: clamp(1.3rem, 5vw, 2rem); font-weight: 800; letter-spacing: .01em; }
+.pool-final-botones { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px; }
+.pool-final-botones button { min-height: 44px; padding: 0 16px; }
+@keyframes pool-aparecer { from { opacity: 0; transform: scale(.97); } }
+@media (prefers-reduced-motion: reduce) { .pool-final { animation: none; } }
+
+/* Large spin picker for touch screens. */
+.pool-efecto-panel { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 16px; background: rgba(18, 12, 15, .55); }
+.pool-efecto-caja { display: grid; justify-items: center; gap: 10px; width: min(320px, 100%); padding: 16px; border-radius: 16px; background: var(--rm-surface, #fffdf9); color: var(--rm-ink, #332f32); box-shadow: 0 10px 30px #0005; }
+.pool-efecto-titulo { margin: 0; font-weight: 700; color: var(--rm-plum, #51404c); }
+.pool-efecto-grande { position: relative; width: min(190px, 52vmin); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #ffffff, #ece7dc 62%, #cfc7b6); box-shadow: inset 0 0 0 3px var(--rm-line, #dfd5c9), 0 2px 8px #332f3233; touch-action: none; cursor: pointer; }
+.pool-efecto-grande span { width: 26px; height: 26px; margin: -13px 0 0 -13px; box-shadow: 0 0 0 3px #ffffffcc, 0 2px 4px #0004; }
+.pool-efecto-texto { min-height: 1.3em; margin: 0; font-variant-numeric: tabular-nums; }
+.pool-efecto-acciones { display: flex; gap: 8px; width: 100%; }
+.pool-efecto-acciones button { flex: 1; min-height: 46px; }
 
 .pool-reglas { margin-top: 14px; font-size: .9rem; }
 .pool-reglas summary { cursor: pointer; font-weight: 600; color: var(--rm-plum, #51404c); }
@@ -108,10 +162,12 @@ body.sesion-pendiente #seccionPool { display: none !important; }
     #contenidoPrincipal #seccionPool { padding: 13px; }
     #contenidoPrincipal #seccionPool > h2 { margin: -13px -13px 12px; }
     .pool { padding: 7px 5px; }
+    .pool-menu { gap: 10px; }
+    .pool-portada { height: 96px; }
     #contenidoPrincipal #seccionPool .pool:has(#poolMesa:not([hidden])) { margin-inline: -12px; }
     .pool:has(#poolMesa:not([hidden])) .pool-cabecera { display: none; }
     .pool:has(#poolMesa:not([hidden])) .pool-estado { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin: 2px 0; padding: 3px 6px; font-size: .75rem; }
-    .pool-barra { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 36px); gap: 4px; margin: 2px 0 4px; }
+    .pool-barra { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-flow: column; grid-auto-columns: 36px; gap: 4px; margin: 2px 0 4px; }
     .pool-barra strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin: 0; font-size: .82rem; }
     #contenidoPrincipal .pool .pool-barra button, .pool .pool-barra button { display: grid; place-items: center; min-width: 36px; min-height: 36px; padding: 0; font-size: 1.15rem; }
     .pool-accion-icono { display: block; line-height: 1; }
@@ -121,29 +177,130 @@ body.sesion-pendiente #seccionPool { display: none !important; }
     .pool-jugador.pool-turno-activo strong::after { content: ''; }
     .pool-avatar { width: 31px; height: 31px; }
     .pool-jugador-datos { gap: 0; }
-    .pool-jugador-datos > span:not(.pool-restantes) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: .65rem; }
+    .pool-jugador-datos > span:not(.pool-restantes) { font-size: .65rem; }
     .pool-restantes { gap: 2px; margin-top: 1px; }
     .pool-restantes i { width: 8px; height: 8px; }
     .pool-turno { overflow: hidden; min-height: 0; margin: 1px 0 4px; white-space: nowrap; text-overflow: ellipsis; font-size: .75rem; }
     .pool-arena { grid-template-columns: minmax(0, 1fr) 52px; gap: 5px; }
     .pool-lienzo { max-height: max(320px, calc(100dvh - 205px - env(safe-area-inset-bottom))); }
     .pool-herramientas { gap: 7px; padding: 4px 1px; }
-    .pool-canaleta { min-height: 47px; }
+    .pool-carga { min-height: 0; padding: 4px 1px; }
+    .pool-canaleta { min-height: 40px; }
     .pool-canaleta-bolas { max-height: 88px; }
     .pool-rueda { width: 39px; height: 55px; }
-    .pool-efecto-bola { width: 36px; height: 36px; }
-    .pool-carga { min-height: 0; }
-    .pool-potencia { width: 38px; min-height: 80px; max-height: none; }
+    .pool-efecto-bola { width: 38px; height: 38px; }
+    .pool-potencia { width: 40px; min-height: 80px; }
     .pool-controles { gap: 7px; margin-top: 9px; }
     .pool-fuerza { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; }
     .pool-fuerza label { font-size: .75rem; }
     .pool-botones { gap: 5px; }
     #contenidoPrincipal .pool .pool-botones button, .pool-botones button { min-width: 42px; min-height: 42px; font-size: .88rem; }
-    #poolUnirse input { max-width: none; }
 }
-@media (pointer: coarse) { .pool-ayuda-teclado { display: none; } }
 
-.pool-cantar { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--rm-gold, #b28a48); border-radius: 8px; background: var(--rm-soft, #f6f1e8); }
-.pool-cantar label { font-weight: 700; font-size: .88rem; color: var(--rm-plum, #51404c); }
-.pool-cantar select { min-height: 40px; }
-.pool-turno-urgente { color: var(--rm-accent, #a85449); }
+/* ---------- game mode: the table fills the screen (phones, or on request) ---------- */
+body.pool-modo-juego { overflow: hidden; overscroll-behavior: none; }
+body.pool-modo-juego #poolMesa:not([hidden]) {
+    position: fixed; inset: 0; z-index: 1000;
+    display: grid; gap: 6px;
+    height: 100vh; height: 100dvh;
+    padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    background: radial-gradient(ellipse at 50% 40%, #3b2c33, #1a1316 75%);
+    color: #f5eee6;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+}
+body.pool-modo-juego .pool-hud { display: grid; align-items: center; gap: 6px; min-width: 0; grid-area: hud; }
+body.pool-modo-juego .pool-barra { margin: 0; display: flex; flex-wrap: nowrap; gap: 4px; }
+body.pool-modo-juego .pool-barra strong { overflow: hidden; margin-right: auto; white-space: nowrap; text-overflow: ellipsis; color: #f5eee6; font-size: .8rem; }
+body.pool-modo-juego .pool-accion-icono { display: block; line-height: 1; }
+body.pool-modo-juego .pool-accion-texto { display: none; }
+body.pool-modo-juego #poolMesa .pool-barra button, body.pool-modo-juego #poolMesa .pool-barra button:hover { display: grid; place-items: center; width: 40px; min-width: 40px; min-height: 40px; padding: 0; border: 1px solid #ffffff2b; border-radius: 10px; background: #ffffff14; color: #f5eee6; font-size: 1.15rem; box-shadow: none; }
+body.pool-modo-juego .pool-jugadores { margin: 0; gap: 6px; }
+body.pool-modo-juego .pool-jugador { grid-template-columns: 34px minmax(0, 1fr); gap: 6px; min-height: 40px; padding: 3px 8px 3px 3px; border-color: #ffffff22; border-radius: 22px; background: #ffffff10; font-size: .78rem; }
+body.pool-modo-juego .pool-jugador.pool-turno-activo { border-color: #e0b45a; background: #e0b45a26; }
+body.pool-modo-juego .pool-jugador.pool-turno-activo strong::after { content: ''; }
+body.pool-modo-juego .pool-jugador-datos strong { color: #fffaf2; }
+body.pool-modo-juego .pool-jugador-datos > span:not(.pool-restantes) { color: #d9cfc4; font-size: .66rem; }
+body.pool-modo-juego .pool-esperando { color: #d9cfc4; }
+body.pool-modo-juego .pool-avatar { width: 34px; height: 34px; padding: 2px; background: #ffffff30; }
+body.pool-modo-juego .pool-turno-activo .pool-avatar { background: conic-gradient(#e0b45a var(--turn-progress), #ffffff30 0); }
+body.pool-modo-juego .pool-restantes i { width: 9px; height: 9px; }
+body.pool-modo-juego .pool-turno { overflow: hidden; margin: 0; min-height: 0; color: #fffaf2; font-size: .8rem; text-align: center; white-space: nowrap; text-overflow: ellipsis; }
+body.pool-modo-juego .pool-turno-urgente { color: #ff9b8c; }
+body.pool-modo-juego .pool-arena { max-width: none; min-height: 0; margin: 0; }
+body.pool-modo-juego .pool-lienzo { align-items: center; min-height: 0; height: 100%; max-height: none; overflow: hidden; }
+body.pool-modo-juego .pool-lienzo canvas { box-shadow: 0 10px 26px #0008; touch-action: none; }
+body.pool-modo-juego .pool-herramientas, body.pool-modo-juego .pool-carga { border-color: #ffffff1f; background: #ffffff0d; }
+body.pool-modo-juego .pool-herramienta-titulo, body.pool-modo-juego .pool-carga-pista { color: #d9cfc4; }
+body.pool-modo-juego .pool-canaleta { min-height: 0; }
+body.pool-modo-juego .pool-potencia { width: 48px; max-height: none; border-color: #e0b45a; background: #ffffff12; }
+body.pool-modo-juego .pool-potencia-agarre { border-color: #1a1316; background: #f5eee6; }
+body.pool-modo-juego .pool-rueda { border-color: #ffffff30; background: repeating-linear-gradient(0deg, #ffffff22 0 5px, #ffffff0a 5px 10px); color: #f5eee6; }
+body.pool-modo-juego .pool-rueda span { background: #3b2c33; }
+body.pool-modo-juego .pool-controles { margin: 0; gap: 6px; min-width: 0; }
+body.pool-modo-juego .pool-fuerza, body.pool-modo-juego .pool-ayuda, body.pool-modo-juego #poolGirarIzq, body.pool-modo-juego #poolGirarDer { display: none; }
+body.pool-modo-juego .pool-cantar { border-color: #e0b45a; background: #241a1ee6; }
+body.pool-modo-juego .pool-cantar label { color: #f6d58c; }
+body.pool-modo-juego #poolMesa .pool-secundario, body.pool-modo-juego #poolMesa .pool-secundario:hover { border-color: #ffffff30; background: #2a2025; color: #f5eee6; }
+body.pool-modo-juego #poolMoverBlanca[aria-pressed=true] { border-color: #8fd3bf; background: #2f6f5c; }
+body.pool-modo-juego #poolReclamar { margin: 0; }
+body.pool-modo-juego .pool-estado:not(:empty) {
+    position: fixed; z-index: 1100; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 78px); transform: translateX(-50%);
+    width: max-content; max-width: min(92vw, 560px); margin: 0; padding: 7px 14px; border-radius: 20px;
+    background: #1a1316e6; color: #fffaf2; box-shadow: 0 4px 14px #0006; font-size: .84rem; text-align: center;
+    white-space: normal; overflow: visible; pointer-events: none; transition: opacity .35s ease;
+}
+body.pool-modo-juego .pool-estado.pool-estado-oculto { opacity: 0; }
+
+/* Landscape: power on the left, tools on the right, like phone pool games. */
+@media (orientation: landscape) {
+    body.pool-modo-juego #poolMesa:not([hidden]) {
+        grid-template-columns: 70px minmax(0, 1fr) 64px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        grid-template-areas: "hud hud hud" "carga lienzo herr" "tirar lienzo herr";
+    }
+    body.pool-modo-juego .pool-hud { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr) auto; }
+    body.pool-modo-juego .pool-jugadores { display: contents; }
+    body.pool-modo-juego .pool-jugador:nth-child(1) { grid-column: 1; grid-row: 1; }
+    body.pool-modo-juego .pool-jugador:nth-child(2) { grid-column: 3; grid-row: 1; }
+    body.pool-modo-juego .pool-turno { grid-column: 2; grid-row: 1; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
+    body.pool-modo-juego .pool-barra { grid-column: 4; grid-row: 1; }
+    body.pool-modo-juego .pool-barra strong { display: none; }
+    body.pool-modo-juego .pool-arena, body.pool-modo-juego .pool-controles:not([hidden]), body.pool-modo-juego .pool-botones { display: contents; }
+    body.pool-modo-juego .pool-lienzo { grid-area: lienzo; }
+    body.pool-modo-juego .pool-herramientas { grid-area: herr; justify-content: space-evenly; overflow: hidden; }
+    body.pool-modo-juego .pool-carga { grid-area: carga; min-height: 0; }
+    body.pool-modo-juego #poolTirar { grid-area: tirar; width: 100%; min-width: 0; min-height: 48px; padding: 0 4px; font-size: .95rem; }
+    body.pool-modo-juego #poolCantar { grid-area: lienzo; align-self: start; justify-self: center; z-index: 2; margin-top: 6px; }
+    body.pool-modo-juego #poolMoverBlanca { grid-area: lienzo; align-self: end; justify-self: center; z-index: 2; margin-bottom: 8px; min-height: 42px; }
+    body.pool-modo-juego #poolDeshacer { grid-area: lienzo; align-self: end; justify-self: start; z-index: 2; margin: 0 0 8px 8px; min-height: 42px; }
+    body.pool-modo-juego #poolReclamar { grid-area: lienzo; align-self: start; justify-self: center; z-index: 2; margin-top: 6px; }
+    body.pool-modo-juego .pool-canaleta-bolas { grid-template-columns: repeat(2, 18px); max-height: 30vh; }
+}
+@media (orientation: landscape) {
+    body.pool-modo-juego .pool-estado:not(:empty) { bottom: calc(env(safe-area-inset-bottom) + 22px); }
+}
+@media (orientation: landscape) and (max-height: 380px) {
+    body.pool-modo-juego .pool-canaleta { display: none; }
+    body.pool-modo-juego .pool-herramientas { gap: 4px; }
+}
+/* Portrait: the table stands up, tools on the right, actions below. */
+@media (orientation: portrait) {
+    body.pool-modo-juego #poolMesa:not([hidden]) {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto auto;
+        grid-template-areas: "hud" "arena" "controles" "reclamar";
+    }
+    body.pool-modo-juego .pool-hud { grid-template-columns: minmax(0, 1fr); }
+    body.pool-modo-juego .pool-barra strong { font-size: .85rem; }
+    body.pool-modo-juego .pool-arena { grid-area: arena; grid-template-columns: minmax(0, 1fr) 58px; gap: 6px; }
+    body.pool-modo-juego .pool-controles:not([hidden]) { grid-area: controles; }
+    body.pool-modo-juego #poolReclamar { grid-area: reclamar; }
+    body.pool-modo-juego .pool-botones { flex-wrap: nowrap; }
+    body.pool-modo-juego .pool-botones button { min-height: 48px; }
+    body.pool-modo-juego .pool-herramientas { padding: 4px 2px; }
+    body.pool-modo-juego .pool-carga { padding: 4px 2px; }
+}
+@media (orientation: portrait) and (max-height: 700px) {
+    body.pool-modo-juego .pool-canaleta { display: none; }
+}

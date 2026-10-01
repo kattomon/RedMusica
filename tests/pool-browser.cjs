@@ -51,8 +51,8 @@ const out=process.env.POOL_SCREENSHOTS||'';
   }
   const tableLabel=page=>page.locator('#poolCanvas').getAttribute('aria-label');
   const serverLabel=()=>'Bolas en la mesa: '+(room.state.game.balls.filter(b=>!b.p&&b.n).map(b=>b.n).join(', ')||'ninguna');
-  async function tap(page,x,y){const canvas=page.locator('#poolCanvas');await canvas.scrollIntoViewIfNeeded();let box=await canvas.boundingBox();const portrait=box.width<560;const scale=box.width/(portrait?568:1068);const [sx,sy]=portrait?[(34+y)*scale,(34+x)*scale]:[(34+x)*scale,(34+y)*scale];await page.evaluate(target=>{if(target>innerHeight-65)scrollBy(0,target-(innerHeight-65));if(target<80)scrollBy(0,target-80);},box.y+sy);box=await canvas.boundingBox();await page.mouse.click(box.x+sx,box.y+sy);}
-  async function dragAim(page,from,to){const canvas=page.locator('#poolCanvas');await canvas.scrollIntoViewIfNeeded();const box=await canvas.boundingBox();const portrait=box.width<560,scale=box.width/(portrait?568:1068);const screen=([x,y])=>portrait?[box.x+(34+y)*scale,box.y+(34+x)*scale]:[box.x+(34+x)*scale,box.y+(34+y)*scale];const [sx,sy]=screen(from),[ex,ey]=screen(to);await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(ex,ey,{steps:6});await page.mouse.up();}
+  async function tap(page,x,y){const canvas=page.locator('#poolCanvas');await canvas.scrollIntoViewIfNeeded();let box=await canvas.boundingBox();const portrait=box.height>box.width;const scale=box.width/(portrait?568:1068);const [sx,sy]=portrait?[(34+y)*scale,(34+x)*scale]:[(34+x)*scale,(34+y)*scale];await page.evaluate(target=>{if(target>innerHeight-65)scrollBy(0,target-(innerHeight-65));if(target<80)scrollBy(0,target-80);},box.y+sy);box=await canvas.boundingBox();await page.mouse.click(box.x+sx,box.y+sy);}
+  async function dragAim(page,from,to){const canvas=page.locator('#poolCanvas');await canvas.scrollIntoViewIfNeeded();const box=await canvas.boundingBox();const portrait=box.height>box.width,scale=box.width/(portrait?568:1068);const screen=([x,y])=>portrait?[box.x+(34+y)*scale,box.y+(34+x)*scale]:[box.x+(34+x)*scale,box.y+(34+y)*scale];const [sx,sy]=screen(from),[ex,ey]=screen(to);await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(ex,ey,{steps:6});await page.mouse.up();}
 
   const host=await open('host');
   assert.equal(await host.getByRole('heading',{name:'Pool bola 8 en línea'}).isVisible(),true);
@@ -87,7 +87,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
   assert.notEqual(await host.locator('#poolRueda').getAttribute('aria-valuenow'),'0','dragging anywhere on the table rotates the cue');
   await tap(host,950,250);
   await host.locator('#poolCanvas').focus();await host.keyboard.press('ArrowRight');await host.keyboard.press('ArrowLeft');
-  await host.locator('#poolFuerza').fill('100');assert.equal(await host.locator('#poolFuerzaValor').innerText(),'100%');
+  if(await host.locator('#poolFuerza').isVisible())await host.locator('#poolFuerza').fill('100');else await host.locator('#poolPotencia').evaluate(el=>{el.focus();});if(!(await host.locator('#poolFuerza').isVisible()))for(let i=0;i<8;i++)await host.keyboard.press('ArrowUp');assert.equal(await host.locator('#poolFuerzaValor').innerText(),'100%');
   assert.equal(await host.locator('#poolPotencia').getAttribute('aria-valuenow'),'100');
   await host.waitForFunction(()=>window.__poolRealtime.subscribed);await guest.waitForFunction(()=>window.__poolRealtime.subscribed);
   const guestReadsBefore=stateRequests.guest;
@@ -108,7 +108,13 @@ const out=process.env.POOL_SCREENSHOTS||'';
   // Ball in hand anywhere: the guest places the cue ball by tapping, then shoots.
   const g=room.state.game;g.turn='guest';g.ballInHand='table';g.balls[0].p=1;g.last=null;g.seq+=1;room.state.turn_started_at=Date.now();
   await guest.waitForFunction(()=>/Bola en mano/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
-  if((await guest.evaluate(()=>innerWidth))<560){
+  if(await guest.evaluate(()=>document.body.classList.contains('pool-modo-juego'))){
+   // Phones play in game mode: the whole table and the controls fit the screen without scrolling.
+   const fit=await guest.evaluate(()=>{const r=id=>document.getElementById(id).getBoundingClientRect();return {h:innerHeight,w:innerWidth,canvas:r('poolCanvas').toJSON(),power:r('poolPotencia').toJSON(),bar:r('poolBarra').toJSON(),shoot:r('poolTirar').toJSON(),scroll:document.documentElement.scrollWidth};});
+   assert.ok(fit.canvas.top>=0&&fit.canvas.bottom<=fit.h+1&&fit.canvas.right<=fit.w+1,'table fits the phone screen '+JSON.stringify(fit));
+   assert.ok(fit.power.bottom<=fit.h+1&&fit.shoot.bottom<=fit.h+1&&fit.bar.top>=0,'controls fit the phone screen '+JSON.stringify(fit));
+   assert.ok(fit.canvas.height>fit.canvas.width,'portrait phones get a vertical table');
+  } else if((await guest.evaluate(()=>innerWidth))<560){
    try{await guest.waitForFunction(()=>{const bar=document.querySelector('#poolBarra').getBoundingClientRect(),cue=document.querySelector('#poolPotencia').getBoundingClientRect(),table=document.querySelector('#poolCanvas').getBoundingClientRect(),header=document.querySelector('.cabecera-sitio').getBoundingClientRect();return bar.top>=header.bottom+4&&cue.bottom<=innerHeight+2&&table.bottom<=innerHeight+2;},null,{timeout:3000});}
    catch(error){console.error('Mobile viewport diagnostics',await guest.evaluate(()=>({height:innerHeight,scrollY,bar:document.querySelector('#poolBarra').getBoundingClientRect().toJSON(),cue:document.querySelector('#poolPotencia').getBoundingClientRect().toJSON(),canvas:document.querySelector('#poolCanvas').getBoundingClientRect().toJSON(),nav:document.querySelector('.sidebar-nav')?.getBoundingClientRect().toJSON(),header:document.querySelector('.cabecera-sitio')?.getBoundingClientRect().toJSON()})));throw error;}
   }
@@ -161,7 +167,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
 
   // Leaving an active game asks for a second tap and hands the win to the rival.
   await host.waitForFunction(()=>/Turno de Ana/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
-  await host.getByRole('button',{name:'Salir'}).click();
+  await host.getByRole('button',{name:'Salir',exact:true}).click();
   assert.equal(await host.getByRole('button',{name:'Confirmar: perderás la partida'}).isVisible(),true);
   assert.equal(await host.getByRole('button',{name:/Confirmar/}).isVisible(),true);assert.equal(room.state.players.length,2);
   await host.getByRole('button',{name:/Confirmar/}).click();
@@ -172,6 +178,46 @@ const out=process.env.POOL_SCREENSHOTS||'';
   const layout=await guest.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,height:innerHeight,canvas:document.querySelector('#poolCanvas').getBoundingClientRect().toJSON(),arena:document.querySelector('.pool-arena').getBoundingClientRect().toJSON()}));
   assert.ok(layout.scroll<=layout.client+1,`no horizontal overflow (${layout.scroll} > ${layout.client})`);
   if(layout.client<560){assert.ok(layout.canvas.height>layout.canvas.width,'portrait table on phones');assert.ok(layout.canvas.height>=layout.height*.56,'table occupies most of the phone height');assert.ok(layout.arena.width<=layout.client,'arena fits the phone');}
+
+  // Against the computer: runs locally with the same engine, never calls the server.
+  const shotsBefore=shots.length;
+  const solo=await open('host');await solo.emulateMedia({reducedMotion:'reduce'});
+  await solo.evaluate(()=>{window.__estados=[];new MutationObserver(()=>window.__estados.push(document.querySelector('#poolEstado').textContent+' | '+document.querySelector('#poolTurno').textContent)).observe(document.querySelector('#poolMesa'),{subtree:true,childList:true,characterData:true});});
+  assert.equal(await solo.locator('#poolRecord').innerText(),'Tu récord en línea: 3 victorias · 1 derrota');
+  await solo.getByRole('button',{name:'Difícil'}).click();
+  await solo.waitForFunction(()=>/Saque/.test(document.querySelector('#poolTurno').textContent));
+  assert.match(await solo.locator('#poolNombreMesa').innerText(),/Contra la máquina · difícil/);
+  assert.equal(await solo.locator('#poolInvitar').isVisible(),false,'no invitation for local games');
+  const free=[[140,60],[140,440],[60,250],[420,80],[600,470],[860,60],[860,440],[500,250],[300,300]];
+  let cpuSeen=false,finished=false;
+  for(let turn=0;turn<5&&!finished;turn++){
+   await solo.waitForFunction(()=>/^(Te toca|Bola en mano|Saque|Vas por la 8)|Ganaste|Ganó/.test(document.querySelector('#poolTurno').textContent)&&!document.querySelector('#poolTirar').disabled||/Ganaste|Ganó/.test(document.querySelector('#poolTurno').textContent),null,{timeout:60000});
+   const text=await solo.locator('#poolTurno').innerText();
+   if(/Ganaste|Ganó/.test(text)){finished=true;break;}
+   if(/Bola en mano/.test(text)&&await solo.evaluate(()=>document.querySelector('#poolMoverBlanca').getAttribute('aria-pressed')==='true')){for(const [x,y] of free){await tap(solo,x,y);if(await solo.locator('#poolMoverBlanca').getAttribute('aria-pressed')==='false')break;}}
+   if(/Vas por la 8/.test(text))await solo.locator('#poolTronera').selectOption('0');
+   await solo.locator('#poolCanvas').focus();await solo.keyboard.press(turn%2?'ArrowLeft':'ArrowRight');await solo.keyboard.press('Enter');
+   await solo.waitForFunction(()=>document.querySelector('#poolTirar').disabled,null,{timeout:10000}).catch(()=>{});
+   cpuSeen=cpuSeen||await solo.evaluate(()=>window.__estados.some(t=>/La máquina/.test(t)));
+  }
+  await solo.waitForFunction(()=>window.__estados.some(t=>/La máquina (metió|:)|la máquina/.test(t)),null,{timeout:60000});
+  assert.equal(shots.length,shotsBefore,'local games never reach the server');
+  // Practice: shoot, then undo restores the rack.
+  await solo.getByRole('button',{name:'Salir',exact:true}).click();
+  if(await solo.getByRole('button',{name:/Confirmar/}).isVisible())await solo.getByRole('button',{name:/Confirmar/}).click();
+  await solo.waitForFunction(()=>!document.querySelector('#poolEntrada').hidden);
+  await solo.getByRole('button',{name:'Practicar'}).click();
+  await solo.waitForFunction(()=>/Saque/.test(document.querySelector('#poolTurno').textContent));
+  assert.equal(await solo.locator('#poolJugadores .pool-jugador').count(),1,'practice has a single player');
+  const rack=await tableLabel(solo);
+  await solo.locator('#poolCanvas').focus();await solo.keyboard.press('Enter');
+  await solo.waitForFunction(()=>!document.querySelector('#poolDeshacer').hidden&&!document.querySelector('#poolTirar').disabled,null,{timeout:30000});
+  assert.match(await solo.locator('#poolTurno').innerText(),/Te toca|Bola en mano|Vas por la 8/,'practice: always your turn');
+  await solo.getByRole('button',{name:'Deshacer tiro'}).click();
+  await solo.waitForFunction(()=>/Saque/.test(document.querySelector('#poolTurno').textContent));
+  assert.equal(await tableLabel(solo),rack,'undo puts the balls back');
+  if(out)await solo.screenshot({path:path.join(out,`pool-practica-${label}.png`),fullPage:false});
+  await solo.close();
 
   // Profile line with wins.
   const profile=await open('guest');
