@@ -1114,3 +1114,36 @@ body.sesion-pendiente #chatComunitario { display: none !important; }
     #resultadoAlbum, #reseñaPelicula, #reseñaLibro { padding: 13px; }
     .tarjeta-album { padding: 12px; }
 }
+
+/* ---------- Chat alerts (2012-style pop-ups, unread counters, blinking chat, "Seen") ---------- */
+#avisosChat { position: fixed; z-index: 95; right: 16px; top: calc(70px + env(safe-area-inset-top)); display: grid; gap: 8px; width: min(340px, calc(100vw - 24px)); pointer-events: none; }
+.aviso-chat { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; overflow: hidden; border: 1px solid var(--rm-line, #dfd5c9); border-left: 4px solid var(--rm-accent, #a85449); border-radius: 10px; background: var(--rm-surface, #fffdf9); box-shadow: 0 8px 24px #211b1633; pointer-events: auto; animation: aviso-chat-entra .28s ease-out; }
+.aviso-chat-comunidad { border-left-color: var(--rm-teal, #547d78); }
+#contenidoPrincipal .aviso-chat button, .aviso-chat button { box-shadow: none; }
+.aviso-chat-abrir { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 58px; padding: 9px 4px 9px 10px; border: 0; background: transparent; color: var(--rm-ink, #332f32); text-align: left; cursor: pointer; }
+.aviso-chat-abrir:hover { background: var(--rm-soft, #f6f1e8); }
+.aviso-chat-foto { width: 40px; height: 40px; }
+.aviso-chat-texto { display: grid; gap: 2px; min-width: 0; }
+.aviso-chat-texto strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--rm-plum, #51404c); font-size: .92rem; }
+.aviso-chat-texto span { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: var(--rm-ink, #332f32); font-size: .88rem; line-height: 1.3; }
+.aviso-chat-cerrar { align-self: start; min-width: 36px; min-height: 36px; margin: 4px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--rm-muted, #746d69); font-size: 1.2rem; cursor: pointer; }
+.aviso-chat-push { grid-column: 1 / -1; min-height: 38px; margin: 0 8px 8px; border: 1px dashed var(--rm-accent, #a85449); border-radius: 8px; background: var(--rm-soft, #f6f1e8); color: var(--rm-accent, #a85449); font-size: .84rem; font-weight: 600; cursor: pointer; }
+@keyframes aviso-chat-entra { from { opacity: 0; transform: translateX(24px); } }
+.contador-chat { display: inline-grid; place-items: center; min-width: 19px; height: 19px; margin-left: 6px; padding: 0 5px; border-radius: 10px; background: #d93a2f; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; vertical-align: middle; }
+.contador-chat[hidden] { display: none; }
+#abrirDockAmigos { position: relative; }
+.boton-chat-amigo.con-mensajes { background: #d93a2f !important; border-color: #d93a2f !important; color: #fff !important; font-weight: 700; }
+#ventanaChatAmigo.parpadea header { animation: chat-parpadea 1.1s steps(1) infinite; }
+@keyframes chat-parpadea { 0% { background: #3b5998; color: #fff; } 50% { background: #f0ede7; color: inherit; } }
+#ventanaChatAmigo.parpadea header h2::before { content: '● '; color: #d93a2f; }
+.visto-chat { margin: 2px 6px 4px auto; color: var(--rm-muted, #746d69); font-size: .74rem; text-align: right; }
+.aviso-push-chat { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--rm-line, #dfd5c9); background: #fff8e6; font-size: .8rem; }
+.aviso-push-chat span { flex: 1; min-width: 0; }
+#contenidoPrincipal .aviso-push-chat button, .aviso-push-chat button { min-height: 32px; padding: 2px 9px; font-size: .78rem; box-shadow: none; }
+.aviso-push-chat .aviso-push-chat-cerrar { min-width: 32px; border: 0; background: transparent; color: var(--rm-muted, #746d69); }
+@media (max-width: 700px) {
+    #avisosChat { left: 12px; right: 12px; width: auto; top: calc(64px + env(safe-area-inset-top)); }
+    .contador-chat { position: absolute; top: -4px; right: -4px; margin: 0; font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .aviso-chat { animation: none; } #ventanaChatAmigo.parpadea header { animation: none; background: #3b5998; color: #fff; } }
+body.pool-modo-juego #avisosChat { top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 1150; }

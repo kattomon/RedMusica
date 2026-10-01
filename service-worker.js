@@ -1,10 +1,10 @@
 'use strict';
 
-const SHELL_CACHE = 'redmusica-shell-v16';
+const SHELL_CACHE = 'redmusica-shell-v17';
 const SHELL_FILES = [
     './',
     './index.html',
-    './style.css?v=20260930-54',
+    './style.css?v=20261001-2',
     './layout.css?v=20260929-1',
     './sections.css?v=20260929-1',
     './admin-ui.css?v=20260929-1',
@@ -18,12 +18,12 @@ const SHELL_FILES = [
     './radio-panel.js?v=20260929-2',
     './radio.html',
     './radio.js?v=20260929-2',
-    './script.js?v=20261001-6',
+    './script.js?v=20261001-7',
     './pwa.js?v=20260928-1',
     './covers.js?v=20260927-18',
     './search.js?v=20260927-18',
     './vendor/supabase-2.117.2.js',
-    './cloud.js?v=20261001-1',
+    './cloud.js?v=20261001-2',
     './admin.js?v=20260930-1',
     './blackjack.js?v=20260928-1',
     './pool.js?v=20261001-6',
@@ -116,17 +116,18 @@ self.addEventListener('notificationclick', event => {
             await app.focus();
             return;
         }
-        await self.clients.openWindow(self.registration.scope);
+        const target = event.notification.data?.url;
+        await self.clients.openWindow(target ? new URL(target, self.registration.scope).href : self.registration.scope);
     })());
 });
 
 self.addEventListener('push', event => {
     event.waitUntil((async () => {
         const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-        // RedMusica only shows alerts while the user still has the app open.
-        if (!windows.length) return;
         let data = {};
         try { data = event.data?.json() || {}; } catch { data = { body: event.data?.text() || '' }; }
+        // If RedMusica is on screen right now, the page shows its own chat pop-up instead.
+        if (windows.some(client => client.visibilityState === 'visible' && client.focused)) return;
         const title = String(data.title || 'RedMusica').slice(0, 80);
         const body = String(data.body || 'Tienes una novedad en RedMusica.').slice(0, 180);
         await self.registration.showNotification(title, {
@@ -134,6 +135,8 @@ self.addEventListener('push', event => {
             icon: './app-icon-192.png',
             badge: './app-icon-192.png',
             tag: data.tag ? String(data.tag).slice(0, 100) : 'redmusica-notificacion',
+            renotify: Boolean(data.renotify && data.tag),
+            vibrate: data.kind === 'message' ? [80, 60, 80] : undefined,
             data: { url: typeof data.url === 'string' ? data.url : './' }
         });
     })());

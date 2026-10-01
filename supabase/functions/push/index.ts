@@ -55,7 +55,9 @@ async function deliver(recipientId: string, event: Record<string, unknown>, conf
   let body = 'Tienes una nueva notificación.';
   let url = './';
   if (kind === 'message') {
-    title = 'Mensaje privado · RedMusica'; body = `${username} te envió un mensaje.`; url = './?seccion=amigos';
+    const preview = typeof event.preview === 'string' ? event.preview.replace(/\s+/g, ' ').trim().slice(0, 140) : '';
+    title = `${username} · RedMusica`; body = preview || `${username} te envió un mensaje.`;
+    url = actorId ? `./?chat=${encodeURIComponent(actorId)}` : './?seccion=amigos';
   } else if (kind === 'follow') {
     title = 'Nuevo seguidor · RedMusica'; body = `${username} empezó a seguirte.`; url = actorId ? `./?perfil=${encodeURIComponent(actorId)}` : './?seccion=amigos';
   } else if (kind === 'like' || kind === 'comment') {
@@ -66,12 +68,14 @@ async function deliver(recipientId: string, event: Record<string, unknown>, conf
     body = kind === 'like' ? `${username} indicó que le gusta ${subject}.` : `${username} comentó en ${subject}.`;
     url = postId ? `./?perfil=${encodeURIComponent(recipientId)}#${encodeURIComponent(postId)}` : './';
   }
-  const payload = JSON.stringify({ title, body, url, tag: `redmusica-${kind}-${crypto.randomUUID()}` });
+  // Messages from the same person stack into one notification that renews (renotify), like a chat thread.
+  const tag = kind === 'message' && actorId ? `redmusica-chat-${actorId}` : `redmusica-${kind}-${crypto.randomUUID()}`;
+  const payload = JSON.stringify({ title, body, url, tag, kind, renotify: kind === 'message' });
   webpush.setVapidDetails(config.redmusica_push_subject, config.redmusica_push_public_key, config.redmusica_push_private_key);
   let delivered = 0;
   await Promise.all(subscriptions.map(async row => {
     try {
-      await webpush.sendNotification(row.subscription, payload, { TTL: 60, urgency: 'normal' });
+      await webpush.sendNotification(row.subscription, payload, { TTL: kind === 'message' ? 6 * 60 * 60 : 60, urgency: kind === 'message' ? 'high' : 'normal' });
       delivered++;
     } catch (error) {
       const status = (error as { statusCode?: number }).statusCode;
