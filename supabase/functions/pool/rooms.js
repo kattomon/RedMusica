@@ -1,5 +1,7 @@
 // Room bookkeeping for online pool. Pure functions so they can be tested without a server.
 export const TURN_LIMIT_MS = 5 * 60 * 1000;
+// Each shot must be taken within this time; after it the opponent may take ball in hand.
+export const SHOT_CLOCK_MS = 60 * 1000;
 
 export function newRoomState(userId, username) {
   return { status: 'lobby', players: [{ user_id: userId, username }], game: null, rematch: [], turn_started_at: null, recorded: false };
@@ -51,4 +53,10 @@ export function requestRematch(state, userId) {
   if (state.rematch.length < 2) return null;
   const loser = state.players.find(p => p.user_id !== state.game?.winner);
   return (loser || state.players[0]).user_id;
+}
+
+/** The opponent may call a timeout once the shot clock has run out. */
+export function timeoutAllowed(state, userId, now) {
+  return state.status === 'playing' && !!state.game && !state.game.winner && state.game.turn !== userId &&
+    state.players.some(p => p.user_id === userId) && Number.isFinite(state.turn_started_at) && now - state.turn_started_at >= SHOT_CLOCK_MS;
 }

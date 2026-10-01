@@ -53,9 +53,9 @@ const assert=require('node:assert/strict');
  // Scratch: the cue ball is off the table and the opponent must place it.
  g=E.applyShot(scene({0:[900,100],3:[200,400],8:[500,300]},{groups:{[A]:'solids',[B]:'stripes'}}),A,{dx:1,dy:-1,power:0.5});
  assert.equal(g.last.summary.scratch,true);assert.equal(g.turn,B);assert.equal(g.ballInHand,'table');assert.equal(g.balls[0].p,1);
- assert.throws(()=>E.applyShot(g,B,{dx:1,dy:0,power:0.5}),/Coloca la bola blanca/);
- assert.throws(()=>E.applyShot(g,B,{dx:1,dy:0,power:0.5,cue:{x:200,y:400}}),/espacio libre/);
- const placed=E.applyShot(g,B,{dx:-1,dy:0,power:0.4,cue:{x:700,y:250}});assert.equal(placed.last.before[0].x,700);
+ assert.throws(()=>E.applyShot(g,B,{dx:1,dy:0,power:0.5,call:0}),/Coloca la bola blanca/);
+ assert.throws(()=>E.applyShot(g,B,{dx:1,dy:0,power:0.5,cue:{x:200,y:400},call:0}),/espacio libre/);
+ const placed=E.applyShot(g,B,{dx:-1,dy:0,power:0.4,cue:{x:700,y:250},call:0});assert.equal(placed.last.before[0].x,700);
 
  // Missing everything is a foul; so is a contact with no rail and nothing pocketed.
  g=E.applyShot(scene({0:[100,250],3:[900,60],8:[500,450]},{groups:{[A]:'solids',[B]:'stripes'}}),A,{dx:0,dy:-1,power:0.2});
@@ -67,8 +67,27 @@ const assert=require('node:assert/strict');
  g=E.applyShot(scene({0:[850,150],8:[950,50],3:[200,400]},{groups:{[A]:'solids',[B]:'stripes'}}),A,toCorner);
  assert.equal(g.winner,B);assert.match(g.reason,/antes de terminar/);
  assert.throws(()=>E.applyShot(g,B,toCorner),/terminó/);
- g=E.applyShot(scene({0:[850,150],8:[950,50],12:[200,400]},{groups:{[A]:'solids',[B]:'stripes'}}),A,toCorner);
- assert.equal(g.winner,A);assert.equal(g.last.summary.foul,'');
+ const onEight=scene({0:[850,150],8:[950,50],12:[200,400]},{groups:{[A]:'solids',[B]:'stripes'}});
+ assert.equal(E.mustCallEight(onEight,A),true);assert.equal(E.mustCallEight(onEight,B),false);
+ assert.throws(()=>E.applyShot(onEight,A,toCorner),/Elige la tronera/);
+ g=E.applyShot(onEight,A,{...toCorner,call:2});
+ assert.equal(g.winner,A);assert.equal(g.last.summary.foul,'');assert.equal(g.last.summary.eightPocket,2);assert.equal(g.last.shot.call,2);
+ g=E.applyShot(onEight,A,{...toCorner,call:0});
+ assert.equal(g.winner,B,'the 8 in a pocket that was not called loses');assert.match(g.reason,/otra tronera/);
+ assert.throws(()=>E.applyShot(onEight,A,{...toCorner,call:7}),/no es válido/);
+
+ // Shot clock: the waiting player can take ball in hand when time runs out.
+ const late=E.applyTimeout(onEight,B);
+ assert.equal(late.turn,B);assert.equal(late.ballInHand,'table');assert.equal(late.seq,onEight.seq+1);assert.equal(late.last.timeout,true);assert.match(late.last.summary.foul,/tiempo/);
+ assert.throws(()=>E.applyTimeout(onEight,A),/turno/);
+ assert.equal(E.applyTimeout(game,B).ballInHand,'kitchen','a missed break keeps the kitchen');
+
+ // Side spin changes the rebound off a cushion.
+ const sideEnd=side=>E.simulate(scene({0:[300,300]}).balls,{dx:0,dy:-1,power:0.35,side}).balls[0].x;
+ assert.ok(sideEnd(1)>sideEnd(0)+50&&sideEnd(-1)<sideEnd(0)-50,'right english sends the ball right off the cushion, left english left');
+ let impacts=[];E.simulate(game.balls,{dx:1,dy:0.002,power:1},null,e=>impacts.push(e));
+ assert.ok(impacts.some(e=>e.type==='ball'&&e.strength>10)&&impacts.some(e=>e.type==='rail'),'impacts are reported for sound');
+ assert.deepEqual(E.simulate(game.balls,{dx:1,dy:0.002,power:1},null,()=>{}),E.simulate(game.balls,{dx:1,dy:0.002,power:1}),'listening to impacts does not change the shot');
  g=E.applyShot(scene({0:[850,150],8:[950,50],12:[200,400]},{groups:{[A]:'solids',[B]:'stripes'},breakShot:true}),A,toCorner);
  assert.equal(g.winner,null);assert.equal(g.balls[8].p,0);assert.ok(g.last.summary.respotted);
 

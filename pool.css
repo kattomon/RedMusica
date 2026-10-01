@@ -64,8 +64,10 @@ body.sesion-pendiente #seccionPool { display: none !important; }
 .pool-rueda span { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 50%; background: var(--rm-surface, #fffdf9); box-shadow: 0 1px 4px #332f3233; transform: rotate(var(--rueda-angulo, 0deg)); }
 .pool-efecto { display: grid; gap: 4px; justify-items: center; }
 .pool-efecto-bola { position: relative; width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #ffffff, #ece7dc 62%, #cfc7b6); box-shadow: inset 0 0 0 2px var(--rm-line, #dfd5c9), 0 1px 4px #332f3233; cursor: pointer; touch-action: none; user-select: none; }
-.pool-efecto-bola::before { content: ''; position: absolute; left: 50%; top: 18%; bottom: 18%; width: 1px; background: #8a80744d; }
-#poolEfectoPunto { position: absolute; left: 50%; top: calc(50% - var(--efecto, 0) * 34%); width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--rm-accent, #a85449); box-shadow: 0 0 0 2px #ffffffb3; transition: top .12s ease; }
+.pool-efecto-bola::before, .pool-efecto-bola::after { content: ''; position: absolute; background: #8a80744d; }
+.pool-efecto-bola::before { left: 50%; top: 18%; bottom: 18%; width: 1px; }
+.pool-efecto-bola::after { top: 50%; left: 18%; right: 18%; height: 1px; }
+#poolEfectoPunto { position: absolute; left: calc(50% + var(--efecto-x, 0) * 34%); top: calc(50% - var(--efecto, 0) * 34%); width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--rm-accent, #a85449); box-shadow: 0 0 0 2px #ffffffb3; transition: top .12s ease, left .12s ease; }
 .pool-efecto-bola[aria-disabled=true] { opacity: .55; cursor: default; }
 .pool-efecto-bola:focus-visible { outline: 3px solid var(--rm-gold, #b28a48); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { #poolEfectoPunto { transition: none; } }
@@ -140,3 +142,8 @@ body.sesion-pendiente #seccionPool { display: none !important; }
     #poolUnirse input { max-width: none; }
 }
 @media (pointer: coarse) { .pool-ayuda-teclado { display: none; } }
+
+.pool-cantar { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--rm-gold, #b28a48); border-radius: 8px; background: var(--rm-soft, #f6f1e8); }
+.pool-cantar label { font-weight: 700; font-size: .88rem; color: var(--rm-plum, #51404c); }
+.pool-cantar select { min-height: 40px; }
+.pool-turno-urgente { color: var(--rm-accent, #a85449); }

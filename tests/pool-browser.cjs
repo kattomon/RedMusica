@@ -28,7 +28,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
     if(input.action==='join'){if(!member){room.state=Rooms.joinRoom(room.state,actor,names[actor],Date.now());room.state.game=E.newGame('game-'+Date.now(),room.state.players.map(p=>p.user_id),room.host,bytes);room.revision++;}return send({room:pub()});}
     if(!member)return send({error:'No formas parte de esta sala.'},403);
     if(input.action==='state'){stateRequests[actor]++;return send({room:pub()});}
-    if(input.action==='shoot'){shots.push(input);const before=room.state.game.turn;room.state.game=E.applyShot(room.state.game,actor,{dx:input.dx,dy:input.dy,power:input.power,...(input.spin!==undefined?{spin:input.spin}:{}),...(input.cue?{cue:input.cue}:{})});if(room.state.game.turn!==before)room.state.turn_started_at=Date.now();if(room.state.game.winner)room.state.status='finished';room.revision++;return send({room:pub()});}
+    if(input.action==='shoot'){shots.push(input);const before=room.state.game.turn;room.state.game=E.applyShot(room.state.game,actor,{dx:input.dx,dy:input.dy,power:input.power,...(input.spin!==undefined?{spin:input.spin}:{}),...(input.side!==undefined?{side:input.side}:{}),...(input.call!==undefined?{call:input.call}:{}),...(input.cue?{cue:input.cue}:{})});if(room.state.game.turn!==before)room.state.turn_started_at=Date.now();if(room.state.game.winner)room.state.status='finished';room.revision++;return send({room:pub()});}
     if(input.action==='rematch'){const breaker=Rooms.requestRematch(room.state,actor);if(breaker){room.state.game=E.newGame('game-r',room.state.players.map(p=>p.user_id),breaker,bytes);room.state.status='playing';room.state.rematch=[];}room.revision++;return send({room:pub()});}
     if(input.action==='leave'){const res=Rooms.leaveRoom(room.state,actor,room.host,Date.now());room.state=res.state;room.host=res.hostId;room.revision++;return send({left:true});}
     return send({error:'Acción no válida.'},400);
@@ -79,7 +79,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
   // The browser engine reproduces the server trajectories exactly.
   const samples=[{dx:1,dy:0.01,power:1},{dx:0.6,dy:0.8,power:0.7,spin:-1},{dx:-0.9,dy:0.2,power:0.5,spin:0.75},{dx:0.8,dy:-0.6,power:0.55},{dx:-0.3,dy:0.95,power:0.8}];
   const expected=samples.map(s=>E.simulate(room.state.game.balls,s).balls);
-  const inBrowser=await host.evaluate(async({balls,samples})=>{const m=await import('./supabase/functions/pool/engine.js?v=20261001-4');return samples.map(s=>m.simulate(balls,s).balls);},{balls:room.state.game.balls,samples});
+  const inBrowser=await host.evaluate(async({balls,samples})=>{const m=await import('./supabase/functions/pool/engine.js?v=20261001-5');return samples.map(s=>m.simulate(balls,s).balls);},{balls:room.state.game.balls,samples});
   assert.deepEqual(inBrowser,expected,'browser and server simulations match');
 
   // Break with the keyboard: aim a little, full power, Enter.
@@ -92,14 +92,14 @@ const out=process.env.POOL_SCREENSHOTS||'';
   await host.waitForFunction(()=>window.__poolRealtime.subscribed);await guest.waitForFunction(()=>window.__poolRealtime.subscribed);
   const guestReadsBefore=stateRequests.guest;
   await guest.evaluate(()=>{window.__poolRealtime.received=0;window.__poolRealtime.stateReads=0;});
-  await host.locator('#poolEfecto').focus();await host.keyboard.press('ArrowDown');await host.keyboard.press('ArrowDown');
-  assert.equal(await host.locator('#poolEfecto').getAttribute('aria-valuetext'),'Retroceso 50%');
+  await host.locator('#poolEfecto').focus();await host.keyboard.press('ArrowDown');await host.keyboard.press('ArrowDown');await host.keyboard.press('ArrowRight');
+  assert.equal(await host.locator('#poolEfecto').getAttribute('aria-valuetext'),'retroceso 50%, derecha 25%');
   await host.locator('#poolCanvas').focus();await host.keyboard.press('Enter');
   await guest.waitForFunction(()=>window.__poolRealtime.received>0,null,{timeout:2500});
   await guest.waitForFunction(()=>window.__poolRealtime.stateReads>0,null,{timeout:2500});
   const settledTable=serverLabel();
   await host.waitForFunction(label=>document.querySelector('#poolCanvas').getAttribute('aria-label').includes(label),settledTable,{timeout:15000});
-  assert.equal(shots.length,1);assert.ok(Math.abs(shots[0].power-1)<1e-9);assert.equal(shots[0].spin,-0.5,'the chosen spin is sent with the shot');
+  assert.equal(shots.length,1);assert.ok(Math.abs(shots[0].power-1)<1e-9);assert.equal(shots[0].spin,-0.5,'the chosen spin is sent with the shot');assert.equal(shots[0].side,0.25,'side spin is sent with the shot');
   assert.match(await tableLabel(host),new RegExp(settledTable));
   await guest.waitForFunction(label=>document.querySelector('#poolCanvas').getAttribute('aria-label').includes(label),settledTable,{timeout:15000});
   assert.ok(stateRequests.guest>guestReadsBefore,'Realtime broadcast triggers an immediate authenticated state read');
@@ -133,11 +133,16 @@ const out=process.env.POOL_SCREENSHOTS||'';
   // Winning shot: only the 8 is left for the host; the default aim sinks it.
   const w=room.state.game;w.turn='host';w.groups={host:'solids',guest:'stripes'};w.ballInHand=null;w.winner=null;w.last=null;w.seq+=1;
   w.balls=w.balls.map(b=>b.n===0?{n:0,x:850,y:12,p:0}:b.n===8?{n:8,x:950,y:12,p:0}:b.n===12?{n:12,x:300,y:300,p:0}:{...b,p:1});
-  await host.waitForFunction(()=>/Te toca/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
+  await host.waitForFunction(()=>/Te toca|Vas por la 8/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
   await host.locator('#poolCanvas').focus();const angle=Number(await host.locator('#poolRueda').getAttribute('aria-valuenow'));
   for(let i=0;i<Math.abs(angle);i++)await host.keyboard.press(angle<0?'ArrowRight':'ArrowLeft');
   await host.evaluate(()=>{document.querySelector('#poolFuerza').value='30';document.querySelector('#poolFuerza').dispatchEvent(new Event('input'));});
   await host.locator('#poolEfecto').focus();for(let i=0;i<3;i++)await host.keyboard.press('ArrowDown');
+  await host.waitForFunction(()=>!document.querySelector('#poolCantar').hidden);
+  assert.match(await host.locator('#poolTurno').innerText(),/Vas por la 8/);
+  await host.getByRole('button',{name:'Tirar'}).click();
+  assert.match(await host.locator('#poolEstado').innerText(),/toca la tronera/,'the 8 cannot be shot without calling a pocket');
+  await host.locator('#poolTronera').selectOption('2');
   await host.getByRole('button',{name:'Tirar'}).click();
   try{await host.waitForFunction(()=>/Ganaste/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});}
   catch(error){console.error('Winning shot diagnostics',JSON.stringify({status:room.state.status,last:room.state.game.last?.summary,shot:shots.at(-1),panel:await host.locator('#poolTurno').innerText(),message:await host.locator('#poolEstado').innerText(),errors}));throw error;}

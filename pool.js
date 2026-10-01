@@ -7,8 +7,8 @@
     const section = $('poolJuegos');
     const config = window.REDMUSICA_CONFIG;
     const db = config && window.supabase ? window.redmusicaClient || window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
-    const ENGINE_URL = './supabase/functions/pool/engine.js?v=20261001-4';
-    const TURN_LIMIT_MS = 5 * 60 * 1000;
+    const ENGINE_URL = './supabase/functions/pool/engine.js?v=20261001-5';
+    const TURN_LIMIT_MS = 5 * 60 * 1000, SHOT_CLOCK_MS = 60 * 1000;
     const RAIL = 34;
     const COLORS = { 1: '#e3b22f', 2: '#2b4f9e', 3: '#c23b30', 4: '#5c3b86', 5: '#dd7430', 6: '#2e7445', 7: '#7c2733', 8: '#1f1c1f' };
     const GROUP_NAMES = { solids: 'lisas (1–7)', stripes: 'rayadas (9–15)' };
@@ -22,6 +22,8 @@
     let shownGame = null, shownSeq = -1, balls = [], aim = { dx: 1, dy: 0 }, pendingCue = null, placing = false, dragging = false, placementValid = null;
     let striking = false, cueStroke = 0, channel = null, channelCode = '', subscribed = false, broadcastTimer = null, lastBroadcastFetch = 0;
     let sound = null, muted = false, ringTimer = null, gutterSignature = '';
+    let calledPocket = null, timeoutSentFor = null, drops = [], spin = 0, side = 0, callPulse = 0;
+    const orient = new Map(), lastSpot = new Map(), sprite = document.createElement('canvas'), spriteCtx = sprite.getContext('2d');
     const avatarCache = new Map();
     try { muted = localStorage.getItem('redmusica-pool-muted') === 'true'; } catch { /* Storage can be unavailable. */ }
     let view = { portrait: false, scale: 1, width: 0, height: 0 };
@@ -116,11 +118,12 @@
         const game = next.game;
         if (game && (!shownGame || shownGame !== game.id)) {
             shownGame = game.id; shownSeq = game.seq; balls = game.balls; pendingCue = null; placing = false; placementValid = null;
+            orient.clear(); lastSpot.clear(); calledPocket = null;
             aim = { dx: 1, dy: 0 };
         } else if (game && game.seq !== shownSeq) {
             const last = game.last;
-            if (last && last.seq === game.seq && game.seq === shownSeq + 1 && !reduceMotion.matches && !document.hidden && visible()) await animate(last);
-            shownSeq = game.seq; balls = game.balls; pendingCue = null;
+            if (last && last.shot && last.seq === game.seq && game.seq === shownSeq + 1 && !reduceMotion.matches && !document.hidden && visible()) await animate(last);
+            shownSeq = game.seq; balls = game.balls; pendingCue = null; calledPocket = null;
             if (last) status(describe(last.summary, game));
         }
         if (game && game.ballInHand && game.turn === user?.id && cue()?.p) placing = true;
@@ -215,8 +218,10 @@
         const turn = $('poolTurno');
         if (room.status === 'lobby' || !game) turn.textContent = `Comparte el código ${room.code} o el enlace de invitación para que alguien se una.`;
         else if (game.winner) turn.textContent = (game.winner === user?.id ? '¡Ganaste! ' : `Ganó ${nameOf(game.winner)}. `) + (game.reason || '');
-        else if (myTurn()) turn.textContent = game.ballInHand ? (game.ballInHand === 'kitchen' ? 'Saque: puedes mover la blanca detrás de la línea y luego tirar.' : 'Bola en mano: coloca la blanca donde quieras y tira.') : 'Te toca. Toca o arrastra sobre la mesa para apuntar y elige la fuerza.';
+        else if (myTurn()) turn.textContent = game.ballInHand ? (game.ballInHand === 'kitchen' ? 'Saque: puedes mover la blanca detrás de la línea y luego tirar.' : 'Bola en mano: coloca la blanca donde quieras y tira.') : needsCall() ? 'Vas por la 8: toca la tronera donde la meterás y luego tira.' : 'Te toca. Toca o arrastra sobre la mesa para apuntar y elige la fuerza.';
         else turn.textContent = `Turno de ${nameOf(game.turn)}.`;
+        turn.dataset.base = turn.textContent;
+        $('poolCantar').hidden = !needsCall();
         const finished = room.status === 'finished';
         $('poolFinal').hidden = !finished;
         const rematch = $('poolRevancha'), votes = room.rematch || [];
@@ -240,11 +245,22 @@
             if (room && data.some(profile => room.players.some(p => p.user_id === profile.id))) { renderPanel(); updateTurnRing(); }
         } catch { /* Initials are the fallback. */ }
     }
+    // 60-second shot clock: the ring empties, the last 15 s are shown, and when the opponent
+    // runs out this page asks the server for the timeout foul (the server checks the time itself).
     function updateTurnRing() {
         const avatar = $('poolJugadores').querySelector('.pool-turno-activo .pool-avatar');
-        if (!avatar || !room?.turn_started_at) return;
-        const elapsed = Math.max(0, Date.now() - Number(room.turn_started_at));
-        avatar.style.setProperty('--turn-progress', Math.max(0, 100 - elapsed / TURN_LIMIT_MS * 100) + '%');
+        if (!room?.turn_started_at || room.status !== 'playing' || !room.game || room.game.winner) return;
+        const elapsed = Math.max(0, Date.now() - Number(room.turn_started_at)), left = Math.ceil((SHOT_CLOCK_MS - elapsed) / 1000);
+        if (avatar) avatar.style.setProperty('--turn-progress', Math.max(0, 100 - elapsed / SHOT_CLOCK_MS * 100) + '%');
+        const turn = $('poolTurno'), base = turn.dataset.base || turn.textContent;
+        turn.textContent = left <= 15 && left > 0 && !animating ? `${base} · ${left} s` : base;
+        turn.classList.toggle('pool-turno-urgente', left <= 10 && left > 0);
+        const recent = timeoutSentFor && timeoutSentFor.seq === room.game.seq && Date.now() - timeoutSentFor.at < 10000;
+        if (!myTurn() && elapsed >= SHOT_CLOCK_MS + 1500 && !recent && !busy && !animating) {
+            // Clocks can differ a little; the server has the final word and a refusal is retried later.
+            timeoutSentFor = { seq: room.game.seq, at: Date.now() };
+            request('timeout').then(result => { void broadcastChange(result.room.code, 'timeout', result.room.updated_at); return show(result.room); }).catch(() => {});
+        }
     }
     function renderGutter(list = balls) {
         const pocketed = list.filter(b => b.n && b.p).map(b => b.n).sort((a, b) => a - b);
@@ -335,12 +351,25 @@
         ctx.fillStyle = '#ffffff55'; dot(...toScreen(750, 250), 2.5 * s);
         ctx.fillStyle = '#141112';
         for (const p of (E?.POCKETS || [])) dot(...toScreen(p.x, p.y), (p.r - 2) * s);
+        if (E && room?.game && needsCall() && !animating) {
+            const pulse = 0.55 + 0.45 * Math.sin(performance.now() / 260);
+            E.POCKETS.forEach((p, i) => {
+                const [px, py] = toScreen(p.x, p.y), chosen = i === calledPocket;
+                ctx.strokeStyle = chosen ? '#f2c14e' : `rgba(242, 193, 78, ${calledPocket === null ? 0.35 + 0.4 * pulse : 0.22})`;
+                ctx.lineWidth = (chosen ? 4 : 2) * s; ctx.setLineDash(chosen ? [] : [4 * s, 4 * s]);
+                ctx.beginPath(); ctx.arc(px, py, (p.r + 6) * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+                if (chosen) { ctx.fillStyle = '#f2c14e'; ctx.font = `700 ${Math.max(10, 15 * s)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('8', px, py); }
+            });
+            if (calledPocket === null && !callPulse) callPulse = requestAnimationFrame(() => { callPulse = 0; draw(); });
+        }
         if (!list.length) { drawEmpty(left, top, w, h); return; }
         const game = room?.game;
         const showAim = myTurn() && !animating && !busy && !placing && E;
         const cueBall = pendingCue ? { n: 0, x: pendingCue.x, y: pendingCue.y, p: 0 } : list.find(b => b.n === 0);
         const shown = list.map(b => b.n === 0 && pendingCue ? cueBall : b);
         if (showAim && cueBall && !cueBall.p) drawAim(shown, cueBall);
+        for (const b of shown) if (!b.p) drawShadow(b);
+        drawDrops();
         for (const b of shown) if (!b.p) drawBall(b);
         if (placing && game?.ballInHand && pendingCue) {
             const ok = E.validPlacement(list, pendingCue.x, pendingCue.y, game.ballInHand);
@@ -359,20 +388,86 @@
     }
     function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
     function dot(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
-    function drawBall(b) {
-        const s = view.scale, r = (E?.TABLE.radius || 11) * s, [x, y] = toScreen(b.x, b.y);
-        ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
-        const color = b.n === 0 ? '#f7f3ea' : COLORS[b.n > 8 ? b.n - 8 : b.n];
-        ctx.fillStyle = b.n > 8 ? '#f7f3ea' : color; ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
-        if (b.n > 8) { ctx.fillStyle = color; if (view.portrait) ctx.fillRect(x - r * 0.55, y - r, r * 1.1, 2 * r); else ctx.fillRect(x - r, y - r * 0.55, 2 * r, r * 1.1); }
-        const shade = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r * 1.05);
-        shade.addColorStop(0, '#ffffff55'); shade.addColorStop(0.5, '#ffffff00'); shade.addColorStop(1, '#00000055');
-        ctx.fillStyle = shade; ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
-        ctx.restore();
+    // ---------- 3D balls ----------
+    // Each ball keeps an orientation (3x3 matrix, body -> screen) that turns as it rolls,
+    // so numbers, stripes and the cue ball's dots move like on a real table.
+    const LIGHT = (() => { const l = [-0.45, -0.55, 0.7], n = Math.hypot(...l); return l.map(v => v / n); })();
+    const HALF = (() => { const h = [LIGHT[0], LIGHT[1], LIGHT[2] + 1], n = Math.hypot(...h); return h.map(v => v / n); })();
+    function startOrientation(n) {
+        const a = n * 0.9 + 0.3, b = n * 1.7 + 0.5, ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+        // Rotation about x by a, then about y by b.
+        return [cb, sa * sb, ca * sb, 0, ca, -sa, -sb, sa * cb, ca * cb];
+    }
+    function orientationOf(n) { let m = orient.get(n); if (!m) { m = startOrientation(n); orient.set(n, m); } return m; }
+    function rollBall(n, sx, sy, radiusPx) {
+        const prev = lastSpot.get(n);
+        lastSpot.set(n, [sx, sy]);
+        if (!prev || !animating) return;
+        const dx = sx - prev[0], dy = sy - prev[1], d = Math.hypot(dx, dy);
+        if (d < 0.01 || d > radiusPx * 6) return;
+        // Rolling on the cloth: rotation axis = up x direction, angle = distance / radius.
+        const ax = -dy / d, ay = dx / d, angle = d / radiusPx, c = Math.cos(angle), s = Math.sin(angle), t = 1 - c;
+        const r = [t * ax * ax + c, t * ax * ay, s * ay, t * ax * ay, t * ay * ay + c, -s * ax, -s * ay, s * ax, c];
+        const m = orientationOf(n), out = new Array(9);
+        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) out[i * 3 + j] = r[i * 3] * m[j] + r[i * 3 + 1] * m[3 + j] + r[i * 3 + 2] * m[6 + j];
+        orient.set(n, out);
+    }
+    const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    const IVORY = [246, 242, 233], INK = '#1f1c1f';
+    function paintBall(n, radiusPx) {
+        const size = Math.ceil(radiusPx * 2) + 2, c = size / 2, m = orientationOf(n);
+        if (sprite.width !== size) { sprite.width = size; sprite.height = size; }
+        const image = spriteCtx.createImageData(size, size), data = image.data;
+        const color = n === 0 ? IVORY : hex(COLORS[n > 8 ? n - 8 : n]), stripe = n > 8;
+        for (let py = 0; py < size; py++) for (let px = 0; px < size; px++) {
+            const x = (px + 0.5 - c) / radiusPx, y = (py + 0.5 - c) / radiusPx, d2 = x * x + y * y;
+            if (d2 > 1.06) continue;
+            const z = Math.sqrt(Math.max(0, 1 - d2));
+            // Body-space normal = M^T * view normal.
+            const bx = m[0] * x + m[3] * y + m[6] * z, by = m[1] * x + m[4] * y + m[7] * z, bz = m[2] * x + m[5] * y + m[8] * z;
+            let base;
+            if (n === 0) base = Math.max(Math.abs(bx), Math.abs(by), Math.abs(bz)) > 0.965 ? [196, 48, 44] : IVORY;
+            else if (stripe) base = Math.abs(bx) > 0.9 ? IVORY : Math.abs(bz) < 0.42 ? color : IVORY;
+            else base = Math.abs(bz) > 0.87 ? IVORY : color;
+            const diffuse = Math.max(0, x * LIGHT[0] + y * LIGHT[1] + z * LIGHT[2]);
+            const spec = Math.pow(Math.max(0, x * HALF[0] + y * HALF[1] + z * HALF[2]), 40) * 150;
+            const light = 0.42 + 0.68 * diffuse, i = (py * size + px) * 4;
+            data[i] = Math.min(255, base[0] * light + spec); data[i + 1] = Math.min(255, base[1] * light + spec); data[i + 2] = Math.min(255, base[2] * light + spec);
+            data[i + 3] = d2 <= 1 ? 255 : Math.max(0, 255 * (1.06 - d2) / 0.06);
+        }
+        spriteCtx.putImageData(image, 0, 0);
+        return { size, m };
+    }
+    function drawBall(b, scale = 1, alpha = 1) {
+        const r = (E?.TABLE.radius || 11) * view.scale * scale, [x, y] = toScreen(b.x, b.y);
+        rollBall(b.n, x, y, r);
+        const { size, m } = paintBall(b.n, r);
+        ctx.save(); ctx.globalAlpha = alpha;
+        ctx.drawImage(sprite, x - size / 2, y - size / 2);
         if (b.n && r >= 5.5) {
-            ctx.fillStyle = '#fffdf9'; dot(x, y, r * 0.5);
-            ctx.fillStyle = '#1f1c1f'; ctx.font = `700 ${Math.max(6, r * 0.7)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(String(b.n), x, y + r * 0.04);
+            // Number on the spot that faces the viewer most (two spots per ball).
+            const axis = b.n > 8 ? [m[0], m[3], m[6]] : [m[2], m[5], m[8]];
+            const sign = axis[2] >= 0 ? 1 : -1, vx = axis[0] * sign, vy = axis[1] * sign, vz = axis[2] * sign;
+            if (vz > 0.5) {
+                ctx.globalAlpha = alpha * Math.min(1, (vz - 0.5) * 3);
+                ctx.fillStyle = INK; ctx.font = `700 ${Math.max(6, r * 0.62 * Math.sqrt(vz))}px system-ui, sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(String(b.n), x + vx * r * 0.93, y + vy * r * 0.93 + r * 0.03);
+            }
+        }
+        ctx.restore();
+    }
+    function drawShadow(b) {
+        const r = (E?.TABLE.radius || 11) * view.scale, [x, y] = toScreen(b.x, b.y);
+        ctx.fillStyle = 'rgba(8, 24, 18, 0.32)';
+        ctx.beginPath(); ctx.ellipse(x + r * 0.22, y + r * 0.3, r * 1.02, r * 0.92, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    function drawDrops(now = performance.now()) {
+        drops = drops.filter(drop => now - drop.start < 320);
+        for (const drop of drops) {
+            const t = (now - drop.start) / 320, ease = t * t;
+            const ball = { n: drop.n, x: drop.x + (drop.px - drop.x) * ease, y: drop.y + (drop.py - drop.y) * ease, p: 0 };
+            drawBall(ball, 1 - 0.55 * ease, 1 - ease);
         }
     }
     function drawAim(list, cueBall) {
@@ -385,11 +480,13 @@
             const dx = guide.ball.x - guide.point.x, dy = guide.ball.y - guide.point.y, len = Math.hypot(dx, dy) || 1;
             ctx.strokeStyle = '#f6d58caa'; ctx.lineWidth = 2 * s;
             ctx.beginPath(); ctx.moveTo(...toScreen(guide.ball.x, guide.ball.y)); ctx.lineTo(...toScreen(guide.ball.x + dx / len * 70, guide.ball.y + dy / len * 70)); ctx.stroke();
-            // Tangent after impact: a visual estimate, not a change to server physics.
+            // Cue ball path after impact (an estimate for aiming; the server decides the real shot):
+            // it leaves along the tangent, bent forward by follow or back by draw.
             const incoming = Math.hypot(aim.dx, aim.dy) || 1, ux = aim.dx / incoming, uy = aim.dy / incoming;
             const nx = dx / len, ny = dy / len, along = ux * nx + uy * ny;
-            const tx = ux - along * nx, ty = uy - along * ny, tangent = Math.hypot(tx, ty);
-            if (tangent > 0.08) {
+            const bend = along * (0.25 + 0.6 * spin);
+            const tx = ux - along * nx + nx * bend, ty = uy - along * ny + ny * bend, tangent = Math.hypot(tx, ty);
+            if (tangent > 0.06) {
                 ctx.strokeStyle = '#c9efe1cc'; ctx.setLineDash([4 * s, 4 * s]);
                 ctx.beginPath(); ctx.moveTo(...toScreen(guide.point.x, guide.point.y));
                 ctx.lineTo(...toScreen(guide.point.x + tx / tangent * 68, guide.point.y + ty / tangent * 68)); ctx.stroke(); ctx.setLineDash([]);
@@ -414,19 +511,23 @@
             if (sound.state === 'suspended') sound.resume().catch(() => {});
         } catch { /* Audio may be unavailable. */ }
     }
-    function playSound(kind) {
-        if (muted) return;
+    // Short synthesized clicks: ball-on-ball is bright and short, cushions are dull, pockets rattle.
+    function playSound(kind, strength = 1) {
+        if (muted || strength <= 0.02) return;
         primeSound();
         if (!sound || sound.state !== 'running') return;
         try {
             const at = sound.currentTime, tone = sound.createOscillator(), volume = sound.createGain();
-            tone.type = kind === 'pocket' ? 'sine' : 'triangle';
-            tone.frequency.setValueAtTime(kind === 'hit' ? 210 : kind === 'rail' ? 150 : 320, at);
-            tone.frequency.exponentialRampToValueAtTime(kind === 'hit' ? 95 : kind === 'rail' ? 75 : 130, at + 0.12);
+            const k = kind === 'hit' ? 'cue' : kind;
+            const shape = { cue: ['triangle', 900, 260, 0.05], ball: ['sine', 1900, 1200, 0.045], rail: ['triangle', 160, 80, 0.12], pocket: ['sine', 260, 90, 0.22] }[k] || ['triangle', 400, 200, 0.08];
+            const loud = Math.min(0.28, 0.02 + 0.26 * strength) * (k === 'rail' ? 0.7 : 1);
+            tone.type = shape[0];
+            tone.frequency.setValueAtTime(shape[1], at);
+            tone.frequency.exponentialRampToValueAtTime(shape[2], at + shape[3]);
             volume.gain.setValueAtTime(0.0001, at);
-            volume.gain.exponentialRampToValueAtTime(kind === 'hit' ? 0.12 : 0.075, at + 0.008);
-            volume.gain.exponentialRampToValueAtTime(0.0001, at + (kind === 'pocket' ? 0.2 : 0.13));
-            tone.connect(volume).connect(sound.destination); tone.start(at); tone.stop(at + 0.22);
+            volume.gain.exponentialRampToValueAtTime(loud, at + 0.004);
+            volume.gain.exponentialRampToValueAtTime(0.0001, at + shape[3] + 0.03);
+            tone.connect(volume).connect(sound.destination); tone.start(at); tone.stop(at + shape[3] + 0.06);
         } catch { /* Sound is optional. */ }
     }
     function vibrate(ms = 12) { if (!reduceMotion.matches) try { navigator.vibrate?.(ms); } catch { /* optional */ } }
@@ -449,18 +550,25 @@
     }
     function animate(last) {
         let frames = [], ticks = 0;
-        const { events } = E.simulate(last.before, last.shot, snapshot => {
+        const impacts = [];
+        E.simulate(last.before, last.shot, snapshot => {
             if (ticks++ % 2 === 0) frames.push(snapshot);
-        });
+        }, event => impacts.push(event));
         if (!frames.length) return Promise.resolve();
         animating = true; updateControls();
         // Real time (1 tick = 1/60 s) so rolling, spin and cushions look natural; very long shots play faster.
         const duration = Math.min(5200, Math.max(500, ticks * 1000 / 60));
-        if (last.by !== user?.id) { playSound('hit'); vibrate(); }
+        if (last.by !== user?.id) { playSound('cue', 0.35 + 0.65 * (last.shot.power || 0.5)); vibrate(); }
+        for (const b of last.before) if (!b.p) { const [x, y] = toScreen(b.x, b.y); lastSpot.set(b.n, [x, y]); }
         return new Promise(resolve => {
-            const started = performance.now(); let railPlayed = false, pocketCount = last.before.filter(b => b.n && b.p).length;
-            let finished = false;
-            const finish = () => { if (finished) return; finished = true; clearTimeout(fallback); animating = false; resolve(); };
+            const started = performance.now();
+            let finished = false, played = 0, previous = frames[0];
+            const finish = () => {
+                if (finished) return; finished = true; clearTimeout(fallback); animating = false;
+                // Let the last drops finish falling.
+                if (drops.length) requestAnimationFrame(function settle() { draw(); if (drops.length) requestAnimationFrame(settle); });
+                resolve();
+            };
             const fallback = setTimeout(finish, duration + 350);
             const step = now => {
                 if (finished) return;
@@ -468,10 +576,24 @@
                 const at = progress * (frames.length - 1), index = Math.min(frames.length - 1, Math.floor(at)), mix = at - index;
                 const from = frames[index], to = frames[Math.min(frames.length - 1, index + 1)];
                 const snapshot = mix > 0 ? from.map((b, i) => b.p || to[i].p ? to[i] : { n: b.n, p: 0, x: b.x + (to[i].x - b.x) * mix, y: b.y + (to[i].y - b.y) * mix }) : from;
+                // Balls that just dropped slide into the pocket and shrink.
+                snapshot.forEach((b, i) => {
+                    if (b.p && previous[i] && !previous[i].p) {
+                        let best = E.POCKETS[0], bestD = Infinity;
+                        for (const p of E.POCKETS) { const d = Math.hypot(p.x - previous[i].x, p.y - previous[i].y); if (d < bestD) { bestD = d; best = p; } }
+                        drops.push({ n: b.n, x: previous[i].x, y: previous[i].y, px: best.x, py: best.y, start: now });
+                        if (b.n) vibrate(18);
+                    }
+                });
+                previous = snapshot;
+                // Impacts play at the moment they happen, louder for harder hits (a few per frame at most).
+                const tickNow = at * 2;
+                let voices = 0;
+                while (played < impacts.length && impacts[played].tick <= tickNow) {
+                    const hit = impacts[played++];
+                    if (voices++ < 4) playSound(hit.type, Math.min(1, hit.strength / (hit.type === 'pocket' ? 14 : 22)));
+                }
                 draw(snapshot); renderGutter(snapshot);
-                const entered = snapshot.filter(b => b.n && b.p).length;
-                if (entered > pocketCount) { playSound('pocket'); vibrate(18); pocketCount = entered; }
-                if (!railPlayed && events.railAfterContact && progress > 0.42) { playSound('rail'); railPlayed = true; }
                 if (progress < 1) requestAnimationFrame(step);
                 else finish();
             };
@@ -499,6 +621,7 @@
     canvas.addEventListener('pointerdown', event => {
         if (!myTurn() || busy || animating || striking) return;
         const p = toWorld(event), white = pendingCue || cue();
+        if (needsCall() && !placing) { const pocket = pocketNear(p); if (pocket >= 0) { setCall(pocket); return; } }
         if (room.game.ballInHand && (!white || white.p || placing || Math.hypot(p.x - white.x, p.y - white.y) < 45)) placing = true;
         dragging = true; canvas.setPointerCapture?.(event.pointerId); pointAt(event); updateControls();
     });
@@ -536,44 +659,74 @@
         else if (event.key === 'Enter' || event.key === ' ') shoot(); else return;
         event.preventDefault();
     });
+    function needsCall() { return !!(E && room?.game && myTurn() && E.mustCallEight(room.game, user?.id)); }
     async function shoot() {
         if (!myTurn() || busy || animating || striking) return;
         const game = room.game;
         if (placing && !pendingCue) { status('Toca la mesa para colocar la blanca.'); return; }
         if (pendingCue && !E.validPlacement(balls, pendingCue.x, pendingCue.y, game.ballInHand)) { status(game.ballInHand === 'kitchen' ? 'La blanca debe quedar detrás de la línea, sin tocar otras bolas.' : 'La blanca debe quedar en un espacio libre.'); return; }
         if (!pendingCue && cue()?.p) { status('Coloca la blanca antes de tirar.'); return; }
-        const len = Math.hypot(aim.dx, aim.dy) || 1;
-        const shot = { dx: aim.dx / len, dy: aim.dy / len, power: Number($('poolFuerza').value) / 100, ...(spin ? { spin } : {}), ...(pendingCue ? { cue: pendingCue } : {}) };
+        if (needsCall() && calledPocket === null) { status('Vas por la 8: toca la tronera donde la meterás (o elígela en la lista).'); draw(); $('poolTronera').focus(); return; }
+        const len = Math.hypot(aim.dx, aim.dy) || 1, power = Number($('poolFuerza').value) / 100;
+        const shot = { dx: aim.dx / len, dy: aim.dy / len, power, ...(spin ? { spin } : {}), ...(side ? { side } : {}), ...(needsCall() ? { call: calledPocket } : {}), ...(pendingCue ? { cue: pendingCue } : {}) };
         primeSound(); placing = false; striking = true; updateControls();
         try { await animateStrike(); } finally { striking = false; updateControls(); }
-        playSound('hit'); vibrate();
-        setSpin(0);
+        playSound('cue', 0.35 + 0.65 * power); vibrate();
+        setSpin(0, 0);
         await run('shoot', shot);
     }
 
-    // ---------- spin (top = follow, bottom = draw) ----------
-    let spin = 0;
-    function setSpin(value) {
-        spin = Math.max(-1, Math.min(1, Math.round(value * 4) / 4));
+    // ---------- spin: up/down = follow/draw, left/right = side (english) ----------
+    const SIDE_WORDS = v => v > 0 ? 'derecha ' + Math.round(v * 100) + '%' : 'izquierda ' + Math.round(-v * 100) + '%';
+    function setSpin(vertical, horizontal = side) {
+        const snap = v => Math.max(-1, Math.min(1, Math.round(v * 4) / 4));
+        spin = snap(vertical); side = snap(horizontal);
+        // Keep the tip on the cue ball: no more than full spin in total.
+        const total = Math.hypot(spin, side);
+        if (total > 1) { spin = Math.round(spin / total * 4) / 4; side = Math.round(side / total * 4) / 4; }
         const el = $('poolEfecto');
-        el.style.setProperty('--efecto', String(spin));
+        el.style.setProperty('--efecto', String(spin)); el.style.setProperty('--efecto-x', String(side));
         el.setAttribute('aria-valuenow', String(Math.round(spin * 100)));
-        el.setAttribute('aria-valuetext', spin > 0 ? 'Seguir ' + Math.round(spin * 100) + '%' : spin < 0 ? 'Retroceso ' + Math.round(-spin * 100) + '%' : 'Golpe al centro');
+        const words = [spin > 0 ? 'seguir ' + Math.round(spin * 100) + '%' : spin < 0 ? 'retroceso ' + Math.round(-spin * 100) + '%' : '', side ? SIDE_WORDS(side) : ''].filter(Boolean);
+        el.setAttribute('aria-valuetext', words.length ? words.join(', ') : 'Golpe al centro');
+        el.title = words.length ? 'Efecto: ' + words.join(', ') : 'Efecto: golpe al centro';
+        draw();
     }
     {
         const el = $('poolEfecto');
         let pressing = false;
-        const pick = event => { if (!myTurn() || busy || animating) return; const r = el.getBoundingClientRect(); setSpin((0.5 - (event.clientY - r.top) / r.height) * 2.4); };
+        const pick = event => {
+            if (!myTurn() || busy || animating) return;
+            const r = el.getBoundingClientRect();
+            setSpin((0.5 - (event.clientY - r.top) / r.height) * 2.4, ((event.clientX - r.left) / r.width - 0.5) * 2.4);
+        };
         el.addEventListener('pointerdown', event => { pressing = true; el.setPointerCapture?.(event.pointerId); pick(event); });
         el.addEventListener('pointermove', event => { if (pressing) pick(event); });
         el.addEventListener('pointerup', () => { pressing = false; });
         el.addEventListener('pointercancel', () => { pressing = false; });
-        el.addEventListener('dblclick', () => setSpin(0));
+        el.addEventListener('dblclick', () => setSpin(0, 0));
         el.addEventListener('keydown', event => {
             if (!myTurn() || busy || animating) return;
-            if (event.key === 'ArrowUp') setSpin(spin + 0.25); else if (event.key === 'ArrowDown') setSpin(spin - 0.25); else if (event.key === 'Home') setSpin(0); else return;
+            if (event.key === 'ArrowUp') setSpin(spin + 0.25); else if (event.key === 'ArrowDown') setSpin(spin - 0.25);
+            else if (event.key === 'ArrowRight') setSpin(spin, side + 0.25); else if (event.key === 'ArrowLeft') setSpin(spin, side - 0.25);
+            else if (event.key === 'Home') setSpin(0, 0); else return;
             event.preventDefault();
         });
+    }
+
+    // ---------- calling the pocket for the 8 ----------
+    function setCall(index) {
+        calledPocket = Number.isInteger(index) && index >= 0 && index < 6 ? index : null;
+        $('poolTronera').value = calledPocket === null ? '' : String(calledPocket);
+        if (calledPocket !== null) status('Tronera cantada: ' + E.POCKET_NAMES[calledPocket] + '.');
+        draw();
+    }
+    $('poolTronera').addEventListener('change', () => setCall($('poolTronera').value === '' ? null : Number($('poolTronera').value)));
+    function pocketNear(p) {
+        if (!E) return -1;
+        let best = -1, bestD = 60;
+        E.POCKETS.forEach((pocket, i) => { const d = Math.hypot(pocket.x - p.x, pocket.y - p.y); if (d < bestD) { bestD = d; best = i; } });
+        return best;
     }
 
     // ---------- buttons ----------

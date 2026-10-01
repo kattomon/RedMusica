@@ -1,14 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
-import { applyShot, newGame } from './engine.js';
-import { claimAllowed, finishByForfeit, joinRoom, leaveRoom, newRoomState, publicState, requestRematch } from './rooms.js';
+import { applyShot, applyTimeout, newGame } from './engine.js';
+import { claimAllowed, finishByForfeit, joinRoom, leaveRoom, newRoomState, publicState, requestRematch, timeoutAllowed } from './rooms.js';
 
 const origin = 'https://kattomon.github.io';
 const headers = { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info', 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
 const secret = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const db = createClient(Deno.env.get('SUPABASE_URL')!, secret!, { auth: { persistSession: false, autoRefreshToken: false } });
-const actions = ['create', 'join', 'state', 'shoot', 'rematch', 'claim', 'leave'];
-const safeErrors = /^(Inicia|No se encontró|Tu cuenta|No encontramos|El código|La sala|La partida|La mesa|No formas|Todavía|El tiro|Coloca|Solo puedes|Tu rival|Esperando)/;
+const actions = ['create', 'join', 'state', 'shoot', 'rematch', 'claim', 'timeout', 'leave'];
+const safeErrors = /^(Inicia|No se encontró|Tu cuenta|No encontramos|El código|La sala|La partida|La mesa|No formas|Todavía|El tiro|Coloca|Solo puedes|Tu rival|Esperando|Elige)/;
 
 function code() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', bytes = new Uint8Array(6);
@@ -102,11 +102,16 @@ Deno.serve(async req => {
       if (state.status !== 'playing') throw new Error('La partida no está en curso.');
       const shot: any = { dx: Number(input.dx), dy: Number(input.dy), power: Number(input.power) };
       if (input.spin !== undefined && input.spin !== null && Number(input.spin) !== 0) shot.spin = Number(input.spin);
+      if (input.side !== undefined && input.side !== null && Number(input.side) !== 0) shot.side = Number(input.side);
+      if (input.call !== undefined && input.call !== null) shot.call = Number(input.call);
       if (input.cue && typeof input.cue === 'object') shot.cue = { x: Number(input.cue.x), y: Number(input.cue.y) };
-      const previousTurn = state.game.turn;
       state.game = applyShot(state.game, user.id, shot);
-      if (state.game.turn !== previousTurn || state.game.winner) state.turn_started_at = now;
+      state.turn_started_at = now; // the shot clock restarts after every shot
       if (state.game.winner) state.status = 'finished';
+    } else if (input.action === 'timeout') {
+      if (!timeoutAllowed(state, user.id, now)) throw new Error('Tu rival todavía tiene tiempo para tirar.');
+      state.game = applyTimeout(state.game, user.id);
+      state.turn_started_at = now;
     } else if (input.action === 'claim') {
       if (!claimAllowed(state, user.id, now)) throw new Error('Tu rival todavía tiene tiempo para tirar.');
       finishByForfeit(state, user.id, 'Su rival no tiró durante cinco minutos.', now);
