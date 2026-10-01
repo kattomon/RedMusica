@@ -23,6 +23,7 @@
     let striking = false, cueStroke = 0, channel = null, channelCode = '', subscribed = false, broadcastTimer = null, lastBroadcastFetch = 0;
     let sound = null, muted = false, ringTimer = null, gutterSignature = '';
     const avatarCache = new Map();
+    try { muted = localStorage.getItem('redmusica-pool-muted') === 'true'; } catch { /* Storage can be unavailable. */ }
     let view = { portrait: false, scale: 1, width: 0, height: 0 };
 
     const enginePromise = import(ENGINE_URL).then(module => { E = module; draw(); return module; });
@@ -105,6 +106,7 @@
     async function show(next) {
         if (animating) { queued = next; return; }
         const entering = !roomCode;
+        const wasMyTurn = myTurn();
         room = next; roomCode = next.code;
         subscribeRoom(next.code);
         $('poolEntrada').hidden = true; $('poolMesa').hidden = false;
@@ -126,10 +128,20 @@
         renderPanel(); renderGutter(); draw(); updateControls(); loadAvatars(next.players);
         if (!ringTimer) ringTimer = setInterval(updateTurnRing, 1000);
         updateTurnRing();
-        if (entering && window.innerWidth < 560 && visible()) requestAnimationFrame(() => {
-            window.scrollTo(0, Math.max(0, $('poolJugadores').getBoundingClientRect().top + window.scrollY - 64));
-        });
+        if (entering || (!wasMyTurn && myTurn())) scrollPoolIntoView();
         if (queued) { const again = queued; queued = null; await show(again); }
+    }
+    function scrollPoolIntoView() {
+        if (window.innerWidth >= 560 || document.hidden || !visible()) return;
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (!roomCode || !visible()) return;
+            const stickyBottom = Math.max(
+                document.querySelector('.cabecera-sitio')?.getBoundingClientRect().bottom || 0,
+                document.querySelector('.sidebar-nav')?.getBoundingClientRect().bottom || 0
+            ) + 5;
+            const top = $('poolBarra').getBoundingClientRect().top + window.scrollY - stickyBottom;
+            window.scrollTo(0, Math.max(0, top));
+        }));
     }
     function leaveView() {
         room = null; roomCode = ''; shownGame = null; shownSeq = -1; balls = []; pendingCue = null; placing = false; placementValid = null;
@@ -273,7 +285,10 @@
         view.portrait = width < 560;
         const worldW = view.portrait ? 500 + 2 * RAIL : 1000 + 2 * RAIL, worldH = view.portrait ? 1000 + 2 * RAIL : 500 + 2 * RAIL;
         let cssW = width;
-        if (view.portrait) cssW = Math.min(width, Math.max(320, window.innerHeight * 0.9) * worldW / worldH);
+        if (view.portrait) {
+            const heightLimit = parseFloat(getComputedStyle(frame).maxHeight);
+            cssW = Math.min(width, Math.max(240, Number.isFinite(heightLimit) ? heightLimit : window.innerHeight - 205) * worldW / worldH);
+        }
         const cssH = cssW * worldH / worldW, dpr = Math.min(window.devicePixelRatio || 1, 2);
         const cssWidth = cssW + 'px', cssHeight = cssH + 'px';
         if (canvas.style.width !== cssWidth) canvas.style.width = cssWidth;
@@ -536,11 +551,17 @@
     $('poolGirarIzq').addEventListener('click', () => rotate(-1));
     $('poolGirarDer').addEventListener('click', () => rotate(1));
     $('poolFuerza').addEventListener('input', () => setPower(Number($('poolFuerza').value)));
-    $('poolSilencio').addEventListener('click', () => {
-        muted = !muted;
+    function updateSoundButton() {
         $('poolSilencio').setAttribute('aria-pressed', String(muted));
         $('poolSilencio').setAttribute('aria-label', muted ? 'Activar sonidos del pool' : 'Silenciar sonidos del pool');
-        $('poolSilencio').textContent = muted ? 'Sonido: no' : 'Sonido: sí';
+        $('poolSilencio').querySelector('.pool-accion-icono').textContent = muted ? '♪̸' : '♫';
+        $('poolSilencio').querySelector('.pool-accion-texto').textContent = muted ? 'Sonido: no' : 'Sonido: sí';
+    }
+    updateSoundButton();
+    $('poolSilencio').addEventListener('click', () => {
+        muted = !muted;
+        try { localStorage.setItem('redmusica-pool-muted', String(muted)); } catch { /* Sound still works for this visit. */ }
+        updateSoundButton();
         if (!muted) primeSound();
     });
     const wheel = $('poolRueda'), powerBar = $('poolPotencia');
@@ -605,20 +626,21 @@
     let confirmLeave = null;
     $('poolSalir').addEventListener('click', () => {
         const button = $('poolSalir');
+        const setLabel = label => { button.setAttribute('aria-label', label); button.querySelector('.pool-accion-texto').textContent = label; };
         // Ask twice whenever a rival is seated: the local view may lag behind a rematch that already started.
         if (room && room.players.length === 2 && !confirmLeave) {
-            button.textContent = room.status === 'finished' ? 'Confirmar salida' : 'Confirmar: perderás la partida';
-            confirmLeave = setTimeout(() => { confirmLeave = null; button.textContent = 'Salir'; }, 5000);
+            setLabel(room.status === 'finished' ? 'Confirmar salida' : 'Confirmar: perderás la partida');
+            confirmLeave = setTimeout(() => { confirmLeave = null; setLabel('Salir'); }, 5000);
             return;
         }
-        clearTimeout(confirmLeave); confirmLeave = null; button.textContent = 'Salir';
+        clearTimeout(confirmLeave); confirmLeave = null; setLabel('Salir');
         run('leave');
     });
     $('poolInvitar').addEventListener('click', async () => {
         const url = new URL(location.href); url.search = ''; url.hash = ''; url.searchParams.set('seccion', 'juegos'); url.searchParams.set('pool', roomCode);
         try { await navigator.clipboard.writeText(url.href); status('Enlace de invitación copiado.'); } catch { status('Comparte este código: ' + roomCode); }
     });
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && roomCode) refresh(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && roomCode) { refresh(); if (myTurn()) scrollPoolIntoView(); } });
     let resizeFrame = 0;
     const scheduleResize = () => {
         if (resizeFrame) return;

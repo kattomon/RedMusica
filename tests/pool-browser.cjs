@@ -39,10 +39,10 @@ const out=process.env.POOL_SCREENSHOTS||'';
    await page.goto('http://127.0.0.1:4183/index.html?seccion=juegos'+query);
    await page.evaluate(id=>{window.REDMUSICA_CONFIG.supabaseUrl='https://test.invalid';window.REDMUSICA_CONFIG.supabasePublishableKey='test';
     const stats={host:{wins:3,losses:1}};
-    window.__poolRealtime={received:0,stateReads:0};
+    window.__poolRealtime={received:0,stateReads:0,subscribed:false};
     const nativeFetch=window.fetch.bind(window);window.fetch=(url,options)=>{if(String(url).includes('/functions/v1/pool')&&options?.body){try{if(JSON.parse(options.body).action==='state')window.__poolRealtime.stateReads++;}catch{}}return nativeFetch(url,options);};
     window.redmusicaClient={auth:{getSession:async()=>({data:{session:{access_token:id,user:{id}}}}),onAuthStateChange:()=>{}},
-     channel:topic=>{const wire=new BroadcastChannel(topic);let listener=null;const channel={topic:'realtime:'+topic,on:(_type,_filter,fn)=>{listener=fn;return channel;},subscribe:fn=>{wire.onmessage=event=>{window.__poolRealtime.received++;listener?.({payload:event.data.payload});};setTimeout(()=>fn('SUBSCRIBED'),0);return channel;},send:async message=>{wire.postMessage(message);return 'ok';},unsubscribe:()=>wire.close()};return channel;},
+     channel:topic=>{const wire=new BroadcastChannel(topic);let listener=null;const channel={topic:'realtime:'+topic,on:(_type,_filter,fn)=>{listener=fn;return channel;},subscribe:fn=>{wire.onmessage=event=>{window.__poolRealtime.received++;listener?.({payload:event.data.payload});};setTimeout(()=>{window.__poolRealtime.subscribed=true;fn('SUBSCRIBED');},0);return channel;},send:async message=>{wire.postMessage(message);return 'ok';},unsubscribe:()=>wire.close()};return channel;},
      removeChannel:async channel=>{channel.unsubscribe();return 'ok';},
      from:table=>{const q={_id:null,select:()=>q,eq:(c,v)=>{q._id=v;return q;},maybeSingle:async()=>({data:table==='pool_stats'?stats[q._id]||null:null,error:null})};return q;}};
     window.supabase={createClient:()=>window.redmusicaClient};document.getElementById('seccionJuegos').hidden=false;},user);
@@ -70,6 +70,8 @@ const out=process.env.POOL_SCREENSHOTS||'';
   assert.match(await host.locator('#poolJugadores .pool-turno-activo .pool-avatar').getAttribute('style'),/--turn-progress/);
   assert.equal(await host.locator('#poolPotencia').getAttribute('aria-valuenow'),'60');
   await host.locator('#poolSilencio').click();assert.equal(await host.locator('#poolSilencio').getAttribute('aria-pressed'),'true');
+  assert.equal(await host.evaluate(()=>localStorage.getItem('redmusica-pool-muted')),'true');
+  const preferenceProbe=await open('host');assert.equal(await preferenceProbe.locator('#poolSilencio').getAttribute('aria-pressed'),'true','the sound preference survives a new page');await preferenceProbe.close();
   await host.locator('#poolSilencio').click();assert.equal(await host.locator('#poolSilencio').getAttribute('aria-pressed'),'false');
   if(out)await host.screenshot({path:path.join(out,`pool-antes-${label}.png`),fullPage:false});
 
@@ -86,23 +88,27 @@ const out=process.env.POOL_SCREENSHOTS||'';
   await host.locator('#poolCanvas').focus();await host.keyboard.press('ArrowRight');await host.keyboard.press('ArrowLeft');
   await host.locator('#poolFuerza').fill('100');assert.equal(await host.locator('#poolFuerzaValor').innerText(),'100%');
   assert.equal(await host.locator('#poolPotencia').getAttribute('aria-valuenow'),'100');
+  await host.waitForFunction(()=>window.__poolRealtime.subscribed);await guest.waitForFunction(()=>window.__poolRealtime.subscribed);
   const guestReadsBefore=stateRequests.guest;
   await guest.evaluate(()=>{window.__poolRealtime.received=0;window.__poolRealtime.stateReads=0;});
   await host.locator('#poolCanvas').focus();await host.keyboard.press('Enter');
   await guest.waitForFunction(()=>window.__poolRealtime.received>0,null,{timeout:2500});
   await guest.waitForFunction(()=>window.__poolRealtime.stateReads>0,null,{timeout:2500});
-  assert.ok(stateRequests.guest>guestReadsBefore,'Realtime broadcast triggers an immediate authenticated state read');
-  await host.waitForFunction(()=>{const t=document.querySelector('#poolEstado').textContent;return t.length>0&&!t.includes('Un momento');},null,{timeout:15000});
+  const settledTable=serverLabel();
+  await host.waitForFunction(label=>document.querySelector('#poolCanvas').getAttribute('aria-label').includes(label),settledTable,{timeout:15000});
   assert.equal(shots.length,1);assert.ok(Math.abs(shots[0].power-1)<1e-9);
-  await host.waitForFunction(()=>!document.querySelector('#poolTirar').disabled||/Turno de/.test(document.querySelector('#poolTurno').textContent),null,{timeout:15000});
-  assert.match(await tableLabel(host),new RegExp(serverLabel()));
-  await guest.waitForFunction(seq=>document.querySelector('#poolEstado').textContent.length>0,null,{timeout:15000});
-  await guest.waitForTimeout(200);
-  assert.match(await tableLabel(guest),new RegExp(serverLabel()),'the opponent sees the same table');
+  assert.match(await tableLabel(host),new RegExp(settledTable));
+  await guest.waitForFunction(label=>document.querySelector('#poolCanvas').getAttribute('aria-label').includes(label),settledTable,{timeout:15000});
+  assert.ok(stateRequests.guest>guestReadsBefore,'Realtime broadcast triggers an immediate authenticated state read');
+  assert.match(await tableLabel(guest),new RegExp(settledTable),'the opponent sees the same table');
 
   // Ball in hand anywhere: the guest places the cue ball by tapping, then shoots.
   const g=room.state.game;g.turn='guest';g.ballInHand='table';g.balls[0].p=1;g.last=null;g.seq+=1;room.state.turn_started_at=Date.now();
   await guest.waitForFunction(()=>/Bola en mano/.test(document.querySelector('#poolTurno').textContent),null,{timeout:15000});
+  if((await guest.evaluate(()=>innerWidth))<560){
+   try{await guest.waitForFunction(()=>{const bar=document.querySelector('#poolBarra').getBoundingClientRect(),cue=document.querySelector('#poolPotencia').getBoundingClientRect(),table=document.querySelector('#poolCanvas').getBoundingClientRect(),header=document.querySelector('.cabecera-sitio').getBoundingClientRect();return bar.top>=header.bottom+4&&cue.bottom<=innerHeight+2&&table.bottom<=innerHeight+2;},null,{timeout:3000});}
+   catch(error){console.error('Mobile viewport diagnostics',await guest.evaluate(()=>({height:innerHeight,scrollY,bar:document.querySelector('#poolBarra').getBoundingClientRect().toJSON(),cue:document.querySelector('#poolPotencia').getBoundingClientRect().toJSON(),canvas:document.querySelector('#poolCanvas').getBoundingClientRect().toJSON(),nav:document.querySelector('.sidebar-nav')?.getBoundingClientRect().toJSON(),header:document.querySelector('.cabecera-sitio')?.getBoundingClientRect().toJSON()})));throw error;}
+  }
   assert.equal(await guest.getByRole('button',{name:/Mover la blanca|Listo/}).isVisible(),true);
   let spot=null;for(const [x,y] of [[140,60],[140,440],[60,250],[420,80],[600,470]])if(E.validPlacement(g.balls,x,y,'table')){spot=[x,y];break;}
   assert.ok(spot,'a free spot exists');

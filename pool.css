@@ -22,6 +22,7 @@
 .pool-barra strong { margin-right: auto; color: var(--rm-plum, #51404c); }
 .pool-barra strong span { font-variant-numeric: tabular-nums; letter-spacing: .1em; }
 .pool-barra button { min-height: 38px; padding: 0 12px; }
+.pool-accion-icono { display: none; }
 #contenidoPrincipal .pool .pool-secundario,
 .pool .pool-secundario { border-color: var(--rm-line, #dfd5c9); background: var(--rm-surface, #fffdf9); color: var(--rm-ink, #332f32); box-shadow: none; }
 #contenidoPrincipal .pool .pool-secundario:hover,
@@ -92,19 +93,32 @@
 .pool-perfil::before { content: '●'; display: inline-block; margin-right: 6px; color: #1f1c1f; transform: scale(1.2); }
 
 @media (max-width: 560px) {
-    .pool { padding: 10px 7px; }
-    .pool-barra { gap: 5px; }
-    .pool-barra strong { flex-basis: 100%; }
-    .pool-barra button { min-height: 34px; padding: 0 8px; font-size: .78rem; }
-    .pool-jugador { grid-template-columns: 34px minmax(0, 1fr); gap: 5px; padding: 5px; font-size: .78rem; }
+    .pool { padding: 7px 5px; }
+    #contenidoPrincipal #seccionJuegos .pool:has(#poolMesa:not([hidden])) { margin-inline: -16px; }
+    .pool:has(#poolMesa:not([hidden])) .pool-cabecera { display: none; }
+    .pool:has(#poolMesa:not([hidden])) .pool-estado { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin: 2px 0; padding: 3px 6px; font-size: .75rem; }
+    .pool-barra { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 36px); gap: 4px; margin: 2px 0 4px; }
+    .pool-barra strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin: 0; font-size: .82rem; }
+    #contenidoPrincipal .pool .pool-barra button, .pool .pool-barra button { display: grid; place-items: center; min-width: 36px; min-height: 36px; padding: 0; font-size: 1.15rem; }
+    .pool-accion-icono { display: block; line-height: 1; }
+    .pool-accion-texto { display: none; }
+    .pool-jugadores { gap: 4px; margin-bottom: 2px; }
+    .pool-jugador { grid-template-columns: 31px minmax(0, 1fr); gap: 4px; min-height: 39px; padding: 3px 4px; font-size: .76rem; }
     .pool-jugador.pool-turno-activo strong::after { content: ''; }
-    .pool-avatar { width: 34px; height: 34px; }
-    .pool-jugador-datos > span:not(.pool-restantes) { font-size: .68rem; }
+    .pool-avatar { width: 31px; height: 31px; }
+    .pool-jugador-datos { gap: 0; }
+    .pool-jugador-datos > span:not(.pool-restantes) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: .65rem; }
+    .pool-restantes { gap: 2px; margin-top: 1px; }
     .pool-restantes i { width: 8px; height: 8px; }
+    .pool-turno { overflow: hidden; min-height: 0; margin: 1px 0 4px; white-space: nowrap; text-overflow: ellipsis; font-size: .75rem; }
     .pool-arena { grid-template-columns: minmax(0, 1fr) 52px; gap: 5px; }
+    .pool-lienzo { max-height: max(320px, calc(100dvh - 205px - env(safe-area-inset-bottom))); }
     .pool-herramientas { gap: 7px; padding: 4px 1px; }
+    .pool-canaleta { min-height: 47px; }
+    .pool-canaleta-bolas { max-height: 88px; }
     .pool-rueda { width: 39px; height: 55px; }
-    .pool-potencia { width: 38px; }
+    .pool-carga { min-height: 0; }
+    .pool-potencia { width: 38px; min-height: 80px; max-height: none; }
     .pool-controles { gap: 7px; margin-top: 9px; }
     .pool-fuerza { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; }
     .pool-fuerza label { font-size: .75rem; }
