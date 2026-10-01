@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="layout.css?v=20260929-1">
     <link rel="stylesheet" href="sections.css?v=20260929-1">
     <link rel="stylesheet" href="admin-ui.css?v=20260929-1">
-    <link rel="stylesheet" href="pool.css?v=20260930-1">
+    <link rel="stylesheet" href="pool.css?v=20261001-1">
 </head>
 <body class="social-app">
 <a class="saltar-contenido" href="#contenidoPrincipal">Saltar al contenido</a>
@@ -122,14 +122,21 @@
             </div>
             <p id="poolEstado" class="pool-estado" role="status" aria-live="polite"></p>
             <div id="poolMesa" hidden>
-                <div class="pool-barra"><strong>Sala <span id="poolCodigoSala"></span></strong><button id="poolInvitar" type="button">Copiar invitación</button><button id="poolSalir" class="pool-secundario" type="button">Salir</button></div>
+                <div id="poolBarra" class="pool-barra"><strong>Sala <span id="poolCodigoSala"></span></strong><button id="poolInvitar" type="button" aria-label="Copiar invitación"><span class="pool-accion-icono" aria-hidden="true">↗</span><span class="pool-accion-texto">Copiar invitación</span></button><button id="poolSilencio" class="pool-secundario" type="button" aria-pressed="false" aria-label="Silenciar sonidos del pool"><span class="pool-accion-icono" aria-hidden="true">♫</span><span class="pool-accion-texto">Sonido: sí</span></button><button id="poolSalir" class="pool-secundario" type="button" aria-label="Salir"><span class="pool-accion-icono" aria-hidden="true">×</span><span class="pool-accion-texto">Salir</span></button></div>
                 <ol id="poolJugadores" class="pool-jugadores" aria-label="Jugadores"></ol>
                 <p id="poolTurno" class="pool-turno" aria-live="polite"></p>
-                <div id="poolLienzo" class="pool-lienzo"><canvas id="poolCanvas" tabindex="0" role="application" aria-roledescription="mesa de pool" aria-label="Mesa de pool"></canvas></div>
+                <div class="pool-arena">
+                    <div id="poolLienzo" class="pool-lienzo"><canvas id="poolCanvas" tabindex="0" role="application" aria-roledescription="mesa de pool" aria-label="Mesa de pool"></canvas></div>
+                    <div class="pool-herramientas">
+                        <div class="pool-canaleta" aria-label="Bolas metidas"><span class="pool-herramienta-titulo">Metidas</span><div id="poolCanaleta" class="pool-canaleta-bolas" aria-live="off"></div></div>
+                        <div class="pool-ajuste"><span class="pool-herramienta-titulo">Ajuste</span><div id="poolRueda" class="pool-rueda" tabindex="0" role="slider" aria-label="Ajuste fino de la puntería" aria-valuemin="-180" aria-valuemax="180" aria-valuenow="0" aria-valuetext="Dirección inicial" aria-orientation="vertical"><span aria-hidden="true">◉</span></div></div>
+                        <div class="pool-carga"><span class="pool-herramienta-titulo">Fuerza</span><div id="poolPotencia" class="pool-potencia" tabindex="0" role="slider" aria-label="Fuerza del tiro; arrastra hacia abajo y suelta para tirar" aria-valuemin="5" aria-valuemax="100" aria-valuenow="60" aria-orientation="vertical"><span id="poolPotenciaLleno" aria-hidden="true"></span><span class="pool-potencia-agarre" aria-hidden="true"></span></div><span class="pool-carga-pista">↓ soltar</span></div>
+                    </div>
+                </div>
                 <div id="poolControles" class="pool-controles" hidden>
-                    <div class="pool-fuerza"><label for="poolFuerza">Fuerza <output id="poolFuerzaValor" for="poolFuerza">60%</output></label><input id="poolFuerza" type="range" min="5" max="100" step="1" value="60"></div>
+                    <div class="pool-fuerza"><label for="poolFuerza">Fuerza precisa <output id="poolFuerzaValor" for="poolFuerza">60%</output></label><input id="poolFuerza" type="range" min="5" max="100" step="1" value="60"></div>
                     <div class="pool-botones"><button id="poolGirarIzq" type="button" aria-label="Girar la puntería a la izquierda">↺</button><button id="poolGirarDer" type="button" aria-label="Girar la puntería a la derecha">↻</button><button id="poolMoverBlanca" class="pool-secundario" type="button" aria-pressed="false" hidden>Mover la blanca</button><button id="poolTirar" class="pool-tirar" type="button">Tirar</button></div>
-                    <p class="pool-ayuda">Toca o arrastra sobre la mesa para apuntar; la línea muestra la primera bola que golpearás.<span class="pool-ayuda-teclado"> En el teclado: flechas para apuntar y ajustar la fuerza, Enter para tirar.</span></p>
+                    <p class="pool-ayuda">Arrastra sobre la mesa para apuntar. La rueda ajusta el ángulo; baja la barra lateral y suéltala para tirar. Si tienes bola en mano, arrastra la blanca hasta una posición válida.<span class="pool-ayuda-teclado"> En el teclado: flechas para apuntar y ajustar la fuerza, Enter para tirar.</span></p>
                 </div>
                 <div id="poolFinal" class="pool-final" hidden><p id="poolResultado"></p><button id="poolRevancha" type="button">Pedir revancha</button></div>
                 <button id="poolReclamar" class="pool-secundario" type="button" hidden>Tu rival no tira hace 5 minutos: reclamar la victoria</button>
@@ -470,7 +477,7 @@
 <script src="interface.js?v=20260930-1" defer></script>
 <script src="radio-panel.js?v=20260929-2" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20260930-6" defer></script>
+<script src="script.js?v=20261001-1" defer></script>
 <script src="pwa.js?v=20260928-1" defer></script>
 </body>
 </html>
