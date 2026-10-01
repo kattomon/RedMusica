@@ -75,6 +75,26 @@ const assert=require('node:assert/strict');
  // Aiming guide finds the first ball on the line.
  const guide=E.aimGuide([{n:0,x:100,y:250,p:0},{n:5,x:300,y:250,p:0},{n:6,x:600,y:250,p:0}],1,0);
  assert.equal(guide.ball.n,5);assert.ok(Math.abs(guide.point.x-(300-2*R))<1e-9);
+ // Physics: spin, rolling and pockets.
+ const straight=spin=>E.simulate(scene({0:[300,250],3:[500,250]}).balls,{dx:1,dy:0,power:0.35,spin}).balls[0].x;
+ const draw=straight(-1),stun=straight(-0.4),follow=straight(1);
+ assert.ok(draw<500-2*R-30,`draw brings the cue ball back (${draw})`);
+ assert.ok(follow>500+30,`follow carries the cue ball forward (${follow})`);
+ assert.ok(draw<stun&&stun<follow,'more top spin means the cue ball ends further forward');
+ const travel=power=>{let last=null,d=0;E.simulate(scene({0:[100,250]}).balls,{dx:1,dy:0.0001,power},s=>{if(last)d+=Math.hypot(s[0].x-last.x,s[0].y-last.y);last=s[0];});return d;};
+ assert.ok(travel(0.1)<travel(0.4)&&travel(0.4)<travel(1),'harder shots travel further');
+ assert.ok(travel(0.1)>100,'soft shots still move the ball');
+ const railShot=E.simulate(scene({0:[600,11.5],5:[400,11.5]}).balls,{dx:-1,dy:0,power:0.5,spin:-0.5});
+ assert.ok(railShot.events.pocketed.includes(5),'a ball rolled along the rail drops in the corner');
+ const sideShot=E.simulate(scene({0:[500,300],5:[500,100]}).balls,{dx:0,dy:-1,power:0.4,spin:-0.5});
+ assert.ok(sideShot.events.pocketed.includes(5),'a straight shot drops in the side pocket');
+ const crazy=E.simulate(broken.balls,{dx:-0.3,dy:0.95,power:1,spin:1});inside(crazy.balls);noOverlap(crazy.balls);
+ assert.deepEqual(E.simulate(broken.balls,{dx:0.4,dy:-1,power:0.8,spin:-0.7}),E.simulate(broken.balls,{dx:0.4,dy:-1,power:0.8,spin:-0.7}),'spin shots are deterministic');
+ assert.throws(()=>E.applyShot(game,A,{dx:1,dy:0,power:1,spin:2}),/no es válido/);
+ assert.equal(E.applyShot(game,A,{dx:1,dy:0.003,power:1,spin:0.5}).last.shot.spin,0.5,'spin is kept for the replay');
+ assert.equal(E.applyShot(game,A,shot).last.shot.spin,undefined,'shots without spin stay compatible');
+ assert.equal(E.validPlacement([],8,8,'table'),false,'the cue ball cannot be placed in a pocket mouth');
+
  // Rooms: two players, forfeits, inactivity claims and rematches.
  const Rooms=await import('../supabase/functions/pool/rooms.js');
  let room=Rooms.newRoomState(A,'Kattomon');

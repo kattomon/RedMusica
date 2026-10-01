@@ -2,17 +2,49 @@
 // browser runs the same code only to animate the result it receives.
 // The simulation uses +, -, *, / and Math.sqrt only (all exactly specified by
 // IEEE 754), so both runtimes produce identical trajectories from the same input.
+//
+// Units: 1 table unit = 2.54 mm (the playing surface is 1000 x 500), 1 tick = 1/60 s.
+// Each ball keeps its velocity (vx, vy) and the velocity its spin would roll it at
+// (sx, sy). While they differ the ball slides and cloth friction pulls them together
+// (a sphere ends up rolling at 5/7 of a centre-hit speed); once equal it rolls and
+// only rolling resistance slows it. Balls exchange velocity on contact but keep
+// their spin, which is what makes stun, follow and draw shots work.
 
 export const TABLE = Object.freeze({ width: 1000, height: 500, radius: 11, headX: 250, footX: 750 });
-export const POCKETS = Object.freeze([
-  { x: 0, y: 0, r: 25 }, { x: 500, y: -2, r: 22 }, { x: 1000, y: 0, r: 25 },
-  { x: 0, y: 500, r: 25 }, { x: 500, y: 502, r: 22 }, { x: 1000, y: 500, r: 25 }
-].map(Object.freeze));
 
 const R = TABLE.radius, W = TABLE.width, H = TABLE.height;
-const BALL_RESTITUTION = 0.96, RAIL_RESTITUTION = 0.78;
-const ROLLING = 0.988, DRAG = 0.015, STOP = 0.04, MAX_TICKS = 2400;
-const MIN_SPEED = 2, SPEED_RANGE = 26;
+const CORNER_GAP = 33, SIDE_GAP = 26, JAW = 16;
+// Where a ball drops: its centre must enter one of these circles.
+const FALL = Object.freeze([
+  { x: -8, y: -8, r: 24 }, { x: 500, y: -14, r: 22 }, { x: W + 8, y: -8, r: 24 },
+  { x: -8, y: H + 8, r: 24 }, { x: 500, y: H + 14, r: 22 }, { x: W + 8, y: H + 8, r: 24 }
+].map(Object.freeze));
+// Visible pocket openings, for drawing.
+export const POCKETS = Object.freeze([
+  { x: -2, y: -2, r: 26 }, { x: 500, y: -7, r: 22 }, { x: W + 2, y: -2, r: 26 },
+  { x: -2, y: H + 2, r: 26 }, { x: 500, y: H + 7, r: 22 }, { x: W + 2, y: H + 2, r: 26 }
+].map(Object.freeze));
+// Cushion noses and pocket jaws as segments [x1, y1, x2, y2]; a ball touches one when its centre is R away.
+export const CUSHIONS = Object.freeze([
+  [CORNER_GAP, 0, 500 - SIDE_GAP, 0], [500 + SIDE_GAP, 0, W - CORNER_GAP, 0],
+  [CORNER_GAP, H, 500 - SIDE_GAP, H], [500 + SIDE_GAP, H, W - CORNER_GAP, H],
+  [0, CORNER_GAP, 0, H - CORNER_GAP], [W, CORNER_GAP, W, H - CORNER_GAP],
+  // corner jaws
+  [CORNER_GAP, 0, CORNER_GAP - JAW, -JAW], [0, CORNER_GAP, -JAW, CORNER_GAP - JAW],
+  [W - CORNER_GAP, 0, W - CORNER_GAP + JAW, -JAW], [W, CORNER_GAP, W + JAW, CORNER_GAP - JAW],
+  [CORNER_GAP, H, CORNER_GAP - JAW, H + JAW], [0, H - CORNER_GAP, -JAW, H - CORNER_GAP + JAW],
+  [W - CORNER_GAP, H, W - CORNER_GAP + JAW, H + JAW], [W, H - CORNER_GAP, W + JAW, H - CORNER_GAP + JAW],
+  // side jaws
+  [500 - SIDE_GAP, 0, 500 - SIDE_GAP + 6, -18], [500 + SIDE_GAP, 0, 500 + SIDE_GAP - 6, -18],
+  [500 - SIDE_GAP, H, 500 - SIDE_GAP + 6, H + 18], [500 + SIDE_GAP, H, 500 + SIDE_GAP - 6, H + 18]
+].map(s => Object.freeze(s)));
+
+const GRAVITY = 1.073;                 // 9.81 m/s² in units per tick²
+const SLIDE = 0.2 * GRAVITY;           // sliding friction of cloth
+const ROLL = 0.032 * GRAVITY;          // rolling resistance (game-tuned so shots settle in a few seconds)
+const CLOTH_DRAG = 0.0015;             // small speed-proportional loss
+const BALL_RESTITUTION = 0.94, CUSHION_RESTITUTION = 0.8, CUSHION_GRIP = 0.94;
+const MIN_SPEED = 2.5, SPEED_RANGE = 38, MAX_SPIN = 1.5, MAX_TICKS = 2400;
 
 export const isSolid = n => n >= 1 && n <= 7;
 export const isStripe = n => n >= 9 && n <= 15;
@@ -21,6 +53,7 @@ export const otherGroup = group => group === 'solids' ? 'stripes' : 'solids';
 const round = v => Math.round(v * 1000) / 1000;
 const cloneBalls = balls => balls.map(b => ({ n: b.n, x: b.x, y: b.y, p: b.p }));
 const onTable = balls => balls.filter(b => !b.p);
+
 
 /** Builds a legal rack. `bytes` supplies randomness (crypto on the server). */
 export function rack(bytes) {
@@ -51,8 +84,9 @@ export function newGame(id, playerIds, breakerId, bytes) {
   };
 }
 
-function nearPocket(x, y, margin = 0) {
-  return POCKETS.some(p => (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y) < (p.r + margin) * (p.r + margin));
+
+function inPocket(x, y, margin = 0) {
+  return FALL.some(p => (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y) < (p.r + margin) * (p.r + margin));
 }
 
 /** Whether the cue ball may be placed at (x, y). */
@@ -60,47 +94,43 @@ export function validPlacement(balls, x, y, zone) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
   if (x < R || x > W - R || y < R || y > H - R) return false;
   if (zone === 'kitchen' && x > TABLE.headX) return false;
-  if (nearPocket(x, y, R)) return false;
+  if (inPocket(x, y, R)) return false;
   return onTable(balls).every(b => b.n === 0 || (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y) >= 4 * R * R);
 }
 
 /**
  * Runs one shot. Returns the final balls and what happened.
+ * shot: { dx, dy, power 0.05..1, spin -1 (draw) .. 1 (follow), optional }.
  * `onTick(balls)` (optional) receives a snapshot after every tick for animation.
  */
 export function simulate(inputBalls, shot, onTick) {
-  const balls = cloneBalls(inputBalls).map(b => ({ ...b, vx: 0, vy: 0 }));
+  const balls = cloneBalls(inputBalls).map(b => ({ ...b, vx: 0, vy: 0, sx: 0, sy: 0 }));
   const cue = balls.find(b => b.n === 0);
   const len = Math.sqrt(shot.dx * shot.dx + shot.dy * shot.dy);
-  const speed = MIN_SPEED + SPEED_RANGE * shot.power;
+  // Gentle at the low end for touch shots, strong at the top for breaks (no Math.pow: it is not exactly specified).
+  const speed = MIN_SPEED + SPEED_RANGE * (0.55 * shot.power + 0.45 * shot.power * shot.power);
+  const spin = Number.isFinite(shot.spin) ? Math.max(-1, Math.min(1, shot.spin)) : 0;
   cue.vx = shot.dx / len * speed; cue.vy = shot.dy / len * speed;
-  const events = { firstContact: null, railAfterContact: false, pocketed: [], ticks: 0 };
+  cue.sx = cue.vx * spin * MAX_SPIN; cue.sy = cue.vy * spin * MAX_SPIN;
+  const events = { firstContact: null, railAfterContact: false, rails: 0, pocketed: [], ticks: 0 };
   const live = () => balls.filter(b => !b.p);
   for (let tick = 0; tick < MAX_TICKS; tick++) {
     let fastest = 0;
     for (const b of live()) { const s = Math.sqrt(b.vx * b.vx + b.vy * b.vy); if (s > fastest) fastest = s; }
     if (fastest === 0) break;
-    const steps = Math.max(1, Math.ceil(fastest / (R * 0.8)));
+    const steps = Math.max(1, Math.ceil(fastest / (R * 0.5)));
     for (let step = 0; step < steps; step++) {
       for (const b of live()) { b.x += b.vx / steps; b.y += b.vy / steps; }
       const moving = live();
-      for (let i = 0; i < moving.length; i++) for (let j = i + 1; j < moving.length; j++) collide(moving[i], moving[j], events);
+      for (let i = 0; i < moving.length; i++) for (let j = i + 1; j < moving.length; j++) collideBalls(moving[i], moving[j], events);
       for (const b of live()) {
-        if (nearPocket(b.x, b.y)) { b.p = 1; b.vx = 0; b.vy = 0; events.pocketed.push(b.n); continue; }
-        let rail = false;
-        if (b.x < R) { b.x = 2 * R - b.x; b.vx = -b.vx * RAIL_RESTITUTION; rail = true; }
-        else if (b.x > W - R) { b.x = 2 * (W - R) - b.x; b.vx = -b.vx * RAIL_RESTITUTION; rail = true; }
-        if (b.y < R) { b.y = 2 * R - b.y; b.vy = -b.vy * RAIL_RESTITUTION; rail = true; }
-        else if (b.y > H - R) { b.y = 2 * (H - R) - b.y; b.vy = -b.vy * RAIL_RESTITUTION; rail = true; }
-        if (rail && events.firstContact !== null) events.railAfterContact = true;
+        for (const c of CUSHIONS) if (collideCushion(b, c)) { events.rails++; if (events.firstContact !== null) events.railAfterContact = true; }
+        if (inPocket(b.x, b.y) || b.x < -40 || b.x > W + 40 || b.y < -40 || b.y > H + 40) {
+          b.p = 1; b.vx = b.vy = b.sx = b.sy = 0; events.pocketed.push(b.n);
+        }
       }
     }
-    for (const b of live()) {
-      const s = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-      if (s < STOP) { b.vx = 0; b.vy = 0; continue; }
-      const next = Math.max(0, s * ROLLING - DRAG);
-      b.vx = b.vx / s * next; b.vy = b.vy / s * next;
-    }
+    for (const b of live()) friction(b);
     events.ticks = tick + 1;
     if (onTick) onTick(balls.map(b => ({ n: b.n, x: b.x, y: b.y, p: b.p })));
   }
@@ -108,21 +138,68 @@ export function simulate(inputBalls, shot, onTick) {
   return { balls: final, events };
 }
 
-function collide(a, b, events) {
+// One tick of cloth friction: sliding until the spin matches the motion, then rolling.
+function friction(b) {
+  const slipX = b.vx - b.sx, slipY = b.vy - b.sy;
+  const slip = Math.sqrt(slipX * slipX + slipY * slipY);
+  if (slip > 3.5 * SLIDE) {
+    const ux = slipX / slip, uy = slipY / slip;
+    b.vx -= ux * SLIDE; b.vy -= uy * SLIDE;
+    b.sx += ux * 2.5 * SLIDE; b.sy += uy * 2.5 * SLIDE;
+  } else if (slip > 0) {
+    // Natural roll reached this tick: v = (5v + 2s) / 7 conserves angular momentum about the contact point.
+    const rx = (5 * b.vx + 2 * b.sx) / 7, ry = (5 * b.vy + 2 * b.sy) / 7;
+    b.vx = b.sx = rx; b.vy = b.sy = ry;
+  } else {
+    const s = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    if (s === 0) return;
+    const next = s * (1 - CLOTH_DRAG) - ROLL;
+    if (next <= 0.02) { b.vx = b.vy = b.sx = b.sy = 0; return; }
+    b.vx = b.vx / s * next; b.vy = b.vy / s * next;
+    b.sx = b.vx; b.sy = b.vy;
+  }
+}
+
+function collideBalls(a, b, events) {
   let nx = b.x - a.x, ny = b.y - a.y;
   const d2 = nx * nx + ny * ny;
   if (d2 >= 4 * R * R) return;
   let d = Math.sqrt(d2);
-  if (d === 0) { nx = 1; ny = 0; d = 1; } else { nx /= d; ny /= d; }
+  if (d === 0) { nx = 1; ny = 0; } else { nx /= d; ny /= d; }
   if (events.firstContact === null) {
     if (a.n === 0) events.firstContact = b.n; else if (b.n === 0) events.firstContact = a.n;
   }
-  const push = (2 * R - (d2 === 0 ? 0 : d)) / 2;
+  const push = (2 * R - d) / 2;
   a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
   const approach = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
   if (approach <= 0) return;
+  // Equal masses, smooth balls: only the velocity along the line of centres changes; spin stays.
   const impulse = (1 + BALL_RESTITUTION) / 2 * approach;
   a.vx -= impulse * nx; a.vy -= impulse * ny; b.vx += impulse * nx; b.vy += impulse * ny;
+}
+
+// Ball against a cushion nose or pocket jaw. Returns true on contact.
+function collideCushion(b, seg) {
+  const [x1, y1, x2, y2] = seg;
+  const ex = x2 - x1, ey = y2 - y1, len2 = ex * ex + ey * ey;
+  let t = ((b.x - x1) * ex + (b.y - y1) * ey) / len2;
+  if (t < 0) t = 0; else if (t > 1) t = 1;
+  const cx = x1 + ex * t, cy = y1 + ey * t;
+  let nx = b.x - cx, ny = b.y - cy;
+  const d2 = nx * nx + ny * ny;
+  if (d2 >= R * R) return false;
+  const d = Math.sqrt(d2);
+  if (d === 0) return false;
+  nx /= d; ny /= d;
+  b.x = cx + nx * R; b.y = cy + ny * R;
+  const vn = b.vx * nx + b.vy * ny;
+  if (vn >= 0) return false;
+  const tx = b.vx - vn * nx, ty = b.vy - vn * ny;
+  b.vx = tx * CUSHION_GRIP - vn * CUSHION_RESTITUTION * nx;
+  b.vy = ty * CUSHION_GRIP - vn * CUSHION_RESTITUTION * ny;
+  // The cushion grips the ball above its centre: it leaves rolling along the new path.
+  b.sx = b.vx; b.sy = b.vy;
+  return true;
 }
 
 function respotEight(balls) {
@@ -134,7 +211,8 @@ function respotEight(balls) {
 
 export function validShot(shot) {
   return shot && Number.isFinite(shot.dx) && Number.isFinite(shot.dy) && Math.abs(shot.dx) <= 1e6 && Math.abs(shot.dy) <= 1e6 &&
-    Math.sqrt(shot.dx * shot.dx + shot.dy * shot.dy) > 1e-6 && Number.isFinite(shot.power) && shot.power >= 0.05 && shot.power <= 1;
+    Math.sqrt(shot.dx * shot.dx + shot.dy * shot.dy) > 1e-6 && Number.isFinite(shot.power) && shot.power >= 0.05 && shot.power <= 1 &&
+    (shot.spin === undefined || (Number.isFinite(shot.spin) && shot.spin >= -1 && shot.spin <= 1));
 }
 
 /** Applies a shot by `playerId` and returns the updated game (the input is not modified). */
@@ -190,7 +268,7 @@ export function applyShot(input, playerId, shot) {
   } else game.ballInHand = null;
   game.breakShot = false;
   game.seq += 1;
-  game.last = { seq: game.seq, by: playerId, before, shot: { dx: shot.dx, dy: shot.dy, power: shot.power }, summary };
+  game.last = { seq: game.seq, by: playerId, before, shot: { dx: shot.dx, dy: shot.dy, power: shot.power, ...(shot.spin ? { spin: shot.spin } : {}) }, summary };
   return game;
 }
 

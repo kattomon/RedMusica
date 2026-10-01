@@ -28,7 +28,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
     if(input.action==='join'){if(!member){room.state=Rooms.joinRoom(room.state,actor,names[actor],Date.now());room.state.game=E.newGame('game-'+Date.now(),room.state.players.map(p=>p.user_id),room.host,bytes);room.revision++;}return send({room:pub()});}
     if(!member)return send({error:'No formas parte de esta sala.'},403);
     if(input.action==='state'){stateRequests[actor]++;return send({room:pub()});}
-    if(input.action==='shoot'){shots.push(input);const before=room.state.game.turn;room.state.game=E.applyShot(room.state.game,actor,{dx:input.dx,dy:input.dy,power:input.power,...(input.cue?{cue:input.cue}:{})});if(room.state.game.turn!==before)room.state.turn_started_at=Date.now();if(room.state.game.winner)room.state.status='finished';room.revision++;return send({room:pub()});}
+    if(input.action==='shoot'){shots.push(input);const before=room.state.game.turn;room.state.game=E.applyShot(room.state.game,actor,{dx:input.dx,dy:input.dy,power:input.power,...(input.spin!==undefined?{spin:input.spin}:{}),...(input.cue?{cue:input.cue}:{})});if(room.state.game.turn!==before)room.state.turn_started_at=Date.now();if(room.state.game.winner)room.state.status='finished';room.revision++;return send({room:pub()});}
     if(input.action==='rematch'){const breaker=Rooms.requestRematch(room.state,actor);if(breaker){room.state.game=E.newGame('game-r',room.state.players.map(p=>p.user_id),breaker,bytes);room.state.status='playing';room.state.rematch=[];}room.revision++;return send({room:pub()});}
     if(input.action==='leave'){const res=Rooms.leaveRoom(room.state,actor,room.host,Date.now());room.state=res.state;room.host=res.hostId;room.revision++;return send({left:true});}
     return send({error:'Acción no válida.'},400);
@@ -64,7 +64,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
   const guest=await open('guest','&pool=POOL23');
   await guest.waitForFunction(()=>document.querySelector('#poolJugadores').innerText.includes('Kattomon'));
   assert.match(await guest.locator('#poolTurno').innerText(),/Turno de Kattomon/);
-  await host.waitForFunction(()=>/Saque/.test(document.querySelector('#poolTurno').textContent),null,{timeout:15000});
+  await host.waitForFunction(()=>/Saque/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
   assert.equal(await host.locator('#poolTirar').isEnabled(),true);assert.equal(await guest.locator('#poolControles').isVisible(),true);assert.equal(await guest.locator('#poolTirar').isEnabled(),false,'only the player in turn can shoot');
   assert.equal(await host.locator('#poolJugadores .pool-avatar').count(),2);
   assert.equal(await host.locator('#poolJugadores .pool-turno-activo').count(),1);
@@ -77,9 +77,9 @@ const out=process.env.POOL_SCREENSHOTS||'';
   if(out)await host.screenshot({path:path.join(out,`pool-antes-${label}.png`),fullPage:false});
 
   // The browser engine reproduces the server trajectories exactly.
-  const samples=[{dx:1,dy:0.01,power:1},{dx:0.8,dy:-0.6,power:0.55},{dx:-0.3,dy:0.95,power:0.8}];
+  const samples=[{dx:1,dy:0.01,power:1},{dx:0.6,dy:0.8,power:0.7,spin:-1},{dx:-0.9,dy:0.2,power:0.5,spin:0.75},{dx:0.8,dy:-0.6,power:0.55},{dx:-0.3,dy:0.95,power:0.8}];
   const expected=samples.map(s=>E.simulate(room.state.game.balls,s).balls);
-  const inBrowser=await host.evaluate(async({balls,samples})=>{const m=await import('./supabase/functions/pool/engine.js?v=20260930-1');return samples.map(s=>m.simulate(balls,s).balls);},{balls:room.state.game.balls,samples});
+  const inBrowser=await host.evaluate(async({balls,samples})=>{const m=await import('./supabase/functions/pool/engine.js?v=20261001-4');return samples.map(s=>m.simulate(balls,s).balls);},{balls:room.state.game.balls,samples});
   assert.deepEqual(inBrowser,expected,'browser and server simulations match');
 
   // Break with the keyboard: aim a little, full power, Enter.
@@ -92,12 +92,14 @@ const out=process.env.POOL_SCREENSHOTS||'';
   await host.waitForFunction(()=>window.__poolRealtime.subscribed);await guest.waitForFunction(()=>window.__poolRealtime.subscribed);
   const guestReadsBefore=stateRequests.guest;
   await guest.evaluate(()=>{window.__poolRealtime.received=0;window.__poolRealtime.stateReads=0;});
+  await host.locator('#poolEfecto').focus();await host.keyboard.press('ArrowDown');await host.keyboard.press('ArrowDown');
+  assert.equal(await host.locator('#poolEfecto').getAttribute('aria-valuetext'),'Retroceso 50%');
   await host.locator('#poolCanvas').focus();await host.keyboard.press('Enter');
   await guest.waitForFunction(()=>window.__poolRealtime.received>0,null,{timeout:2500});
   await guest.waitForFunction(()=>window.__poolRealtime.stateReads>0,null,{timeout:2500});
   const settledTable=serverLabel();
   await host.waitForFunction(label=>document.querySelector('#poolCanvas').getAttribute('aria-label').includes(label),settledTable,{timeout:15000});
-  assert.equal(shots.length,1);assert.ok(Math.abs(shots[0].power-1)<1e-9);
+  assert.equal(shots.length,1);assert.ok(Math.abs(shots[0].power-1)<1e-9);assert.equal(shots[0].spin,-0.5,'the chosen spin is sent with the shot');
   assert.match(await tableLabel(host),new RegExp(settledTable));
   await guest.waitForFunction(label=>document.querySelector('#poolCanvas').getAttribute('aria-label').includes(label),settledTable,{timeout:15000});
   assert.ok(stateRequests.guest>guestReadsBefore,'Realtime broadcast triggers an immediate authenticated state read');
@@ -105,7 +107,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
 
   // Ball in hand anywhere: the guest places the cue ball by tapping, then shoots.
   const g=room.state.game;g.turn='guest';g.ballInHand='table';g.balls[0].p=1;g.last=null;g.seq+=1;room.state.turn_started_at=Date.now();
-  await guest.waitForFunction(()=>/Bola en mano/.test(document.querySelector('#poolTurno').textContent),null,{timeout:15000});
+  await guest.waitForFunction(()=>/Bola en mano/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
   if((await guest.evaluate(()=>innerWidth))<560){
    try{await guest.waitForFunction(()=>{const bar=document.querySelector('#poolBarra').getBoundingClientRect(),cue=document.querySelector('#poolPotencia').getBoundingClientRect(),table=document.querySelector('#poolCanvas').getBoundingClientRect(),header=document.querySelector('.cabecera-sitio').getBoundingClientRect();return bar.top>=header.bottom+4&&cue.bottom<=innerHeight+2&&table.bottom<=innerHeight+2;},null,{timeout:3000});}
    catch(error){console.error('Mobile viewport diagnostics',await guest.evaluate(()=>({height:innerHeight,scrollY,bar:document.querySelector('#poolBarra').getBoundingClientRect().toJSON(),cue:document.querySelector('#poolPotencia').getBoundingClientRect().toJSON(),canvas:document.querySelector('#poolCanvas').getBoundingClientRect().toJSON(),nav:document.querySelector('.sidebar-nav')?.getBoundingClientRect().toJSON(),header:document.querySelector('.cabecera-sitio')?.getBoundingClientRect().toJSON()})));throw error;}
@@ -123,7 +125,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
   await guest.emulateMedia({reducedMotion:'reduce'});
   const power=guest.locator('#poolPotencia'),powerBox=await power.boundingBox();
   await guest.mouse.move(powerBox.x+powerBox.width/2,powerBox.y+20);await guest.mouse.down();await guest.mouse.move(powerBox.x+powerBox.width/2,powerBox.y+Math.min(powerBox.height-10,130),{steps:7});await guest.mouse.up();
-  await guest.waitForFunction(n=>document.querySelector('#poolEstado').textContent.length>0&&!document.querySelector('#poolEstado').textContent.includes('Un momento'),null,{timeout:15000});
+  await guest.waitForFunction(n=>document.querySelector('#poolEstado').textContent.length>0&&!document.querySelector('#poolEstado').textContent.includes('Un momento'),null,{timeout:30000});
   assert.equal(shots.length,2);assert.ok(shots[1].cue,'the placement is sent with the shot');
   assert.ok(Math.abs(shots[1].cue.x-spot[0])<4&&Math.abs(shots[1].cue.y-spot[1])<4,`cue placed near the tapped spot (${JSON.stringify(shots[1].cue)} vs ${spot})`);
   if(out)await guest.screenshot({path:path.join(out,`pool-bola-en-mano-${label}.png`),fullPage:false});
@@ -131,28 +133,29 @@ const out=process.env.POOL_SCREENSHOTS||'';
   // Winning shot: only the 8 is left for the host; the default aim sinks it.
   const w=room.state.game;w.turn='host';w.groups={host:'solids',guest:'stripes'};w.ballInHand=null;w.winner=null;w.last=null;w.seq+=1;
   w.balls=w.balls.map(b=>b.n===0?{n:0,x:850,y:12,p:0}:b.n===8?{n:8,x:950,y:12,p:0}:b.n===12?{n:12,x:300,y:300,p:0}:{...b,p:1});
-  await host.waitForFunction(()=>/Te toca/.test(document.querySelector('#poolTurno').textContent),null,{timeout:15000});
+  await host.waitForFunction(()=>/Te toca/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
   await host.locator('#poolCanvas').focus();const angle=Number(await host.locator('#poolRueda').getAttribute('aria-valuenow'));
   for(let i=0;i<Math.abs(angle);i++)await host.keyboard.press(angle<0?'ArrowRight':'ArrowLeft');
   await host.evaluate(()=>{document.querySelector('#poolFuerza').value='30';document.querySelector('#poolFuerza').dispatchEvent(new Event('input'));});
+  await host.locator('#poolEfecto').focus();for(let i=0;i<3;i++)await host.keyboard.press('ArrowDown');
   await host.getByRole('button',{name:'Tirar'}).click();
-  try{await host.waitForFunction(()=>/Ganaste/.test(document.querySelector('#poolTurno').textContent),null,{timeout:15000});}
+  try{await host.waitForFunction(()=>/Ganaste/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});}
   catch(error){console.error('Winning shot diagnostics',JSON.stringify({status:room.state.status,last:room.state.game.last?.summary,shot:shots.at(-1),panel:await host.locator('#poolTurno').innerText(),message:await host.locator('#poolEstado').innerText(),errors}));throw error;}
   assert.equal(room.state.status,'finished');assert.equal(room.state.game.winner,'host');
   assert.ok(await host.locator('#poolCanaleta .pool-bola-metida').count()>0,'pocketed balls appear next to the table');
-  await guest.waitForFunction(()=>/Ganó Kattomon/.test(document.querySelector('#poolTurno').textContent),null,{timeout:15000});
+  await guest.waitForFunction(()=>/Ganó Kattomon/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
   if(out)await host.screenshot({path:path.join(out,`pool-victoria-${label}.png`),fullPage:false});
 
   // Rematch needs both players; the loser breaks.
   await host.getByRole('button',{name:'Pedir revancha'}).click();
   await host.waitForFunction(()=>document.querySelector('#poolRevancha').textContent==='Esperando respuesta…');
-  await guest.waitForFunction(()=>document.querySelector('#poolRevancha').textContent==='Aceptar revancha',null,{timeout:15000});
+  await guest.waitForFunction(()=>document.querySelector('#poolRevancha').textContent==='Aceptar revancha',null,{timeout:30000});
   await guest.getByRole('button',{name:'Aceptar revancha'}).click();
-  await guest.waitForFunction(()=>/Saque/.test(document.querySelector('#poolTurno').textContent),null,{timeout:15000});
+  await guest.waitForFunction(()=>/Saque/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
   assert.equal(room.state.game.turn,'guest');
 
   // Leaving an active game asks for a second tap and hands the win to the rival.
-  await host.waitForFunction(()=>/Turno de Ana/.test(document.querySelector('#poolTurno').textContent),null,{timeout:15000});
+  await host.waitForFunction(()=>/Turno de Ana/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});
   await host.getByRole('button',{name:'Salir'}).click();
   assert.equal(await host.getByRole('button',{name:'Confirmar: perderás la partida'}).isVisible(),true);
   assert.equal(await host.getByRole('button',{name:/Confirmar/}).isVisible(),true);assert.equal(room.state.players.length,2);

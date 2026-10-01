@@ -101,6 +101,7 @@ Deno.serve(async req => {
     if (input.action === 'shoot') {
       if (state.status !== 'playing') throw new Error('La partida no está en curso.');
       const shot: any = { dx: Number(input.dx), dy: Number(input.dy), power: Number(input.power) };
+      if (input.spin !== undefined && input.spin !== null && Number(input.spin) !== 0) shot.spin = Number(input.spin);
       if (input.cue && typeof input.cue === 'object') shot.cue = { x: Number(input.cue.x), y: Number(input.cue.y) };
       const previousTurn = state.game.turn;
       state.game = applyShot(state.game, user.id, shot);

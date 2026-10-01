@@ -7,7 +7,7 @@
     const section = $('poolJuegos');
     const config = window.REDMUSICA_CONFIG;
     const db = config && window.supabase ? window.redmusicaClient || window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
-    const ENGINE_URL = './supabase/functions/pool/engine.js?v=20260930-1';
+    const ENGINE_URL = './supabase/functions/pool/engine.js?v=20261001-4';
     const TURN_LIMIT_MS = 5 * 60 * 1000;
     const RAIL = 34;
     const COLORS = { 1: '#e3b22f', 2: '#2b4f9e', 3: '#c23b30', 4: '#5c3b86', 5: '#dd7430', 6: '#2e7445', 7: '#7c2733', 8: '#1f1c1f' };
@@ -263,7 +263,7 @@
         const active = myTurn() && !busy && !animating && !striking && !!E;
         $('poolControles').hidden = !(room && room.status === 'playing');
         for (const id of ['poolTirar', 'poolGirarIzq', 'poolGirarDer', 'poolFuerza']) $(id).disabled = !active;
-        for (const id of ['poolRueda', 'poolPotencia']) { $(id).setAttribute('aria-disabled', String(!active)); $(id).tabIndex = active ? 0 : -1; }
+        for (const id of ['poolRueda', 'poolPotencia', 'poolEfecto']) { $(id).setAttribute('aria-disabled', String(!active)); $(id).tabIndex = active ? 0 : -1; }
         const hand = active && !!room.game.ballInHand;
         $('poolMoverBlanca').hidden = !hand;
         $('poolMoverBlanca').setAttribute('aria-pressed', String(placing));
@@ -326,6 +326,10 @@
         ctx.fillStyle = '#e9dcc2';
         for (let i = 1; i < 8; i++) if (i !== 4) for (const y of [-RAIL / 2, 500 + RAIL / 2]) dot(...toScreen(i * 125, y), 2.4 * s);
         for (let i = 1; i < 4; i++) for (const x of [-RAIL / 2, 1000 + RAIL / 2]) dot(...toScreen(x, i * 125), 2.4 * s);
+        // Cushion noses and pocket jaws, from the same geometry the physics uses.
+        ctx.strokeStyle = '#255a4b'; ctx.lineWidth = Math.max(2, 5 * s); ctx.lineCap = 'round';
+        for (const [x1, y1, x2, y2] of (E?.CUSHIONS || [])) { ctx.beginPath(); ctx.moveTo(...toScreen(x1, y1)); ctx.lineTo(...toScreen(x2, y2)); ctx.stroke(); }
+        ctx.lineCap = 'butt';
         // Head string and foot spot.
         ctx.strokeStyle = '#ffffff33'; ctx.lineWidth = Math.max(1, s); ctx.beginPath(); ctx.moveTo(...toScreen(250, 0)); ctx.lineTo(...toScreen(250, 500)); ctx.stroke();
         ctx.fillStyle = '#ffffff55'; dot(...toScreen(750, 250), 2.5 * s);
@@ -446,12 +450,12 @@
     function animate(last) {
         let frames = [], ticks = 0;
         const { events } = E.simulate(last.before, last.shot, snapshot => {
-            if (ticks++ % 3 === 0) frames.push(snapshot);
-            if (frames.length > 360) frames = frames.filter((_, index) => index % 2 === 0);
+            if (ticks++ % 2 === 0) frames.push(snapshot);
         });
         if (!frames.length) return Promise.resolve();
         animating = true; updateControls();
-        const duration = Math.min(2500, Math.max(650, ticks * 6));
+        // Real time (1 tick = 1/60 s) so rolling, spin and cushions look natural; very long shots play faster.
+        const duration = Math.min(5200, Math.max(500, ticks * 1000 / 60));
         if (last.by !== user?.id) { playSound('hit'); vibrate(); }
         return new Promise(resolve => {
             const started = performance.now(); let railPlayed = false, pocketCount = last.before.filter(b => b.n && b.p).length;
@@ -461,7 +465,9 @@
             const step = now => {
                 if (finished) return;
                 const progress = Math.max(0, Math.min(1, (now - started) / duration));
-                const snapshot = frames[Math.min(frames.length - 1, Math.floor(progress * (frames.length - 1)))];
+                const at = progress * (frames.length - 1), index = Math.min(frames.length - 1, Math.floor(at)), mix = at - index;
+                const from = frames[index], to = frames[Math.min(frames.length - 1, index + 1)];
+                const snapshot = mix > 0 ? from.map((b, i) => b.p || to[i].p ? to[i] : { n: b.n, p: 0, x: b.x + (to[i].x - b.x) * mix, y: b.y + (to[i].y - b.y) * mix }) : from;
                 draw(snapshot); renderGutter(snapshot);
                 const entered = snapshot.filter(b => b.n && b.p).length;
                 if (entered > pocketCount) { playSound('pocket'); vibrate(18); pocketCount = entered; }
@@ -537,11 +543,37 @@
         if (pendingCue && !E.validPlacement(balls, pendingCue.x, pendingCue.y, game.ballInHand)) { status(game.ballInHand === 'kitchen' ? 'La blanca debe quedar detrás de la línea, sin tocar otras bolas.' : 'La blanca debe quedar en un espacio libre.'); return; }
         if (!pendingCue && cue()?.p) { status('Coloca la blanca antes de tirar.'); return; }
         const len = Math.hypot(aim.dx, aim.dy) || 1;
-        const shot = { dx: aim.dx / len, dy: aim.dy / len, power: Number($('poolFuerza').value) / 100, ...(pendingCue ? { cue: pendingCue } : {}) };
+        const shot = { dx: aim.dx / len, dy: aim.dy / len, power: Number($('poolFuerza').value) / 100, ...(spin ? { spin } : {}), ...(pendingCue ? { cue: pendingCue } : {}) };
         primeSound(); placing = false; striking = true; updateControls();
         try { await animateStrike(); } finally { striking = false; updateControls(); }
         playSound('hit'); vibrate();
+        setSpin(0);
         await run('shoot', shot);
+    }
+
+    // ---------- spin (top = follow, bottom = draw) ----------
+    let spin = 0;
+    function setSpin(value) {
+        spin = Math.max(-1, Math.min(1, Math.round(value * 4) / 4));
+        const el = $('poolEfecto');
+        el.style.setProperty('--efecto', String(spin));
+        el.setAttribute('aria-valuenow', String(Math.round(spin * 100)));
+        el.setAttribute('aria-valuetext', spin > 0 ? 'Seguir ' + Math.round(spin * 100) + '%' : spin < 0 ? 'Retroceso ' + Math.round(-spin * 100) + '%' : 'Golpe al centro');
+    }
+    {
+        const el = $('poolEfecto');
+        let pressing = false;
+        const pick = event => { if (!myTurn() || busy || animating) return; const r = el.getBoundingClientRect(); setSpin((0.5 - (event.clientY - r.top) / r.height) * 2.4); };
+        el.addEventListener('pointerdown', event => { pressing = true; el.setPointerCapture?.(event.pointerId); pick(event); });
+        el.addEventListener('pointermove', event => { if (pressing) pick(event); });
+        el.addEventListener('pointerup', () => { pressing = false; });
+        el.addEventListener('pointercancel', () => { pressing = false; });
+        el.addEventListener('dblclick', () => setSpin(0));
+        el.addEventListener('keydown', event => {
+            if (!myTurn() || busy || animating) return;
+            if (event.key === 'ArrowUp') setSpin(spin + 0.25); else if (event.key === 'ArrowDown') setSpin(spin - 0.25); else if (event.key === 'Home') setSpin(0); else return;
+            event.preventDefault();
+        });
     }
 
     // ---------- buttons ----------

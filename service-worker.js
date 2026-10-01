@@ -1,6 +1,6 @@
 'use strict';
 
-const SHELL_CACHE = 'redmusica-shell-v13';
+const SHELL_CACHE = 'redmusica-shell-v14';
 const SHELL_FILES = [
     './',
     './index.html',
@@ -8,7 +8,7 @@ const SHELL_FILES = [
     './layout.css?v=20260929-1',
     './sections.css?v=20260929-1',
     './admin-ui.css?v=20260929-1',
-    './pool.css?v=20261001-2',
+    './pool.css?v=20261001-3',
     './interface.js?v=20261001-1',
     './site.webmanifest?v=20260929-1',
     './app-icon.svg',
@@ -18,7 +18,7 @@ const SHELL_FILES = [
     './radio-panel.js?v=20260929-2',
     './radio.html',
     './radio.js?v=20260929-2',
-    './script.js?v=20261001-2',
+    './script.js?v=20261001-3',
     './pwa.js?v=20260928-1',
     './covers.js?v=20260927-18',
     './search.js?v=20260927-18',
@@ -26,8 +26,8 @@ const SHELL_FILES = [
     './cloud.js?v=20261001-1',
     './admin.js?v=20260930-1',
     './blackjack.js?v=20260928-1',
-    './pool.js?v=20261001-3',
-    './supabase/functions/pool/engine.js?v=20260930-1',
+    './pool.js?v=20261001-4',
+    './supabase/functions/pool/engine.js?v=20261001-4',
     './local.js?v=20260927-18'
 ];
 const STATIC_PATHS = new Set(SHELL_FILES.map(file => new URL(file, self.registration.scope).pathname));
