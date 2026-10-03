@@ -91,7 +91,7 @@ const server=http.createServer((req,res)=>{
       else if(method==='DELETE'){friendships=friendships.filter(f=>!((!a||f.user_a===a)&&(!b||f.user_b===b)));status=204;data=null;}
     }
     else if(url.pathname==='/rest/v1/profiles'){const filter=url.searchParams.get('id')||'',ids=filter.startsWith('in.(')?filter.slice(4,-1).split(','):filter.startsWith('eq.')?[filter.slice(3)]:Object.keys(profiles);if(method==='PATCH'){assert.equal(ids[0],current.id);Object.assign(profiles[ids[0]],body);data=[profiles[ids[0]]];}else{const username=url.searchParams.get('username')?.replace(/^ilike\./,'').replaceAll('%','').toLocaleLowerCase('es'),excluded=filter.startsWith('neq.')?filter.slice(4):'';data=ids.map(id=>({id,...profiles[id]})).filter(p=>p.username&&p.id!==excluded&&(!username||p.username.toLocaleLowerCase('es').includes(username)));}}
-    else if(url.pathname==='/rest/v1/pool_stats'){data=[];}
+    else if(url.pathname==='/rest/v1/pool_stats'||url.pathname==='/rest/v1/tutti_stats'){data=[];}
     else if(url.pathname==='/rest/v1/profile_photos'||url.pathname==='/rest/v1/profile_photo_albums'||url.pathname==='/rest/v1/concert_attendance'||url.pathname==='/rest/v1/concerts'){data=[];headers['Content-Range']='0-0/0';}
     else if(url.pathname==='/rest/v1/games_catalog'){
       const term=(url.searchParams.get('or')||'').toLowerCase();

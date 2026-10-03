@@ -1,6 +1,6 @@
 'use strict';
 
-const SHELL_CACHE = 'redmusica-shell-v17';
+const SHELL_CACHE = 'redmusica-shell-v18';
 const SHELL_FILES = [
     './',
     './index.html',
@@ -9,7 +9,8 @@ const SHELL_FILES = [
     './sections.css?v=20260929-1',
     './admin-ui.css?v=20260929-1',
     './pool.css?v=20261001-6',
-    './interface.js?v=20261001-1',
+    './bachillerato.css?v=20261003-1',
+    './interface.js?v=20261003-1',
     './site.webmanifest?v=20260929-1',
     './app-icon.svg',
     './app-icon-192.png',
@@ -18,16 +19,18 @@ const SHELL_FILES = [
     './radio-panel.js?v=20260929-2',
     './radio.html',
     './radio.js?v=20260929-2',
-    './script.js?v=20261001-7',
+    './script.js?v=20261003-1',
     './pwa.js?v=20260928-1',
     './covers.js?v=20260927-18',
     './search.js?v=20260927-18',
     './vendor/supabase-2.117.2.js',
-    './cloud.js?v=20261001-2',
+    './cloud.js?v=20261003-1',
     './admin.js?v=20260930-1',
     './blackjack.js?v=20260928-1',
     './pool.js?v=20261001-6',
     './supabase/functions/pool/engine.js?v=20261001-5',
+    './bachillerato.js?v=20261003-1',
+    './supabase/functions/bachillerato/logic.js?v=20261003-1',
     './local.js?v=20260927-18'
 ];
 const STATIC_PATHS = new Set(SHELL_FILES.map(file => new URL(file, self.registration.scope).pathname));
