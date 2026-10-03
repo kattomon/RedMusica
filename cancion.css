@@ -1,0 +1,137 @@
+/* "Adivina la canción" section and its line on profiles. Mobile first. */
+.cancion [hidden] { display: none !important; }
+#contenidoPrincipal #seccionCancion { width: 100%; margin: 0 0 16px; padding: 16px; border: 1px solid var(--rm-line, #dfd5c9); border-top: 3px solid #3b5f8a; border-radius: 5px; background: var(--rm-surface, #fffdf9); }
+#contenidoPrincipal #seccionCancion > h2 { margin: -16px -16px 14px; padding: 11px 15px; border-bottom: 1px solid var(--rm-line, #dfd5c9); background: var(--rm-soft, #f6f1e8); color: var(--rm-plum, #51404c); font-size: 1.06rem; }
+body.sesion-pendiente #seccionCancion { display: none !important; }
+.cancion { --hit: #2f7d4f; --near: #e0b33c; --miss: #6f6a66; --azul: #3b5f8a; --azul-suave: #e6edf6; --caja: 30px; margin: 0 0 8px; }
+.cancion-intro { margin: 0 0 12px; color: var(--rm-muted, #746d69); font-size: .92rem; }
+.cancion-aviso, .cancion-estado { margin: 10px 0; padding: 8px 10px; border-radius: 7px; background: var(--rm-soft, #f6f1e8); font-size: .92rem; }
+.cancion-estado:empty { display: none; }
+.cancion button:disabled { opacity: .55; cursor: not-allowed; }
+#contenidoPrincipal .cancion button, .cancion button { min-height: 44px; border-radius: 9px; font-weight: 600; }
+#contenidoPrincipal .cancion .cancion-secundario, .cancion .cancion-secundario { border: 1px solid var(--rm-line, #dfd5c9); background: var(--rm-surface, #fffdf9); color: var(--rm-ink, #332f32); box-shadow: none; }
+
+/* Tabs */
+.cancion-pestanas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; margin-bottom: 12px; border-radius: 11px; background: var(--rm-soft, #f6f1e8); }
+#contenidoPrincipal .cancion .cancion-pestanas button, .cancion .cancion-pestanas button { min-height: 40px; padding: 6px 4px; border: 0; border-radius: 8px; background: transparent; color: var(--rm-ink, #332f32); box-shadow: none; font-size: .88rem; line-height: 1.15; }
+#contenidoPrincipal .cancion .cancion-pestanas button[aria-selected=true], .cancion .cancion-pestanas button[aria-selected=true] { background: var(--azul); color: #fff; box-shadow: 0 2px 6px #1d2f4533; }
+
+/* Header with the ten songs */
+.cancion-cabecera { display: grid; gap: 8px; margin-bottom: 12px; }
+.cancion-cabecera-fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cancion-puntaje { padding: 3px 10px; border-radius: 999px; background: var(--azul-suave); color: var(--azul); font-weight: 700; font-variant-numeric: tabular-nums; }
+.cancion-puntos { display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 5px; }
+#contenidoPrincipal .cancion .cancion-punto, .cancion .cancion-punto { min-height: 36px; padding: 0; border: 2px solid transparent; border-radius: 8px; background: #ebe5dc; color: var(--rm-ink, #332f32); box-shadow: none; font-size: .9rem; font-variant-numeric: tabular-nums; }
+#contenidoPrincipal .cancion .cancion-punto-won, .cancion .cancion-punto-won { background: var(--hit); color: #fff; }
+#contenidoPrincipal .cancion .cancion-punto-lost, .cancion .cancion-punto-lost { background: var(--miss); color: #fff; }
+#contenidoPrincipal .cancion .cancion-punto-resumen, .cancion .cancion-punto-resumen { background: var(--near); color: #2b2417; }
+#contenidoPrincipal .cancion .cancion-punto-actual, .cancion .cancion-punto-actual { border-color: var(--azul); outline: 2px solid #fff; outline-offset: -4px; }
+
+/* Song card */
+.cancion-tarjeta { display: grid; gap: 12px; }
+.cancion-numero { margin: 0; color: var(--rm-muted, #746d69); font-size: .86rem; font-weight: 600; }
+.cancion-intentos { font-weight: 400; }
+.cancion-titulo { display: flex; flex-wrap: wrap; gap: 10px 14px; justify-content: center; padding: 14px 8px; border-radius: 12px; background: linear-gradient(160deg, #24364d, #31506f); }
+.cancion-palabra { display: inline-flex; gap: 3px; }
+.cancion-letra, .cancion-signo { display: inline-grid; place-items: center; width: var(--caja); height: calc(var(--caja) + 6px); font-weight: 800; font-size: 1.05rem; text-transform: uppercase; }
+.cancion-letra { border: 2px solid #ffffff55; border-radius: 6px; background: #ffffff14; color: #fff; }
+.cancion-letra-ok { border-color: #fff; background: #fff; color: #24364d; }
+.cancion-letra-match { border-color: var(--hit); background: var(--hit); color: #fff; }
+.cancion-signo { width: auto; min-width: 8px; color: #fff; }
+.cancion-pista { margin: 0; padding: 8px 10px; border-left: 4px solid var(--near); border-radius: 6px; background: #fbf3dc; font-size: .92rem; }
+
+/* Search box */
+.cancion-buscar { display: grid; gap: 8px; }
+.cancion-campo { position: relative; }
+.cancion-campo input { width: 100%; min-height: 48px; font-size: 1rem; box-sizing: border-box; }
+.cancion-opciones { margin: 4px 0 0; padding: 0; list-style: none; border-radius: 10px; overflow: hidden; }
+.cancion-opciones:not(:empty) { border: 1px solid var(--rm-line, #dfd5c9); background: var(--rm-surface, #fffdf9); box-shadow: 0 6px 16px #2d241a1f; }
+.cancion-opciones li { display: grid; gap: 1px; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--rm-line, #dfd5c9); }
+.cancion-opciones li:last-child { border-bottom: 0; }
+.cancion-opciones li span { color: var(--rm-muted, #746d69); font-size: .86rem; }
+.cancion-opciones li:hover, .cancion-opcion-activa { background: var(--azul-suave); }
+.cancion-opciones .cancion-sin-resultados { cursor: default; color: var(--rm-muted, #746d69); }
+.cancion-acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cancion-acciones > button, .cancion-acciones > a { flex: 1 1 140px; }
+#contenidoPrincipal .cancion .cancion-adivinar, .cancion .cancion-adivinar { background: var(--azul); color: #fff; }
+#contenidoPrincipal .cancion .cancion-rendirse, .cancion .cancion-rendirse { flex: 0 1 auto; border: 1px solid var(--rm-line, #dfd5c9); background: transparent; color: var(--rm-muted, #746d69); box-shadow: none; }
+#contenidoPrincipal .cancion .cancion-rendirse-armado, .cancion .cancion-rendirse-armado { border-color: #a85449; color: #a85449; }
+
+/* Tries and colour clues */
+.cancion-intentos-lista { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.cancion-intento { padding: 10px; border: 1px solid var(--rm-line, #dfd5c9); border-radius: 12px; background: var(--rm-surface, #fffdf9); }
+.cancion-intento-acierto { border-color: var(--hit); background: #eaf5ee; }
+.cancion-intento-nombre { margin: 0 0 8px; font-size: .92rem; overflow-wrap: anywhere; }
+.cancion-intento-nombre > span:last-child { color: var(--rm-muted, #746d69); }
+.cancion-intento-n { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 6px; border-radius: 50%; background: var(--rm-soft, #f6f1e8); font-size: .78rem; font-weight: 700; }
+.cancion-intento-bien { margin: 0; color: var(--hit); font-weight: 800; }
+.cancion-pistas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.cancion-pista-caja { position: relative; display: grid; align-content: start; gap: 2px; min-height: 58px; padding: 6px 6px 5px; border-radius: 8px; color: #fff; overflow: hidden; }
+.cancion-pista-nombre { font-size: .66rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85; }
+.cancion-pista-valor { font-size: .84rem; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cancion-pista-marca { position: absolute; right: 5px; top: 3px; font-size: .78rem; font-weight: 800; opacity: .9; }
+.cancion-hit { background: var(--hit); }
+.cancion-near { background: var(--near); color: #2b2417; }
+.cancion-miss { background: var(--miss); }
+.cancion-muestra { display: inline-grid; place-items: center; width: 1.4em; height: 1.4em; border-radius: 4px; color: #fff; font-weight: 800; }
+.cancion-muestra.cancion-near { color: #2b2417; }
+.cancion-girar { animation: cancion-girar .45s ease both; }
+@keyframes cancion-girar { 0% { transform: rotateX(90deg); opacity: .2; } 100% { transform: none; opacity: 1; } }
+
+/* Result of one song */
+.cancion-resultado { display: grid; gap: 6px; padding: 12px; border-radius: 12px; }
+.cancion-resultado p { margin: 0; }
+.cancion-resultado-bien { background: #eaf5ee; border: 1px solid var(--hit); }
+.cancion-resultado-mal { background: var(--rm-soft, #f6f1e8); border: 1px solid var(--rm-line, #dfd5c9); }
+.cancion-resultado-titulo { font-size: 1.15rem; font-weight: 800; color: var(--rm-plum, #51404c); }
+.cancion-resultado-puntos { font-weight: 700; color: var(--hit); }
+.cancion-resultado-mal .cancion-resultado-puntos { color: var(--rm-muted, #746d69); }
+.cancion-escuchar { display: inline-grid; place-items: center; min-height: 44px; padding: 0 12px; border: 1px solid var(--rm-line, #dfd5c9); border-radius: 9px; background: var(--rm-surface, #fffdf9); color: var(--rm-ink, #332f32); font-weight: 600; text-decoration: none; }
+
+/* Summary */
+.cancion-resumen { display: grid; gap: 10px; text-align: center; }
+.cancion-resumen p { margin: 0; }
+.cancion-resumen-total { font-size: 1.1rem; }
+.cancion-resumen-total strong { font-size: 2.6rem; color: var(--azul); font-variant-numeric: tabular-nums; }
+.cancion-emojis { font-size: 1.7rem; line-height: 1.25; letter-spacing: .08em; white-space: pre-line; }
+.cancion-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 0; }
+.cancion-stats div { padding: 8px; border-radius: 10px; background: var(--rm-soft, #f6f1e8); }
+.cancion-stats dt { font-size: .74rem; color: var(--rm-muted, #746d69); text-transform: uppercase; letter-spacing: .04em; }
+.cancion-stats dd { margin: 2px 0 0; font-size: 1.15rem; font-weight: 800; }
+.cancion-manana, .cancion-nota { color: var(--rm-muted, #746d69); font-size: .88rem; }
+.cancion-modo { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; justify-content: center; font-size: .9rem; }
+.cancion-modo select { min-height: 40px; }
+.cancion-resumen-lista { display: grid; gap: 4px; margin: 4px 0 0; padding: 0; list-style: none; text-align: left; }
+#contenidoPrincipal .cancion .cancion-resumen-fila, .cancion .cancion-resumen-fila { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; width: 100%; padding: 8px 10px; border: 1px solid var(--rm-line, #dfd5c9); background: var(--rm-surface, #fffdf9); color: var(--rm-ink, #332f32); box-shadow: none; font-weight: 400; text-align: left; }
+.cancion-resumen-fila span span { color: var(--rm-muted, #746d69); }
+.cancion-resumen-emoji { font-size: 1.2rem; }
+.cancion-resumen-pts { font-weight: 700; color: var(--hit); }
+
+/* Friends */
+.cancion-amigos { display: grid; gap: 10px; }
+.cancion-tabla { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.cancion-tabla li { display: grid; grid-template-columns: 24px 1fr auto; grid-template-areas: 'pos nombre pts' 'pos linea linea'; gap: 2px 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--rm-line, #dfd5c9); border-radius: 10px; }
+.cancion-tabla-yo { background: var(--azul-suave); border-color: #b9c9de !important; }
+.cancion-tabla-pos { grid-area: pos; font-weight: 800; color: var(--azul); }
+.cancion-tabla-nombre { grid-area: nombre; font-weight: 700; overflow-wrap: anywhere; }
+.cancion-tabla-linea { grid-area: linea; letter-spacing: .05em; }
+.cancion-tabla-pts { grid-area: pts; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cancion-vacio { display: grid; gap: 10px; justify-items: start; color: var(--rm-muted, #746d69); }
+.cancion-cargando { color: var(--rm-muted, #746d69); }
+
+/* Rules */
+.cancion-reglas { margin-top: 16px; font-size: .9rem; }
+.cancion-reglas summary { cursor: pointer; font-weight: 600; color: var(--rm-plum, #51404c); min-height: 32px; }
+.cancion-reglas ul { margin: 6px 0 0; padding-left: 1.2rem; }
+.cancion-reglas li + li { margin-top: 5px; }
+.cancion-fuente { color: var(--rm-muted, #746d69); font-size: .84rem; }
+.cancion-perfil { margin: 4px 0 0; color: var(--rm-muted, #746d69); font-size: .9rem; }
+
+@media (min-width: 560px) {
+    .cancion { --caja: 34px; }
+    .cancion-pistas { grid-template-columns: repeat(6, 1fr); }
+    .cancion-stats { grid-template-columns: repeat(4, 1fr); }
+    .cancion-puntos { grid-template-columns: repeat(11, 1fr); }
+}
+@media (max-width: 360px) { .cancion { --caja: 25px; } .cancion-letra { font-size: .92rem; } }
+@media (prefers-reduced-motion: reduce) { .cancion-girar { animation: none; } }

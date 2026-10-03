@@ -6,7 +6,7 @@
     const main = $('contenidoPrincipal'), flow = $('flujoPublicaciones'), composer = $('compositorMuro');
     // Persistent controls stay outside the view that administration temporarily replaces.
     document.body.insertBefore($('notificaciones'),document.querySelector('.site-layout'));
-    for(const id of ['inicioNav','actividadNav','miPerfil','musicaNav','peliculasNav','librosNav','videosNav','juegosNav','poolNav','bachilleratoNav','naipesNav','memesNav','amigosNav','eventosNav','diarioNav','listasNav','guardadosNav','blackjackNav'])$('navegacion').append($(id));
+    for(const id of ['inicioNav','actividadNav','miPerfil','musicaNav','peliculasNav','librosNav','videosNav','juegosNav','poolNav','bachilleratoNav','naipesNav','cancionNav','memesNav','amigosNav','eventosNav','diarioNav','listasNav','guardadosNav','blackjackNav'])$('navegacion').append($(id));
     const install=$('instalarApp'),installHome=install.parentElement,mobile=matchMedia('(max-width:700px)');
     const placeInstall=()=>{if(mobile.matches)main.prepend(install);else installHome.append(install);};
     mobile.addEventListener('change',placeInstall);placeInstall();
@@ -27,6 +27,7 @@
         juegosNav:'M7 7h10c3 0 4 3 5 10 0 4-4 2-6-1H8c-2 3-6 5-6 1 1-7 2-10 5-10ZM6 11v5m-2-2h5m7-2h.01m3 3h.01',
         poolNav:'M4 4h16v16H4ZM5 5l3 3m11-3-3 3M5 19l3-3m11 3-3-3M10 10h.01m4 4h.01',
         naipesNav:'M4 5h9v14H4ZM13 8l6 2-4 11-2-.7M7 9h.01M10 15h.01',
+        cancionNav:'M9 18V6l10-2v12M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM19 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM9 10l10-2',
         bachilleratoNav:'M5 3h14v18H5ZM8 7h8M8 11h8M8 15h5M15 15l1.5 1.5L19 13',
         blackjackNav:'m7 2 13 3-4 17-13-3Zm5 6-4 4 2 4 4-4Z',
         miPerfil:'M4 21v-3c0-4 16-4 16 0v3M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z'
@@ -55,7 +56,7 @@
         const params=new URLSearchParams(location.search),profile=params.get('perfil'),section=params.get('seccion')||'inicio';
         document.body.dataset.section=profile?'perfil':section;
         document.body.classList.toggle('profile-page',Boolean(profile));
-        flow.hidden=!profile&&['amigos','blackjack','pool','bachillerato','naipes','eventos','videos','administracion'].includes(section);
+        flow.hidden=!profile&&['amigos','blackjack','pool','bachillerato','naipes','cancion','eventos','videos','administracion'].includes(section);
         const destination=profile?$('perfilTimeline'):main;
         if(profile){if(flow.parentElement!==destination)destination.append(flow);}
         else if(flow.parentElement!==main)main.insertBefore(flow,$('chatComunitario'));

@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="pool.css?v=20261001-6">
     <link rel="stylesheet" href="bachillerato.css?v=20261003-1">
     <link rel="stylesheet" href="naipes.css?v=20261003-1">
+    <link rel="stylesheet" href="cancion.css?v=20261003-1">
 </head>
 <body class="social-app">
 <a class="saltar-contenido" href="#contenidoPrincipal">Saltar al contenido</a>
@@ -31,7 +32,7 @@
   <a id="perfilLateral" class="perfil-lateral" hidden><span id="avatarLateral" aria-hidden="true"></span><span><strong id="nombreLateral"></strong><small>Ver mi perfil</small></span></a>
   <p class="etiqueta-lateral">TU COMUNIDAD</p>
       <nav id="navegacion" aria-label="Navegación principal" hidden>
-        <a id="inicioNav" href="./">Inicio</a><a id="diarioNav" href="?seccion=diario" hidden>Diario</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="poolNav" href="?seccion=pool" hidden>Pool</a><a id="bachilleratoNav" href="?seccion=bachillerato" hidden>Bachillerato</a><a id="naipesNav" href="?seccion=naipes" hidden>Cartas</a><a id="peliculasNav" href="?seccion=peliculas" hidden>Películas</a><a id="librosNav" href="?seccion=libros" hidden>Libros</a><a id="memesNav" href="?seccion=memes" hidden>Memes</a><a id="blackjackNav" href="?seccion=blackjack" hidden>Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a>
+        <a id="inicioNav" href="./">Inicio</a><a id="diarioNav" href="?seccion=diario" hidden>Diario</a><a id="musicaNav" href="?seccion=musica" hidden>Música</a><a id="actividadNav" href="?seccion=actividad" hidden>Actividad de amigos</a><a id="eventosNav" href="?seccion=eventos" hidden>Eventos</a><a id="videosNav" href="?seccion=videos" hidden>Videos</a><a id="juegosNav" href="?seccion=juegos" hidden>Juegos</a><a id="poolNav" href="?seccion=pool" hidden>Pool</a><a id="bachilleratoNav" href="?seccion=bachillerato" hidden>Bachillerato</a><a id="naipesNav" href="?seccion=naipes" hidden>Cartas</a><a id="cancionNav" href="?seccion=cancion" hidden>Adivina la canción</a><a id="peliculasNav" href="?seccion=peliculas" hidden>Películas</a><a id="librosNav" href="?seccion=libros" hidden>Libros</a><a id="memesNav" href="?seccion=memes" hidden>Memes</a><a id="blackjackNav" href="?seccion=blackjack" hidden>Blackjack</a><a id="amigosNav" href="?seccion=amigos" hidden>Amigos</a><a id="guardadosNav" href="?seccion=guardados" hidden>Guardados</a><a id="listasNav" href="?seccion=listas" hidden>Mis listas</a><a id="miPerfil" hidden>Mi perfil</a>
     </nav>
   <div class="sidebar-pie"><p id="descripcionSitio">Un lugar para compartir lo que escuchamos.</p>    <button id="instalarApp" type="button" aria-controls="estadoInstalacion" hidden>Instalar RedMusica</button><span>Música, historias y buena compañía.</span></div>
  </aside>
@@ -56,7 +57,7 @@
             <div class="perfil-portada-datos"><div id="fotoPerfilPublico"></div><div class="perfil-portada-texto"><div id="rangoPerfilPublico"></div><h2 id="tituloPerfilPublico">Cargando perfil…</h2><p id="fechaPerfilPublico"></p></div></div>
         </header>
  <div class="perfil-relaciones"><p id="presenciaPerfil" class="indicador-presencia" data-user-id=""></p>
-        <p id="conteoSeguidores"></p><p id="poolPerfil" class="pool-perfil" hidden></p><p id="tuttiPerfil" class="tutti-perfil" hidden></p><p id="naipesPerfil" class="naipes-perfil" hidden></p><button id="seguirPerfil" type="button" hidden></button>
+        <p id="conteoSeguidores"></p><p id="poolPerfil" class="pool-perfil" hidden></p><p id="tuttiPerfil" class="tutti-perfil" hidden></p><p id="naipesPerfil" class="naipes-perfil" hidden></p><p id="cancionPerfil" class="cancion-perfil" hidden></p><button id="seguirPerfil" type="button" hidden></button>
         <button id="amistadPerfil" type="button" hidden></button><button id="rechazarAmistad" type="button" hidden>Rechazar solicitud</button>
         <p id="estadoAmistadPerfil" role="status"></p>
         <button id="compartirPerfilBoton" type="button">Compartir perfil</button></div>
@@ -235,6 +236,31 @@
                 <div id="naipesVista" class="naipes-vista"></div>
             </div>
             <details id="naipesReglas" class="naipes-reglas"><summary>Reglas</summary><div id="naipesReglasTexto"></div></details>
+        </section>
+    </section>
+    <section id="seccionCancion" aria-labelledby="tituloSeccionCancion" hidden>
+        <h2 id="tituloSeccionCancion">Adivina la canción</h2>
+        <section id="cancion" class="cancion" aria-label="Adivina la canción">
+            <p class="cancion-intro">Cada día hay <strong>10 canciones</strong> nuevas, las mismas para todos. Tienes 6 intentos por canción: escribe una canción, elígela y mira las pistas de colores.</p>
+            <div class="cancion-pestanas" role="tablist" aria-label="Modo de juego">
+                <button id="cancionTabDia" type="button" role="tab" aria-selected="true" aria-controls="cancionPanel">Desafío del día</button>
+                <button id="cancionTabPractica" type="button" role="tab" aria-selected="false" aria-controls="cancionPanel">Práctica libre</button>
+                <button id="cancionTabAmigos" type="button" role="tab" aria-selected="false" aria-controls="cancionPanel">Amigos</button>
+            </div>
+            <p id="cancionAcceso" class="cancion-aviso" hidden><a href="./">Inicia sesión desde Inicio</a> para jugar el desafío del día. La práctica libre la puedes jugar igual.</p>
+            <p id="cancionEstado" class="cancion-estado" role="status" aria-live="polite"></p>
+            <div id="cancionPanel" class="cancion-panel" role="tabpanel"></div>
+            <details class="cancion-reglas"><summary>¿Cómo se juega?</summary>
+                <ul>
+                    <li>Escribe el nombre de una canción o de un artista y elige una de la lista. Cada intento te da pistas:</li>
+                    <li><span class="cancion-muestra cancion-hit">✓</span> verde: igual que la canción escondida. <span class="cancion-muestra cancion-near">≈</span> amarillo: cerca (el año a 3 o menos, el mismo continente, un género parecido, comparten un artista o ambos son solistas). <span class="cancion-muestra cancion-miss">✕</span> gris: no.</li>
+                    <li>En el año, la flecha ↑ indica que la canción es más nueva y ↓ que es más antigua.</li>
+                    <li>Las cajitas del título muestran cuántas letras tiene cada palabra. Se encienden las letras que pusiste en el mismo lugar; después de 2 fallos aparece la primera letra de cada palabra y después de 4, el artista.</li>
+                    <li>Puntos: 6 si la adivinas al primer intento, 5 al segundo… y 1 al sexto. Máximo 60 al día.</li>
+                    <li>El desafío cambia a medianoche (hora de Chile). En la práctica libre puedes jugar todas las veces que quieras, pero no suma puntos.</li>
+                </ul>
+                <p class="cancion-fuente">No se usan grabaciones ni letras: solo datos de las canciones (título, artista, año, país, género e idioma).</p>
+            </details>
         </section>
     </section>
     <section id="seccionJuegos" aria-labelledby="tituloJuegos" hidden>
@@ -565,10 +591,10 @@
     <form id="buscarGifs"><label class="solo-lectores" for="textoBuscarGifs">Buscar GIFs</label><input id="textoBuscarGifs" type="search" maxlength="50" placeholder="Buscar GIFs…" required><button type="submit">Buscar</button></form>
     <div id="resultadosGifs" aria-live="polite"></div>
 </dialog>
-<script src="interface.js?v=20261003-2" defer></script>
+<script src="interface.js?v=20261003-3" defer></script>
 <script src="radio-panel.js?v=20260929-2" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20261003-2" defer></script>
+<script src="script.js?v=20261003-3" defer></script>
 <script src="pwa.js?v=20260928-1" defer></script>
 </body>
 </html>

@@ -27,6 +27,7 @@
     let viendoPool = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'pool';
     let viendoBachillerato = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'bachillerato';
     let viendoNaipes = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'naipes';
+    let viendoCancion = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'cancion';
     let viendoMusica = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'musica';
     let viendoBlackjack = !viendoPerfil && new URLSearchParams(location.search).get('seccion') === 'blackjack';
     let listaActualId = new URLSearchParams(location.search).get('lista');
@@ -49,7 +50,7 @@
     document.getElementById("navegacion").hidden = false;
     document.getElementById("perfilPublico").hidden = !viendoPerfil;
     document.getElementById("crearPublicacion").hidden = !viendoMusica;
-    document.getElementById('compositorMuro').hidden = viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoDiario || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || (viendoPool||viendoBachillerato||viendoNaipes) || viendoMusica || viendoBlackjack;
+    document.getElementById('compositorMuro').hidden = viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoDiario || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || (viendoPool||viendoBachillerato||viendoNaipes||viendoCancion) || viendoMusica || viendoBlackjack;
     document.getElementById('seccionDiario').hidden = !viendoDiario;
     document.getElementById('compositorDiario').hidden = !viendoDiario;
     document.getElementById('crearMeme').hidden = !viendoMemes;
@@ -63,12 +64,13 @@
     document.getElementById('seccionPool').hidden = !viendoPool;
     document.getElementById('seccionBachillerato').hidden = !viendoBachillerato;
     document.getElementById('seccionNaipes').hidden = !viendoNaipes;
+    document.getElementById('seccionCancion').hidden = !viendoCancion;
     document.getElementById('seccionBlackjack').hidden = !viendoBlackjack;
     document.getElementById('memesNav').setAttribute('aria-current',viendoMemes?'page':'false');
     document.getElementById('peliculasNav').setAttribute('aria-current',viendoPeliculas?'page':'false');
     document.getElementById('amigosNav').hidden = !viendoAmigos;
     document.getElementById('seccionAmigos').hidden = !viendoAmigos;
-    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoLibros&&!viendoDiario&&!viendoAmigos&&!viendoEventos&&!viendoJuegos&&!(viendoPool||viendoBachillerato||viendoNaipes)&&!viendoMusica?'page':'false');
+    document.getElementById('inicioNav').setAttribute('aria-current',!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoLibros&&!viendoDiario&&!viendoAmigos&&!viendoEventos&&!viendoJuegos&&!(viendoPool||viendoBachillerato||viendoNaipes||viendoCancion)&&!viendoMusica?'page':'false');
     document.getElementById('musicaNav').setAttribute('aria-current',viendoMusica?'page':'false');
     if(viendoAmigos)document.title='Amigos · RedMusica';
     if (viendoPerfil) {
@@ -238,7 +240,7 @@
     const estadoPerfil = document.getElementById("estadoPerfil");
 
     function actualizarVisibilidadCuenta(){
-        const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoLibros&&!viendoDiario&&!viendoAmigos&&!viendoActividad&&!viendoGuardados&&!viendoListas&&!viendoEventos&&!viendoVideos&&!viendoJuegos&&!(viendoPool||viendoBachillerato||viendoNaipes)&&!viendoMusica&&!viendoBlackjack;
+        const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoLibros&&!viendoDiario&&!viendoAmigos&&!viendoActividad&&!viendoGuardados&&!viendoListas&&!viendoEventos&&!viendoVideos&&!viendoJuegos&&!(viendoPool||viendoBachillerato||viendoNaipes||viendoCancion)&&!viendoMusica&&!viendoBlackjack;
         const recuperacion=Boolean(usuario&&recuperando&&inicio);
         cuenta.hidden=!(inicio&&(!usuario||recuperacion));
         const sesion=document.getElementById('sesionPerfil');
@@ -305,19 +307,20 @@
         document.getElementById('poolNav').hidden = !usuario;
         document.getElementById('bachilleratoNav').hidden = !usuario;
         document.getElementById('naipesNav').hidden = !usuario;
+        document.getElementById('cancionNav').hidden = !usuario;
         document.getElementById('librosNav').hidden = !usuario;
         document.getElementById('diarioNav').hidden = !usuario;
         document.getElementById('memesNav').hidden = sesionLista&&!usuario;
         document.getElementById('peliculasNav').hidden = sesionLista&&!usuario;
         document.getElementById('blackjackNav').hidden = sesionLista&&!usuario;
-        document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack || (viendoPool||viendoBachillerato||viendoNaipes);
-        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoDiario || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || (viendoPool||viendoBachillerato||viendoNaipes) || viendoMusica || viendoBlackjack;
+        document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack || (viendoPool||viendoBachillerato||viendoNaipes||viendoCancion);
+        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoDiario || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || (viendoPool||viendoBachillerato||viendoNaipes||viendoCancion) || viendoMusica || viendoBlackjack;
         document.getElementById('seccionDiario').hidden = !viendoDiario;
         document.getElementById('compositorDiario').hidden = !usuario || !viendoDiario;
         document.getElementById('dockAmigos').hidden = !usuario;
         document.getElementById('abrirDockAmigos').hidden = !usuario;
         actualizarVisibilidadCuenta();
-        if(viendoAmigos||viendoBlackjack||(viendoPool||viendoBachillerato||viendoNaipes)){
+        if(viendoAmigos||viendoBlackjack||(viendoPool||viendoBachillerato||viendoNaipes||viendoCancion)){
             ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas','chatComunitario'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=true;});
         }
         const nombre = document.getElementById('nombrePerfil');
@@ -1638,13 +1641,14 @@
         viendoPool = !viendoPerfil && params.get('seccion') === 'pool';
         viendoBachillerato = !viendoPerfil && params.get('seccion') === 'bachillerato';
         viendoNaipes = !viendoPerfil && params.get('seccion') === 'naipes';
+        viendoCancion = !viendoPerfil && params.get('seccion') === 'cancion';
         viendoMusica = !viendoPerfil && params.get('seccion') === 'musica';
         if(!viendoDiario){filtroDiario='';document.getElementById('buscarDiario').value='';}
         listaActualId=params.get('lista');
         idPerfilValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(perfilSolicitado || '');
         document.getElementById('perfilPublico').hidden = !viendoPerfil;
         document.getElementById('crearPublicacion').hidden = !viendoMusica;
-        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoDiario || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || (viendoPool||viendoBachillerato||viendoNaipes) || viendoMusica || viendoBlackjack;
+        document.getElementById('compositorMuro').hidden = !usuario || viendoPerfil || viendoMemes || viendoPeliculas || viendoLibros || viendoDiario || viendoAmigos || viendoActividad || viendoGuardados || viendoListas || viendoEventos || viendoVideos || viendoJuegos || (viendoPool||viendoBachillerato||viendoNaipes||viendoCancion) || viendoMusica || viendoBlackjack;
         document.getElementById('seccionDiario').hidden = !viendoDiario;
         document.getElementById('compositorDiario').hidden = !usuario || !viendoDiario;
         document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
@@ -1656,6 +1660,7 @@
         document.getElementById('seccionPool').hidden = !viendoPool;
     document.getElementById('seccionBachillerato').hidden = !viendoBachillerato;
     document.getElementById('seccionNaipes').hidden = !viendoNaipes;
+    document.getElementById('seccionCancion').hidden = !viendoCancion;
         document.getElementById('seccionEventos').hidden = !viendoEventos;
         document.getElementById('seccionBlackjack').hidden = !viendoBlackjack;
         document.getElementById('seccionAmigos').hidden = !viendoAmigos;
@@ -1669,35 +1674,36 @@
         document.getElementById('poolNav').setAttribute('aria-current',viendoPool?'page':'false');
         document.getElementById('bachilleratoNav').setAttribute('aria-current',viendoBachillerato?'page':'false');
         document.getElementById('naipesNav').setAttribute('aria-current',viendoNaipes?'page':'false');
+        document.getElementById('cancionNav').setAttribute('aria-current',viendoCancion?'page':'false');
         document.getElementById('musicaNav').setAttribute('aria-current',viendoMusica?'page':'false');
         document.getElementById('blackjackNav').setAttribute('aria-current',viendoBlackjack?'page':'false');
         document.getElementById('diarioNav').setAttribute('aria-current',viendoDiario?'page':'false');
         actualizarVisibilidadCuenta();
-        document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack || (viendoPool||viendoBachillerato||viendoNaipes);
-        ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack||(viendoPool||viendoBachillerato||viendoNaipes);});
+        document.getElementById('chatComunitario').hidden = !usuario || viendoAmigos || viendoBlackjack || (viendoPool||viendoBachillerato||viendoNaipes||viendoCancion);
+        ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack||(viendoPool||viendoBachillerato||viendoNaipes||viendoCancion);});
         document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
         document.getElementById('memesNav').setAttribute('aria-current', viendoMemes ? 'page' : 'false');
         document.getElementById('peliculasNav').setAttribute('aria-current', viendoPeliculas ? 'page' : 'false');
         document.getElementById('librosNav').setAttribute('aria-current',viendoLibros?'page':'false');
-        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoLibros && !viendoDiario && !viendoAmigos && !viendoActividad && !viendoGuardados && !viendoListas && !viendoEventos && !viendoVideos && !viendoJuegos && !(viendoPool||viendoBachillerato||viendoNaipes) && !viendoMusica && !viendoBlackjack ? 'page' : 'false');
+        document.getElementById('inicioNav').setAttribute('aria-current', !viendoPerfil && !viendoMemes && !viendoPeliculas && !viendoLibros && !viendoDiario && !viendoAmigos && !viendoActividad && !viendoGuardados && !viendoListas && !viendoEventos && !viendoVideos && !viendoJuegos && !(viendoPool||viendoBachillerato||viendoNaipes||viendoCancion) && !viendoMusica && !viendoBlackjack ? 'page' : 'false');
         document.getElementById('tituloFeed').textContent = viendoPerfil ? 'Publicaciones de este perfil' : viendoMemes ? 'Memes de la comunidad' : viendoPeliculas ? 'Reseñas de películas' : viendoLibros ? 'Reseñas de libros' : viendoJuegos ? 'Reseñas de juegos' : viendoDiario ? 'Diarios de la comunidad' : viendoMusica ? 'Publicaciones de música' : viendoActividad ? 'Actividad de tus amigos' : viendoGuardados ? 'Guardados' : viendoListas ? 'Mis listas' : 'Publicaciones del muro';
         document.getElementById('feedVacio').textContent = viendoPerfil ? 'Este usuario todavía no ha publicado.' : viendoMemes ? 'Todavía no hay memes. ¡Comparte el primero!' : viendoPeliculas ? 'Todavía no hay reseñas. ¡Comparte la primera!' : viendoLibros ? 'Todavía no hay reseñas de libros. ¡Comparte la primera!' : viendoJuegos ? 'Todavía no hay reseñas de juegos. ¡Publica la primera!' : viendoDiario ? 'Todavía no hay entradas. Escribe la primera.' : viendoMusica ? 'Todavía no hay álbumes reseñados. ¡Comparte el primero!' : viendoActividad ? 'Agrega amigos para ver sus publicaciones aquí.' : viendoGuardados ? 'Todavía no guardas publicaciones.' : viendoListas ? 'Esta lista todavía no tiene publicaciones.' : 'Todavía no hay publicaciones. Comparte algo en el muro.';
-        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoLibros ? 'Libros · RedMusica' : viendoDiario ? 'Diario · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : viendoActividad ? 'Actividad de amigos · RedMusica' : viendoGuardados ? 'Guardados · RedMusica' : viendoListas ? 'Mis listas · RedMusica' : viendoBlackjack ? 'Blackjack · RedMusica' : viendoPool ? 'Pool · RedMusica' : viendoBachillerato ? 'Bachillerato · RedMusica' : viendoNaipes ? 'Cartas · RedMusica' : viendoEventos ? 'Eventos · RedMusica' : viendoVideos ? 'Videos · RedMusica' : viendoJuegos ? 'Juegos · RedMusica' : viendoMusica ? 'Música · RedMusica' : 'RedMusica';
+        document.title = viendoPerfil ? 'Perfil · RedMusica' : viendoMemes ? 'Memes · RedMusica' : viendoPeliculas ? 'Películas · RedMusica' : viendoLibros ? 'Libros · RedMusica' : viendoDiario ? 'Diario · RedMusica' : viendoAmigos ? 'Amigos · RedMusica' : viendoActividad ? 'Actividad de amigos · RedMusica' : viendoGuardados ? 'Guardados · RedMusica' : viendoListas ? 'Mis listas · RedMusica' : viendoBlackjack ? 'Blackjack · RedMusica' : viendoPool ? 'Pool · RedMusica' : viendoBachillerato ? 'Bachillerato · RedMusica' : viendoNaipes ? 'Cartas · RedMusica' : viendoCancion ? 'Adivina la canción · RedMusica' : viendoEventos ? 'Eventos · RedMusica' : viendoVideos ? 'Videos · RedMusica' : viendoJuegos ? 'Juegos · RedMusica' : viendoMusica ? 'Música · RedMusica' : 'RedMusica';
         if (!viendoPerfil) {
             document.getElementById('fotoPerfilPublico').replaceChildren();
             document.getElementById('rangoPerfilPublico').replaceChildren();
             document.getElementById('tituloPerfilPublico').textContent = 'Cargando perfil…';
             document.getElementById('resumenPerfilPublico').textContent = '';
         document.getElementById('compartirPerfil').hidden = true;
-            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack||(viendoPool||viendoBachillerato||viendoNaipes)||(viendoListas&&!listaActualId);});
-            document.getElementById('chatComunitario').hidden=!usuario||viendoAmigos||viendoBlackjack||(viendoPool||viendoBachillerato||viendoNaipes);
+            ['tituloFeed','feedVacio','estadoFeed','actualizarFeed','feed','verMas'].forEach(id=>{const element=document.getElementById(id);if(element)element.hidden=viendoAmigos||viendoBlackjack||(viendoPool||viendoBachillerato||viendoNaipes||viendoCancion)||(viendoListas&&!listaActualId);});
+            document.getElementById('chatComunitario').hidden=!usuario||viendoAmigos||viendoBlackjack||(viendoPool||viendoBachillerato||viendoNaipes||viendoCancion);
             actualizarVisibilidadCuenta();
             document.getElementById('presenciaPerfil').dataset.userId='';
             document.getElementById('amistadPerfil').hidden=true;
             document.getElementById('rechazarAmistad').hidden=true;
         }
         window.redmusicaUI?.updateRoute();
-        if(cargar!==false&&!(viendoPool||viendoBachillerato||viendoNaipes))return cargarFeed(true);
+        if(cargar!==false&&!(viendoPool||viendoBachillerato||viendoNaipes||viendoCancion))return cargarFeed(true);
     }
     document.addEventListener('click', event => {
         const target = event.target instanceof Element ? event.target : event.target.parentElement;
