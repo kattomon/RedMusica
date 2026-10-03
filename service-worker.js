@@ -1,6 +1,6 @@
 'use strict';
 
-const SHELL_CACHE = 'redmusica-shell-v20';
+const SHELL_CACHE = 'redmusica-shell-v21';
 const SHELL_FILES = [
     './',
     './index.html',
@@ -11,7 +11,7 @@ const SHELL_FILES = [
     './pool.css?v=20261001-6',
     './bachillerato.css?v=20261003-1',
     './naipes.css?v=20261003-1',
-    './cancion.css?v=20261003-1',
+    './cancion.css?v=20261003-2',
     './interface.js?v=20261003-3',
     './site.webmanifest?v=20260929-1',
     './app-icon.svg',
@@ -21,7 +21,7 @@ const SHELL_FILES = [
     './radio-panel.js?v=20260929-2',
     './radio.html',
     './radio.js?v=20260929-2',
-    './script.js?v=20261003-3',
+    './script.js?v=20261003-4',
     './pwa.js?v=20260928-1',
     './covers.js?v=20260927-18',
     './search.js?v=20260927-18',
@@ -34,7 +34,7 @@ const SHELL_FILES = [
     './bachillerato.js?v=20261003-1',
     './supabase/functions/bachillerato/logic.js?v=20261003-1',
     './naipes.js?v=20261003-1',
-    './cancion.js?v=20261003-1',
+    './cancion.js?v=20261003-2',
     './local.js?v=20260927-18'
 ];
 const STATIC_PATHS = new Set(SHELL_FILES.map(file => new URL(file, self.registration.scope).pathname));

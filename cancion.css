@@ -135,3 +135,74 @@ body.sesion-pendiente #seccionCancion { display: none !important; }
 }
 @media (max-width: 360px) { .cancion { --caja: 25px; } .cancion-letra { font-size: .92rem; } }
 @media (prefers-reduced-motion: reduce) { .cancion-girar { animation: none; } }
+
+/* ---- Bandle-style steps, packs, archive, bonus round, live rooms, audio ---- */
+.cancion-pestanas { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 520px) { .cancion-pestanas { grid-template-columns: repeat(6, 1fr); } .cancion-pestanas button { grid-column: span 2; } .cancion-pestanas button:nth-child(n+4) { grid-column: span 3; } }
+#contenidoPrincipal .cancion .cancion-chico, .cancion .cancion-chico { min-height: 36px; padding: 4px 10px; font-size: .84rem; }
+.cancion-cabecera-acciones { display: flex; justify-content: flex-end; }
+.cancion-numero-fila { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.cancion-pasos { display: inline-flex; gap: 4px; }
+.cancion-paso { width: 18px; height: 18px; border-radius: 4px; background: #ebe5dc; border: 2px solid transparent; }
+.cancion-paso-skip { background: #3a3a3a; }
+.cancion-paso-wrong { background: #c6463b; }
+.cancion-paso-right { background: var(--hit); }
+.cancion-paso-now { border-color: var(--azul); background: var(--azul-suave); }
+.cancion-pistas-capas { display: grid; gap: 8px; }
+.cancion-titulo-cerrado { color: #ffffffcc; font-weight: 700; font-size: 1.05rem; letter-spacing: .02em; }
+.cancion-capas { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.cancion-capa { display: grid; grid-template-columns: 26px minmax(0, 7.5rem) 1fr; gap: 8px; align-items: center; min-height: 36px; padding: 4px 8px; border-radius: 9px; background: #f1ece4; color: var(--rm-muted, #746d69); font-size: .88rem; }
+.cancion-capa-abierta { background: var(--azul-suave); color: var(--rm-ink, #332f32); }
+.cancion-capa-nueva { box-shadow: inset 0 0 0 2px var(--azul); }
+.cancion-capa-n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #fff; font-weight: 800; font-size: .8rem; }
+.cancion-capa-nombre { font-weight: 600; font-size: .8rem; }
+.cancion-capa-valor { font-weight: 700; overflow-wrap: anywhere; }
+.cancion-capa:not(.cancion-capa-abierta) .cancion-capa-valor { font-weight: 400; font-style: italic; }
+#contenidoPrincipal .cancion .cancion-saltar, .cancion .cancion-saltar { flex: 1 1 140px; border: 2px solid var(--azul); background: var(--rm-surface, #fffdf9); color: var(--azul); box-shadow: none; }
+.cancion-dist { display: grid; gap: 3px; margin: 4px 0 0; text-align: left; }
+.cancion-dist figcaption { margin-bottom: 4px; color: var(--rm-muted, #746d69); font-size: .82rem; text-align: center; }
+.cancion-dist-fila { display: grid; grid-template-columns: 18px 1fr; gap: 6px; align-items: center; }
+.cancion-dist-paso { font-weight: 800; font-size: .85rem; text-align: center; }
+.cancion-dist-barra { display: block; min-width: 22px; padding: 2px 6px; border-radius: 4px; background: var(--hit); color: #fff; font-size: .8rem; font-weight: 700; text-align: right; box-sizing: border-box; }
+.cancion-dist-barra-mal { background: var(--miss); }
+.cancion-archivo, .cancion-paquetes, .cancion-trivia, .cancion-vivo, .cancion-audio { display: grid; gap: 10px; }
+.cancion-dias { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+#contenidoPrincipal .cancion .cancion-dia, .cancion .cancion-dia { display: grid; gap: 2px; width: 100%; padding: 8px; border: 1px solid var(--rm-line, #dfd5c9); background: var(--rm-surface, #fffdf9); color: var(--rm-ink, #332f32); box-shadow: none; text-align: left; }
+.cancion-dia span { color: var(--rm-muted, #746d69); font-size: .82rem; font-weight: 400; }
+#contenidoPrincipal .cancion .cancion-dia-actual, .cancion .cancion-dia-actual { border-color: var(--azul); background: var(--azul-suave); }
+.cancion-paquetes-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+#contenidoPrincipal .cancion .cancion-paquete, .cancion .cancion-paquete { display: grid; gap: 2px; justify-items: start; width: 100%; min-height: 84px; padding: 10px; border: 1px solid #c9d5e4; border-radius: 12px; background: linear-gradient(160deg, #f4f7fb, #e6edf6); color: var(--rm-ink, #332f32); box-shadow: none; text-align: left; }
+#contenidoPrincipal .cancion .cancion-paquete-actual, .cancion .cancion-paquete-actual { border: 2px solid var(--azul); }
+.cancion-paquete-icono { font-size: 1.5rem; }
+.cancion-paquete span:last-child { color: var(--rm-muted, #746d69); font-size: .8rem; font-weight: 400; }
+.cancion-trivia-pregunta { margin: 0; font-size: 1.1rem; font-weight: 700; }
+.cancion-trivia-opciones { display: grid; gap: 6px; }
+#contenidoPrincipal .cancion .cancion-trivia-opcion, .cancion .cancion-trivia-opcion { border: 1px solid var(--rm-line, #dfd5c9); background: var(--rm-surface, #fffdf9); color: var(--rm-ink, #332f32); box-shadow: none; text-align: left; padding: 10px 12px; }
+#contenidoPrincipal .cancion .cancion-trivia-bien, .cancion .cancion-trivia-bien { border-color: var(--hit); background: #eaf5ee; opacity: 1; }
+#contenidoPrincipal .cancion .cancion-trivia-mal, .cancion .cancion-trivia-mal { border-color: #c6463b; background: #fbe9e7; opacity: 1; }
+.cancion-trivia-feedback { margin: 0; font-weight: 700; }
+.cancion-vivo h4 { margin: 6px 0 0; color: var(--rm-plum, #51404c); }
+.cancion-vivo-opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; align-items: end; }
+.cancion-vivo-opciones label { display: grid; gap: 3px; font-size: .84rem; font-weight: 600; }
+.cancion-vivo-opciones select { min-height: 42px; }
+.cancion-unirse { display: flex; gap: 6px; }
+.cancion-unirse input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: .12em; min-height: 44px; }
+.cancion-vivo-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cancion-vivo-barra strong { flex: 1; }
+.cancion-codigo { padding: 2px 8px; border-radius: 6px; background: var(--azul-suave); color: var(--azul); letter-spacing: .12em; }
+#contenidoPrincipal .cancion .cancion-empezar, .cancion .cancion-empezar { background: var(--hit); color: #fff; font-size: 1.05rem; }
+.cancion-espera { margin: 0; color: var(--rm-muted, #746d69); }
+.cancion-cuenta { display: grid; place-items: center; gap: 2px; padding: 18px; border-radius: 14px; background: linear-gradient(160deg, #24364d, #31506f); color: #fff; }
+.cancion-cuenta p { margin: 0; }
+.cancion-cuenta strong { font-size: 3rem; line-height: 1; }
+.cancion-reloj { position: relative; display: inline-block; flex: 1 1 140px; max-width: 260px; height: 22px; border-radius: 999px; background: #ebe5dc; overflow: hidden; }
+.cancion-reloj-barra { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(90deg, #c6463b, var(--near), var(--hit)); transition: width .2s linear; }
+.cancion-reloj-texto { position: relative; display: block; text-align: center; font-size: .8rem; font-weight: 800; line-height: 22px; }
+.cancion-quitar { min-height: 28px !important; margin-left: 6px; padding: 0 8px !important; border: 1px solid var(--rm-line, #dfd5c9) !important; background: transparent !important; color: var(--rm-muted, #746d69) !important; box-shadow: none !important; }
+.cancion-podio { display: grid; gap: 6px; padding: 12px; border-radius: 12px; background: #fbf3dc; text-align: center; }
+.cancion-podio ol { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.cancion-podio li { display: flex; justify-content: center; gap: 8px; font-size: 1.05rem; }
+.cancion-vivo-historia { padding: 6px 8px; border-bottom: 1px solid var(--rm-line, #dfd5c9); text-align: left; }
+#contenidoPrincipal .cancion .cancion-escuchar-boton, .cancion .cancion-escuchar-boton { min-height: 64px; border-radius: 14px; background: linear-gradient(160deg, #24364d, #31506f); color: #fff; font-size: 1.15rem; }
+#contenidoPrincipal .cancion .cancion-sonando, .cancion .cancion-sonando { background: linear-gradient(160deg, #a85449, #7c3b33); }
+.cancion-capas-audio .cancion-capa { grid-template-columns: 26px minmax(0, 8rem) 1fr; }
