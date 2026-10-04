@@ -125,9 +125,6 @@ body.sesion-pendiente #seccionPool { display: none !important; }
 .pool-ayuda { margin: 0; color: var(--rm-muted, #746d69); font-size: .84rem; }
 @media (pointer: coarse) { .pool-ayuda-teclado, .pool-ayuda-raton { display: none; } }
 @media (pointer: fine) { .pool-ayuda-tactil { display: none; } }
-.pool-cantar { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--rm-gold, #b28a48); border-radius: 8px; background: var(--rm-soft, #f6f1e8); }
-.pool-cantar label { font-weight: 700; font-size: .88rem; color: var(--rm-plum, #51404c); }
-.pool-cantar select { min-height: 40px; }
 #poolReclamar { margin-top: 10px; }
 
 /* Result card over the table. */
@@ -239,8 +236,6 @@ body.pool-modo-juego .pool-rueda { border-color: #ffffff30; background: repeatin
 body.pool-modo-juego .pool-rueda span { background: #3b2c33; }
 body.pool-modo-juego .pool-controles { margin: 0; gap: 6px; min-width: 0; }
 body.pool-modo-juego .pool-fuerza, body.pool-modo-juego .pool-ayuda, body.pool-modo-juego #poolGirarIzq, body.pool-modo-juego #poolGirarDer { display: none; }
-body.pool-modo-juego .pool-cantar { border-color: #e0b45a; background: #241a1ee6; }
-body.pool-modo-juego .pool-cantar label { color: #f6d58c; }
 body.pool-modo-juego #poolMesa .pool-secundario, body.pool-modo-juego #poolMesa .pool-secundario:hover { border-color: #ffffff30; background: #2a2025; color: #f5eee6; }
 body.pool-modo-juego #poolMoverBlanca[aria-pressed=true] { border-color: #8fd3bf; background: #2f6f5c; }
 body.pool-modo-juego #poolReclamar { margin: 0; }
@@ -271,7 +266,6 @@ body.pool-modo-juego .pool-estado.pool-estado-oculto { opacity: 0; }
     body.pool-modo-juego .pool-herramientas { grid-area: herr; justify-content: space-evenly; overflow: hidden; }
     body.pool-modo-juego .pool-carga { grid-area: carga; min-height: 0; }
     body.pool-modo-juego #poolTirar { grid-area: tirar; width: 100%; min-width: 0; min-height: 48px; padding: 0 4px; font-size: .95rem; }
-    body.pool-modo-juego #poolCantar { grid-area: lienzo; align-self: start; justify-self: center; z-index: 2; margin-top: 6px; }
     body.pool-modo-juego #poolMoverBlanca { grid-area: lienzo; align-self: end; justify-self: center; z-index: 2; margin-bottom: 8px; min-height: 42px; }
     body.pool-modo-juego #poolDeshacer { grid-area: lienzo; align-self: end; justify-self: start; z-index: 2; margin: 0 0 8px 8px; min-height: 42px; }
     body.pool-modo-juego #poolReclamar { grid-area: lienzo; align-self: start; justify-self: center; z-index: 2; margin-top: 6px; }

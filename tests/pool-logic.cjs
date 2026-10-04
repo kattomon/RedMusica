@@ -68,13 +68,11 @@ const assert=require('node:assert/strict');
  assert.equal(g.winner,B);assert.match(g.reason,/antes de terminar/);
  assert.throws(()=>E.applyShot(g,B,toCorner),/terminó/);
  const onEight=scene({0:[850,150],8:[950,50],12:[200,400]},{groups:{[A]:'solids',[B]:'stripes'}});
- assert.equal(E.mustCallEight(onEight,A),true);assert.equal(E.mustCallEight(onEight,B),false);
- assert.throws(()=>E.applyShot(onEight,A,toCorner),/Elige la tronera/);
- g=E.applyShot(onEight,A,{...toCorner,call:2});
- assert.equal(g.winner,A);assert.equal(g.last.summary.foul,'');assert.equal(g.last.summary.eightPocket,2);assert.equal(g.last.shot.call,2);
+ assert.equal(E.onTheEight(onEight,A),true);assert.equal(E.onTheEight(onEight,B),false);assert.equal(E.mustCallEight(onEight,A),false,'the pocket no longer has to be called');
+ g=E.applyShot(onEight,A,toCorner);
+ assert.equal(g.winner,A,'the 8 wins in any pocket without calling it');assert.equal(g.last.summary.foul,'');assert.equal(g.last.summary.eightPocket,2);assert.match(g.reason,/ganó/);
  g=E.applyShot(onEight,A,{...toCorner,call:0});
- assert.equal(g.winner,B,'the 8 in a pocket that was not called loses');assert.match(g.reason,/otra tronera/);
- assert.throws(()=>E.applyShot(onEight,A,{...toCorner,call:7}),/no es válido/);
+ assert.equal(g.winner,A,'an old page that still sends a call is not penalised');
 
  // Shot clock: the waiting player can take ball in hand when time runs out.
  const late=E.applyTimeout(onEight,B);

@@ -328,8 +328,6 @@ export function applyShot(input, playerId, shot) {
   const before = cloneBalls(game.balls);
   const group = game.groups[playerId] || null;
   const ownLeft = group ? before.filter(b => !b.p && inGroup(group, b.n)).length : null;
-  const onEight = !game.breakShot && !!group && ownLeft === 0;
-  if (onEight && shot.call === undefined) throw new Error('Elige la tronera donde vas a meter la bola 8.');
   const { balls, events } = simulate(before, shot);
   game.balls = balls;
   const pocketed = events.pocketed.filter(n => n !== 0);
@@ -346,12 +344,12 @@ export function applyShot(input, playerId, shot) {
   if (pocketed.includes(8)) {
     if (game.breakShot) { respotEight(game.balls); summary.respotted = true; }
     else {
-      const wrongPocket = onEight && events.pockets[8] !== shot.call;
-      const lost = foul || !group || ownLeft > 0 || wrongPocket;
+      // The 8 may drop in any pocket: no need to call it.
+      const lost = foul || !group || ownLeft > 0;
       game.winner = lost ? opponent : playerId;
-      game.reason = !lost ? 'Metió la bola 8 en la tronera cantada y ganó la partida.'
+      game.reason = !lost ? 'Metió la bola 8 y ganó la partida.'
         : (!group || ownLeft > 0) ? 'Metió la bola 8 antes de terminar su grupo.'
-        : foul ? 'Metió la bola 8 con falta.' : 'Metió la bola 8 en otra tronera.';
+        : 'Metió la bola 8 con falta.';
       summary.eightPocket = events.pockets[8];
     }
   }
@@ -392,10 +390,14 @@ export function applyTimeout(input, claimantId) {
   return game;
 }
 
-/** Whether `playerId` must call a pocket for the 8 on this shot. */
-export function mustCallEight(game, playerId) {
+/** Whether `playerId` is shooting at the 8 (the pocket no longer has to be called). */
+export function onTheEight(game, playerId) {
   const group = game.groups?.[playerId];
   return !game.breakShot && !!group && !game.balls.some(b => !b.p && inGroup(group, b.n));
+}
+/** Kept for older pages: calling a pocket is no longer required. */
+export function mustCallEight() {
+  return false;
 }
 
 /**

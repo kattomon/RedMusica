@@ -8,7 +8,7 @@
     const section = $('poolJuegos');
     const config = window.REDMUSICA_CONFIG;
     const db = config && window.supabase ? window.redmusicaClient || window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
-    const ENGINE_URL = './supabase/functions/pool/engine.js?v=20261003-1';
+    const ENGINE_URL = './supabase/functions/pool/engine.js?v=20261004-1';
     const TURN_LIMIT_MS = 5 * 60 * 1000, SHOT_CLOCK_MS = 60 * 1000;
     const RAIL = 34;
     const COLORS = { 1: '#e3b22f', 2: '#2b4f9e', 3: '#c23b30', 4: '#5c3b86', 5: '#dd7430', 6: '#2e7445', 7: '#7c2733', 8: '#1f1c1f' };
@@ -27,7 +27,7 @@
     let shownGame = null, shownSeq = -1, balls = [], aim = { dx: 1, dy: 0 }, pendingCue = null, placing = false, dragging = false, placementValid = null;
     let striking = false, cueStroke = 0, channel = null, channelCode = '', subscribed = false, broadcastTimer = null, lastBroadcastFetch = 0;
     let sound = null, ringTimer = null, gutterSignature = '', statusTimer = null, drawQueued = 0;
-    let calledPocket = null, timeoutSentFor = null, drops = [], spin = 0, side = 0, callPulse = 0, aimDrag = null;
+    let timeoutSentFor = null, drops = [], spin = 0, side = 0, aimDrag = null;
     // Watching a full table, and the live cue of whoever is shooting (sent over Realtime, cosmetic only).
     let spectating = false, remote = null, remoteFrame = 0, lastAimSig = '', pendingAim = null, aimTimer = null, lastAimSent = 0;
     // Local games (computer or practice).
@@ -137,7 +137,7 @@
         return {
             code: roomCode, sender: user?.id, seq: room.game.seq,
             a: Math.round(Math.atan2(aim.dy, aim.dx) * 1000) / 1000, p: Number($('poolFuerza').value), s: spin, e: side,
-            cue: c ? { x: Math.round(c.x), y: Math.round(c.y) } : null, hand: placing, call: calledPocket
+            cue: c ? { x: Math.round(c.x), y: Math.round(c.y) } : null, hand: placing
         };
     }
     function queueAim() {
@@ -168,7 +168,7 @@
         const cueSpot = payload.cue && finite(payload.cue.x, 0, 1000) && finite(payload.cue.y, 0, 500) ? { x: payload.cue.x, y: payload.cue.y } : null;
         const target = {
             a: payload.a, p: payload.p, s: finite(payload.s, -1, 1) ? payload.s : 0, e: finite(payload.e, -1, 1) ? payload.e : 0,
-            cue: cueSpot, hand: payload.hand === true, call: Number.isInteger(payload.call) && payload.call >= 0 && payload.call < 6 ? payload.call : null
+            cue: cueSpot, hand: payload.hand === true
         };
         const now = performance.now();
         if (!remote || remote.seq !== payload.seq || remote.sender !== payload.sender) remote = { seq: payload.seq, sender: payload.sender, shown: { a: target.a, p: target.p, x: cueSpot?.x, y: cueSpot?.y } };
@@ -291,7 +291,7 @@
             console.error('pool cpu', error);
             if (!local || local.game !== game) return;
             const target = game.balls.find(b => !b.p && b.n) || { x: 750, y: 250 }, c = game.balls.find(b => b.n === 0);
-            const shot = { dx: target.x - (c.p ? 250 : c.x), dy: target.y - (c.p ? 250 : c.y) || 0.001, power: 0.4, ...(c.p ? { cue: { x: 250, y: 250 } } : {}), ...(E.mustCallEight(game, CPU) ? { call: 0 } : {}) };
+            const shot = { dx: target.x - (c.p ? 250 : c.x), dy: target.y - (c.p ? 250 : c.y) || 0.001, power: 0.4, ...(c.p ? { cue: { x: 250, y: 250 } } : {}),  };
             try { local.game = E.applyShot(game, CPU, shot); afterLocalShot(); } catch { local.game = { ...game, turn: me(), ballInHand: 'table' }; }
         } finally { cpuBusy = false; cpuPreview = null; }
         if (local) await show(localRoom());
@@ -378,7 +378,7 @@
             return { dx: apex.x - cuePos.x, dy: apex.y - cuePos.y + gauss() * 1.5, power, cue: cuePos };
         }
         const list = game.balls.filter(b => !b.p && b.n);
-        const targets = targetsFor(game, id), mustCall = E.mustCallEight(game, id);
+        const targets = targetsFor(game, id);
         const candidates = [];
         if (game.ballInHand) {
             // Place the cue ball behind a ghost ball for a straight shot.
@@ -430,13 +430,13 @@
         let scored = [];
         for (let i = 0; i < tries.length; i++) {
             const t = tries[i];
-            const shot = { dx: t.dx, dy: t.dy, power: t.power, ...(t.spin ? { spin: t.spin } : {}), ...(mustCall ? { call: t.call ?? 0 } : {}), ...(t.cue ? { cue: t.cue } : {}) };
+            const shot = { dx: t.dx, dy: t.dy, power: t.power, ...(t.spin ? { spin: t.spin } : {}), ...(t.cue ? { cue: t.cue } : {}) };
             let next;
             try { next = E.applyShot(game, id, shot); } catch { continue; }
             scored.push({ shot, score: scoreOutcome(next, id, cfg) + Math.random() });
             if (i % 3 === 2) { await pause(); if (performance.now() - started > cfg.budget) break; }
         }
-        if (!scored.length) return { dx: 1, dy: 0.01, power: 0.5, ...(game.ballInHand ? { cue: { x: 200, y: 250 } } : {}), ...(mustCall ? { call: 0 } : {}) };
+        if (!scored.length) return { dx: 1, dy: 0.01, power: 0.5, ...(game.ballInHand ? { cue: { x: 200, y: 250 } } : {}) };
         scored.sort((a, b) => b.score - a.score);
         let pick = scored[0];
         if (level === 'facil') { const close = scored.filter(s => s.score > pick.score - 350).slice(0, 3); pick = close[Math.floor(Math.random() * close.length)]; }
@@ -490,13 +490,13 @@
         const game = next.game;
         if (game && (!shownGame || shownGame !== game.id)) {
             shownGame = game.id; shownSeq = game.seq; balls = game.balls; pendingCue = null; placing = false; placementValid = null;
-            orient.clear(); lastSpot.clear(); sprites.clear(); calledPocket = null; drops = [];
+            orient.clear(); lastSpot.clear(); sprites.clear(); drops = [];
             aim = { dx: 1, dy: 0 }; remote = null; lastAimSig = '';
         } else if (game && game.seq !== shownSeq) {
             const last = game.last;
             remote = null; lastAimSig = '';
             if (last && last.shot && last.seq === game.seq && game.seq === shownSeq + 1 && !reduceMotion.matches && !document.hidden && visible()) await animate(last);
-            shownSeq = game.seq; balls = game.balls; pendingCue = null; calledPocket = null;
+            shownSeq = game.seq; balls = game.balls; pendingCue = null;
             if (last) status(describe(last.summary, game));
         }
         if (game && game.ballInHand && game.turn === me() && cue()?.p) placing = true;
@@ -608,11 +608,10 @@
         const won = game?.winner === me();
         if (room.status === 'lobby' || !game) turn.textContent = `Comparte el código ${room.code} o el enlace de invitación para que alguien se una.`;
         else if (game.winner) turn.textContent = mode === 'practice' ? 'Mesa terminada. ' + (game.reason || '') : (won ? '¡Ganaste! ' : `Ganó ${game.winner === CPU ? 'la máquina' : nameOf(game.winner)}. `) + (game.reason || '');
-        else if (myTurn()) turn.textContent = game.ballInHand ? (game.ballInHand === 'kitchen' ? 'Saque: puedes mover la blanca detrás de la línea y luego tirar.' : 'Bola en mano: coloca la blanca donde quieras y tira.') : needsCall() ? 'Vas por la 8: toca la tronera donde la meterás y luego tira.' : 'Te toca. ' + (coarse.matches ? 'Desliza por la mesa para apuntar y baja la barra de fuerza.' : 'Toca o arrastra sobre la mesa para apuntar y elige la fuerza.');
+        else if (myTurn()) turn.textContent = game.ballInHand ? (game.ballInHand === 'kitchen' ? 'Saque: puedes mover la blanca detrás de la línea y luego tirar.' : 'Bola en mano: coloca la blanca donde quieras y tira.') : onEight() ? 'Vas por la 8: métela en cualquier tronera para ganar.' : 'Te toca. ' + (coarse.matches ? 'Desliza por la mesa para apuntar y baja la barra de fuerza.' : 'Toca o arrastra sobre la mesa para apuntar y elige la fuerza.');
         else if (game.turn === CPU) turn.textContent = cpuBusy ? 'La máquina está pensando…' : 'Turno de la máquina.';
         else turn.textContent = `Turno de ${nameOf(game.turn)}.`;
         turn.dataset.base = turn.textContent;
-        $('poolCantar').hidden = !needsCall();
         const finished = room.status === 'finished';
         $('poolFinal').hidden = !finished;
         if (finished && game) {
@@ -839,17 +838,6 @@
         paintTable();
         ctx.clearRect(0, 0, view.width, view.height);
         ctx.drawImage(bg, 0, 0);
-        if (E && room?.game && needsCall() && !animating) {
-            const pulse = 0.55 + 0.45 * Math.sin(performance.now() / 260);
-            E.POCKETS.forEach((p, i) => {
-                const [px, py] = toScreen(p.x, p.y), chosen = i === calledPocket;
-                ctx.strokeStyle = chosen ? '#f2c14e' : `rgba(242, 193, 78, ${calledPocket === null ? 0.35 + 0.4 * pulse : 0.22})`;
-                ctx.lineWidth = (chosen ? 4 : 2) * s; ctx.setLineDash(chosen ? [] : [4 * s, 4 * s]);
-                ctx.beginPath(); ctx.arc(px, py, (p.r + 6) * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-                if (chosen) { ctx.fillStyle = '#f2c14e'; ctx.font = `700 ${Math.max(10, 15 * s)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('8', px, py); }
-            });
-            if (calledPocket === null && !callPulse) callPulse = requestAnimationFrame(() => { callPulse = 0; draw(); });
-        }
         if (!list.length) { drawEmpty(); return; }
         const game = room?.game;
         const showAim = myTurn() && !animating && !busy && !placing && E;
@@ -862,10 +850,6 @@
         if (showAim && cueBall && !cueBall.p) drawAim(shown, cueBall);
         const rivalDir = rival ? { dx: Math.cos(rival.shown.a), dy: Math.sin(rival.shown.a) } : null;
         if (rival && !rival.target.hand && !rival.strike && cueBall && !cueBall.p) drawAim(shown, cueBall, rivalDir, rival.target.s, 0.55);
-        if (rival && rival.target.call !== null) {
-            const p = E.POCKETS[rival.target.call], [px, py] = toScreen(p.x, p.y);
-            ctx.strokeStyle = '#f2c14e'; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.arc(px, py, (p.r + 6) * s, 0, Math.PI * 2); ctx.stroke();
-        }
         for (const b of shown) if (!b.p) drawShadow(b);
         drawDrops();
         for (const b of shown) if (!b.p) drawBall(b);
@@ -1284,7 +1268,6 @@
     canvas.addEventListener('pointerdown', event => {
         if (!canAct()) return;
         const p = toWorld(event), white = pendingCue || cue();
-        if (needsCall() && !placing) { const pocket = pocketNear(p); if (pocket >= 0) { setCall(pocket); vibrate(10); return; } }
         if (room.game.ballInHand && (!white || white.p || placing || Math.hypot(p.x - white.x, p.y - white.y) < (event.pointerType === 'touch' ? 60 : 45))) placing = true;
         dragging = true; canvas.setPointerCapture?.(event.pointerId);
         // Touch: the finger turns the cue around the cue ball (like a dial), so it never covers what you aim at.
@@ -1355,16 +1338,15 @@
         else if (event.key === 'Enter' || event.key === ' ') shoot(); else return;
         event.preventDefault();
     });
-    function needsCall() { return !!(E && room?.game && myTurn() && E.mustCallEight(room.game, me())); }
+    function onEight() { return !!(E && room?.game && myTurn() && E.onTheEight(room.game, me())); }
     async function shoot() {
         if (!canAct()) return;
         const game = room.game;
         if (placing && !pendingCue) { status('Toca la mesa para colocar la blanca.'); return; }
         if (pendingCue && !E.validPlacement(balls, pendingCue.x, pendingCue.y, game.ballInHand)) { status(game.ballInHand === 'kitchen' ? 'La blanca debe quedar detrás de la línea, sin tocar otras bolas.' : 'La blanca debe quedar en un espacio libre.'); return; }
         if (!pendingCue && cue()?.p) { status('Coloca la blanca antes de tirar.'); return; }
-        if (needsCall() && calledPocket === null) { status('Vas por la 8: toca la tronera donde la meterás (o elígela en la lista).'); draw(); if (!gameMode || !coarse.matches) $('poolTronera').focus(); return; }
         const len = Math.hypot(aim.dx, aim.dy) || 1, power = Number($('poolFuerza').value) / 100;
-        const shot = { dx: aim.dx / len, dy: aim.dy / len, power, ...(spin ? { spin } : {}), ...(side ? { side } : {}), ...(needsCall() ? { call: calledPocket } : {}), ...(pendingCue ? { cue: pendingCue } : {}) };
+        const shot = { dx: aim.dx / len, dy: aim.dy / len, power, ...(spin ? { spin } : {}), ...(side ? { side } : {}), ...(pendingCue ? { cue: pendingCue } : {}) };
         primeSound(); placing = false; striking = true; updateControls();
         sendStrike(shot);
         try { await animateStrike(); } finally { striking = false; updateControls(); }
@@ -1436,21 +1418,6 @@
     $('poolEfectoCentro').addEventListener('click', () => setSpin(0, 0));
     $('poolEfectoPanel').addEventListener('click', event => { if (event.target === event.currentTarget) closeSpinPanel(); });
     $('poolEfectoPanel').addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); closeSpinPanel(); } });
-
-    // ---------- calling the pocket for the 8 ----------
-    function setCall(index) {
-        calledPocket = Number.isInteger(index) && index >= 0 && index < 6 ? index : null;
-        $('poolTronera').value = calledPocket === null ? '' : String(calledPocket);
-        if (calledPocket !== null) status('Tronera cantada: ' + E.POCKET_NAMES[calledPocket] + '.');
-        draw();
-    }
-    $('poolTronera').addEventListener('change', () => setCall($('poolTronera').value === '' ? null : Number($('poolTronera').value)));
-    function pocketNear(p) {
-        if (!E) return -1;
-        let best = -1, bestD = 60;
-        E.POCKETS.forEach((pocket, i) => { const d = Math.hypot(pocket.x - p.x, pocket.y - p.y); if (d < bestD) { bestD = d; best = i; } });
-        return best;
-    }
 
     // ---------- menu and buttons ----------
     $('poolCrear').addEventListener('click', () => { if (!user) { status('Inicia sesión para jugar en línea.'); return; } mode = 'online'; prepareFullscreen(); run('create', { code: '' }); });

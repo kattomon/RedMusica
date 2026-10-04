@@ -89,7 +89,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
   // The browser engine reproduces the server trajectories exactly.
   const samples=[{dx:1,dy:0.01,power:1},{dx:0.6,dy:0.8,power:0.7,spin:-1},{dx:-0.9,dy:0.2,power:0.5,spin:0.75},{dx:0.8,dy:-0.6,power:0.55},{dx:-0.3,dy:0.95,power:0.8}];
   const expected=samples.map(s=>E.simulate(room.state.game.balls,s).balls);
-  const inBrowser=await host.evaluate(async({balls,samples})=>{const m=await import('./supabase/functions/pool/engine.js?v=20261003-1');return samples.map(s=>m.simulate(balls,s).balls);},{balls:room.state.game.balls,samples});
+  const inBrowser=await host.evaluate(async({balls,samples})=>{const m=await import('./supabase/functions/pool/engine.js?v=20261004-1');return samples.map(s=>m.simulate(balls,s).balls);},{balls:room.state.game.balls,samples});
   assert.deepEqual(inBrowser,expected,'browser and server simulations match');
 
   // Break with the keyboard: aim a little, full power, Enter.
@@ -163,11 +163,8 @@ const out=process.env.POOL_SCREENSHOTS||'';
   for(let i=0;i<Math.abs(angle);i++)await host.keyboard.press(angle<0?'ArrowRight':'ArrowLeft');
   await host.evaluate(()=>{document.querySelector('#poolFuerza').value='30';document.querySelector('#poolFuerza').dispatchEvent(new Event('input'));});
   await host.locator('#poolEfecto').focus();for(let i=0;i<3;i++)await host.keyboard.press('ArrowDown');
-  await host.waitForFunction(()=>!document.querySelector('#poolCantar').hidden);
-  assert.match(await host.locator('#poolTurno').innerText(),/Vas por la 8/);
-  await host.getByRole('button',{name:'Tirar'}).click();
-  assert.match(await host.locator('#poolEstado').innerText(),/toca la tronera/,'the 8 cannot be shot without calling a pocket');
-  await host.locator('#poolTronera').selectOption('2');
+  assert.match(await host.locator('#poolTurno').innerText(),/Vas por la 8: métela en cualquier tronera/);
+  assert.equal(await host.locator('#poolTronera').count(),0,'no pocket to call for the 8');
   await host.getByRole('button',{name:'Tirar'}).click();
   try{await host.waitForFunction(()=>/Ganaste/.test(document.querySelector('#poolTurno').textContent),null,{timeout:30000});}
   catch(error){console.error('Winning shot diagnostics',JSON.stringify({status:room.state.status,last:room.state.game.last?.summary,shot:shots.at(-1),panel:await host.locator('#poolTurno').innerText(),message:await host.locator('#poolEstado').innerText(),errors}));throw error;}
@@ -214,7 +211,6 @@ const out=process.env.POOL_SCREENSHOTS||'';
    const text=await solo.locator('#poolTurno').innerText();
    if(/Ganaste|Ganó/.test(text)){finished=true;break;}
    if(/Bola en mano/.test(text)&&await solo.evaluate(()=>document.querySelector('#poolMoverBlanca').getAttribute('aria-pressed')==='true')){for(const [x,y] of free){await tap(solo,x,y);if(await solo.locator('#poolMoverBlanca').getAttribute('aria-pressed')==='false')break;}}
-   if(/Vas por la 8/.test(text))await solo.locator('#poolTronera').selectOption('0');
    await solo.locator('#poolCanvas').focus();await solo.keyboard.press(turn%2?'ArrowLeft':'ArrowRight');await solo.keyboard.press('Enter');
    await solo.waitForFunction(()=>document.querySelector('#poolTirar').disabled,null,{timeout:10000}).catch(()=>{});
    cpuSeen=cpuSeen||await solo.evaluate(()=>window.__estados.some(t=>/La máquina/.test(t)));

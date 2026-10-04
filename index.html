@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="layout.css?v=20260929-1">
     <link rel="stylesheet" href="sections.css?v=20260929-1">
     <link rel="stylesheet" href="admin-ui.css?v=20260929-1">
-    <link rel="stylesheet" href="pool.css?v=20261003-1">
+    <link rel="stylesheet" href="pool.css?v=20261004-1">
     <link rel="stylesheet" href="bachillerato.css?v=20261003-1">
     <link rel="stylesheet" href="naipes.css?v=20261003-1">
     <link rel="stylesheet" href="cancion.css?v=20261003-2">
@@ -164,7 +164,7 @@
                     <div class="pool-carga"><span class="pool-herramienta-titulo">Fuerza</span><div id="poolPotencia" class="pool-potencia" tabindex="0" role="slider" aria-label="Fuerza del tiro; arrastra hacia abajo y suelta para tirar" aria-valuemin="5" aria-valuemax="100" aria-valuenow="60" aria-orientation="vertical"><span id="poolPotenciaLleno" aria-hidden="true"></span><span class="pool-potencia-agarre" aria-hidden="true"></span></div><span class="pool-carga-pista">↓ soltar</span></div>
                 </div>
                 <div id="poolControles" class="pool-controles" hidden>
-                    <div id="poolCantar" class="pool-cantar" hidden><label for="poolTronera">Tronera para la bola 8</label><select id="poolTronera"><option value="">Elige o toca una tronera en la mesa</option><option value="0">Esquina superior izquierda</option><option value="1">Centro superior</option><option value="2">Esquina superior derecha</option><option value="3">Esquina inferior izquierda</option><option value="4">Centro inferior</option><option value="5">Esquina inferior derecha</option></select></div>
+                    
                     <div class="pool-fuerza"><label for="poolFuerza">Fuerza precisa <output id="poolFuerzaValor" for="poolFuerza">60%</output></label><input id="poolFuerza" type="range" min="5" max="100" step="1" value="60"></div>
                     <div class="pool-botones"><button id="poolGirarIzq" type="button" aria-label="Girar la puntería a la izquierda">↺</button><button id="poolGirarDer" type="button" aria-label="Girar la puntería a la derecha">↻</button><button id="poolDeshacer" class="pool-secundario" type="button" hidden>Deshacer tiro</button><button id="poolMoverBlanca" class="pool-secundario" type="button" aria-pressed="false" hidden>Mover la blanca</button><button id="poolTirar" class="pool-tirar" type="button">Tirar</button></div>
                     <p class="pool-ayuda"><span class="pool-ayuda-tactil">Desliza el dedo por la mesa para girar el taco alrededor de la blanca; un toque apunta directo. </span><span class="pool-ayuda-raton">Arrastra sobre la mesa para apuntar. </span>La rueda ajusta el ángulo; baja la barra de fuerza y suéltala para tirar (vuelve arriba para cancelar). Si tienes bola en mano, arrastra la blanca hasta una posición válida.<span class="pool-ayuda-teclado"> En el teclado: flechas para apuntar y ajustar la fuerza, Enter para tirar.</span></p>
@@ -178,7 +178,7 @@
                 <li>Quien crea la sala saca primero; en la revancha saca quien perdió.</li>
                 <li>La mesa queda abierta tras el saque. La primera bola que metas después define si juegas con lisas (1–7) o rayadas (9–15).</li>
                 <li>Es falta meter la blanca, no tocar ninguna bola, tocar primero una bola que no es tuya o que ninguna bola toque una banda después del contacto. Tras una falta, el rival tiene bola en mano.</li>
-                <li>Para la bola 8 hay que cantar la tronera: tócala en la mesa o elígela en la lista. Ganas si la 8 entra ahí, sin falta y con tu grupo terminado. Si la metes antes, con falta o en otra tronera, pierdes. Si entra en el saque, vuelve a su lugar.</li>
+                <li>La bola 8 entra en cualquier tronera, sin cantarla. Ganas si la metes sin falta y con tu grupo terminado; si la metes antes o con falta, pierdes. Si entra en el saque, vuelve a su lugar.</li>
                 <li>En línea tienes 60 segundos por tiro. Si se acaba el tiempo, es falta y tu rival tiene bola en mano.</li>
                 <li>Efecto: toca la bola del control arriba para que la blanca siga, abajo para que retroceda y a los lados para cambiar su rebote en las bandas.</li>
                 <li>Si la sala ya tiene dos jugadores, su enlace o código te deja mirar en vivo: todos ven cómo apunta quien tira, con su fuerza y efecto.</li>
@@ -598,7 +598,7 @@
 <script src="interface.js?v=20261003-3" defer></script>
 <script src="radio-panel.js?v=20260929-2" defer></script>
 <script src="config.js?v=20260927-18"></script>
-<script src="script.js?v=20261004-1" defer></script>
+<script src="script.js?v=20261004-2" defer></script>
 <script src="pwa.js?v=20260928-1" defer></script>
 </body>
 </html>
