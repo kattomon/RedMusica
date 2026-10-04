@@ -1055,6 +1055,12 @@
     }
 
     // ---------- sound and touch feedback ----------
+    // Sounds are synthesized once, the first time sound is allowed, from how real balls ring:
+    // phenolic-resin balls give a bright, very short "clack" (modes around 2.5-10 kHz that die in
+    // a few hundredths of a second), the leather tip a softer "tock", the rubber cushion a dull thud,
+    // and a pocketed ball a thunk followed by its roll down the return channel. Each kind has a few
+    // variants so repeated hits never sound identical, and every hit is panned to where it happens.
+    let kit = null, rollGain = null;
     function primeSound() {
         if (prefs.muted) return;
         const Audio = window.AudioContext || window.webkitAudioContext;
@@ -1062,27 +1068,124 @@
         try {
             sound ||= new Audio();
             if (sound.state === 'suspended') sound.resume().catch(() => {});
+            if (!kit) kit = buildKit(sound);
         } catch { /* Audio may be unavailable. */ }
     }
-    // Short synthesized clicks: ball-on-ball is bright and short, cushions are dull, pockets rattle.
-    function playSound(kind, strength = 1) {
+    function buildKit(ac) {
+        const rate = ac.sampleRate, rnd = (a, b) => a + Math.random() * (b - a);
+        const buffer = (seconds, fill, channels = 1) => {
+            const b = ac.createBuffer(channels, Math.ceil(seconds * rate), rate);
+            for (let c = 0; c < channels; c++) fill(b.getChannelData(c), c);
+            return b;
+        };
+        // Sum of decaying partials plus an optional noise transient (all times in seconds).
+        const modal = (seconds, modes, noise) => buffer(seconds, data => {
+            const phases = modes.map(() => Math.random() * Math.PI * 2);
+            let lp = 0, hp = 0, prev = 0;
+            for (let i = 0; i < data.length; i++) {
+                const t = i / rate;
+                let v = 0;
+                for (let m = 0; m < modes.length; m++) { const [f, a, d] = modes[m]; v += a * Math.exp(-t / d) * Math.sin(phases[m] + 2 * Math.PI * f * t); }
+                if (noise) {
+                    const white = Math.random() * 2 - 1;
+                    lp += (white - lp) * noise.tone; // one-pole filters shape the transient's colour
+                    hp = noise.high ? lp - prev : lp; prev = lp;
+                    v += noise.gain * hp * Math.exp(-t / noise.decay);
+                }
+                const attack = Math.min(1, t / 0.0004);
+                data[i] = v * attack;
+            }
+            normalize(data, 0.9);
+        });
+        const normalize = (data, peak) => { let m = 0; for (const v of data) m = Math.max(m, Math.abs(v)); if (m) for (let i = 0; i < data.length; i++) data[i] *= peak / m; };
+        const variants = (n, make) => Array.from({ length: n }, make);
+        const ball = variants(6, () => modal(0.09, [
+            [rnd(2550, 2800), 1, rnd(0.022, 0.03)], [rnd(3700, 4050), 0.75, rnd(0.016, 0.022)], [rnd(5000, 5500), 0.5, rnd(0.011, 0.015)],
+            [rnd(6900, 7500), 0.28, rnd(0.007, 0.01)], [rnd(9400, 10400), 0.16, rnd(0.004, 0.006)], [rnd(1250, 1400), 0.18, rnd(0.012, 0.02)]
+        ], { tone: 0.9, high: true, gain: 1.4, decay: 0.0012 }));
+        const cue = variants(4, () => modal(0.12, [
+            [rnd(820, 920), 1, rnd(0.02, 0.028)], [rnd(1650, 1800), 0.6, rnd(0.014, 0.02)], [rnd(2600, 2900), 0.42, rnd(0.01, 0.014)],
+            [rnd(150, 180), 0.5, rnd(0.03, 0.04)]
+        ], { tone: 0.45, high: false, gain: 1.1, decay: 0.003 }));
+        const rail = variants(5, () => modal(0.22, [
+            [rnd(95, 125), 1, rnd(0.05, 0.07)], [rnd(210, 260), 0.45, rnd(0.03, 0.045)], [rnd(430, 520), 0.25, rnd(0.015, 0.025)]
+        ], { tone: 0.12, high: false, gain: 1.3, decay: 0.018 }));
+        // Pocket: a thunk in the leather/plastic, then the ball rolling down the return and knocking the others.
+        const pocket = variants(3, () => buffer(1.35, data => {
+            const thunk = [[rnd(140, 175), 1, 0.07], [rnd(320, 380), 0.5, 0.035], [rnd(900, 1100), 0.2, 0.012]];
+            const knock = 0.85 + Math.random() * 0.25;
+            let lp = 0, lp2 = 0;
+            for (let i = 0; i < data.length; i++) {
+                const t = i / rate;
+                let v = 0;
+                for (const [f, a, d] of thunk) v += a * Math.exp(-t / d) * Math.sin(2 * Math.PI * f * t);
+                // Rolling in the return channel: low rumble with a wobble, fading in and out.
+                const white = Math.random() * 2 - 1;
+                lp += (white - lp) * 0.08; lp2 += (lp - lp2) * 0.08;
+                const roll = t > 0.12 && t < knock ? Math.sin(Math.PI * (t - 0.12) / (knock - 0.12)) * (0.7 + 0.3 * Math.sin(2 * Math.PI * 23 * t)) : 0;
+                v += lp2 * 3.2 * roll;
+                // The soft clack when it meets the balls already in the return.
+                if (t >= knock) { const k = t - knock; v += 0.32 * Math.exp(-k / 0.018) * (Math.sin(2 * Math.PI * 2650 * k) + 0.6 * Math.sin(2 * Math.PI * 3900 * k)); }
+                data[i] = v * Math.min(1, t / 0.0008);
+            }
+            normalize(data, 0.85);
+        }));
+        // A loop of soft cloth rumble for balls rolling.
+        const cloth = buffer(2, data => {
+            let a = 0, b = 0;
+            for (let i = 0; i < data.length; i++) { const w = Math.random() * 2 - 1; a += (w - a) * 0.06; b = 0.995 * b + a * 0.1; data[i] = a * 0.6 + b; }
+            normalize(data, 0.8);
+        });
+        // A small room so hits have a little air around them.
+        const room = buffer(0.6, (data) => { for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / rate / 0.12); }, 2);
+        const master = ac.createGain(); master.gain.value = 0.9;
+        const limiter = ac.createDynamicsCompressor();
+        limiter.threshold.value = -10; limiter.knee.value = 6; limiter.ratio.value = 8; limiter.attack.value = 0.002; limiter.release.value = 0.12;
+        master.connect(limiter).connect(ac.destination);
+        const reverb = ac.createConvolver(); reverb.buffer = room;
+        const wet = ac.createGain(); wet.gain.value = 0.14;
+        reverb.connect(wet).connect(master);
+        const loop = ac.createBufferSource(); loop.buffer = cloth; loop.loop = true;
+        const rollFilter = ac.createBiquadFilter(); rollFilter.type = 'lowpass'; rollFilter.frequency.value = 520;
+        rollGain = ac.createGain(); rollGain.gain.value = 0;
+        loop.connect(rollFilter).connect(rollGain).connect(master); loop.start();
+        return { ball, cue, rail, pocket, master, reverb, last: {} };
+    }
+    // kind: 'cue' | 'ball' | 'rail' | 'pocket'; strength 0..1; pan -1 (left) .. 1 (right).
+    function playSound(kind, strength = 1, pan = 0) {
         if (prefs.muted || strength <= 0.02) return;
         primeSound();
-        if (!sound || sound.state !== 'running') return;
+        if (!sound || sound.state !== 'running' || !kit) return;
         try {
-            const at = sound.currentTime, tone = sound.createOscillator(), volume = sound.createGain();
-            const k = kind === 'hit' ? 'cue' : kind;
-            const shape = { cue: ['triangle', 900, 260, 0.05], ball: ['sine', 1900, 1200, 0.045], rail: ['triangle', 160, 80, 0.12], pocket: ['sine', 260, 90, 0.22] }[k] || ['triangle', 400, 200, 0.08];
-            const loud = Math.min(0.28, 0.02 + 0.26 * strength) * (k === 'rail' ? 0.7 : 1);
-            tone.type = shape[0];
-            tone.frequency.setValueAtTime(shape[1], at);
-            tone.frequency.exponentialRampToValueAtTime(shape[2], at + shape[3]);
-            volume.gain.setValueAtTime(0.0001, at);
-            volume.gain.exponentialRampToValueAtTime(loud, at + 0.004);
-            volume.gain.exponentialRampToValueAtTime(0.0001, at + shape[3] + 0.03);
-            tone.connect(volume).connect(sound.destination); tone.start(at); tone.stop(at + shape[3] + 0.06);
+            const k = kind === 'hit' ? 'cue' : kind, set = kit[k];
+            if (!set) return;
+            const at = sound.currentTime;
+            // Many touches in the same instant (a break) blend into one instead of piling up.
+            if (kit.last[k] && at - kit.last[k] < 0.012) return;
+            kit.last[k] = at;
+            const source = sound.createBufferSource();
+            source.buffer = set[Math.floor(Math.random() * set.length)];
+            source.playbackRate.value = (k === 'ball' ? 0.94 + 0.12 * strength : 0.96 + 0.08 * strength) * (0.98 + Math.random() * 0.04);
+            // Soft touches are duller as well as quieter, as on a real table.
+            const tone = sound.createBiquadFilter(); tone.type = 'lowpass';
+            tone.frequency.value = k === 'ball' ? 2200 + 15000 * strength : k === 'cue' ? 1500 + 6000 * strength : 900 + 5000 * strength;
+            const volume = sound.createGain();
+            const curve = Math.sqrt(strength) * strength * 0.35 + strength * 0.65;
+            volume.gain.value = { ball: 0.95, cue: 0.7, rail: 0.75, pocket: 0.7 }[k] * Math.min(1, 0.08 + curve);
+            let node = source.connect(tone).connect(volume);
+            if (sound.createStereoPanner) { const p = sound.createStereoPanner(); p.pan.value = Math.max(-0.7, Math.min(0.7, pan)); node = node.connect(p); }
+            node.connect(kit.master);
+            if (k !== 'pocket') { const send = sound.createGain(); send.gain.value = 0.5; node.connect(send).connect(kit.reverb); }
+            source.start(at);
         } catch { /* Sound is optional. */ }
     }
+    // Rolling level 0..1 (follows the total speed of the balls while a shot plays).
+    function setRolling(level) {
+        if (!rollGain || !sound || sound.state !== 'running') return;
+        try { rollGain.gain.setTargetAtTime(prefs.muted ? 0 : Math.min(0.22, level * 0.22), sound.currentTime, 0.05); } catch { /* optional */ }
+    }
+    // Pan for a point on the table, as it appears on screen.
+    const panAt = (x, y) => { const [sx] = toScreen(x, y); return view.width ? (sx / view.width) * 2 - 1 : 0; };
     function vibrate(ms = 12) { if (prefs.vibrate && !reduceMotion.matches) try { navigator.vibrate?.(ms); } catch { /* optional */ } }
     function animateStrike() {
         if (reduceMotion.matches || document.hidden) return Promise.resolve();
@@ -1111,13 +1214,14 @@
         animating = true; updateControls();
         // Real time (1 tick = 1/60 s) so rolling, spin and cushions look natural; very long shots play faster.
         const duration = Math.min(5200, Math.max(500, ticks * 1000 / 60));
-        if (last.by !== me()) { playSound('cue', 0.35 + 0.65 * (last.shot.power || 0.5)); vibrate(); }
+        const startCue = last.before.find(b => b.n === 0);
+        if (last.by !== me()) { playSound('cue', 0.3 + 0.7 * (last.shot.power || 0.5), startCue ? panAt(startCue.x, startCue.y) : 0); vibrate(); }
         for (const b of last.before) if (!b.p) { const [x, y] = toScreen(b.x, b.y); lastSpot.set(b.n, [x, y]); }
         return new Promise(resolve => {
             const started = performance.now();
             let finished = false, played = 0, previous = frames[0];
             const finish = () => {
-                if (finished) return; finished = true; clearTimeout(fallback); animating = false;
+                if (finished) return; finished = true; clearTimeout(fallback); animating = false; setRolling(0);
                 // Let the last drops finish falling.
                 if (drops.length) requestAnimationFrame(function settle() { draw(); if (drops.length) requestAnimationFrame(settle); });
                 resolve();
@@ -1138,13 +1242,18 @@
                         if (b.n) vibrate(18);
                     }
                 });
+                // Cloth rumble follows how fast the balls are rolling right now.
+                let rolling = 0;
+                snapshot.forEach((b, i) => { const p = previous[i]; if (!b.p && p && !p.p) rolling += Math.sqrt(Math.hypot(b.x - p.x, b.y - p.y)); });
+                setRolling(rolling / 9);
                 previous = snapshot;
                 // Impacts play at the moment they happen, louder for harder hits (a few per frame at most).
                 const tickNow = at * 2;
                 let voices = 0;
                 while (played < impacts.length && impacts[played].tick <= tickNow) {
                     const hit = impacts[played++];
-                    if (voices++ < 4) playSound(hit.type, Math.min(1, hit.strength / (hit.type === 'pocket' ? 14 : 22)));
+                    const where = frames[Math.min(frames.length - 1, Math.floor(hit.tick / 2))]?.find(b => b.n === hit.n);
+                    if (voices++ < 5) playSound(hit.type, Math.min(1, hit.strength / (hit.type === 'pocket' ? 14 : hit.type === 'rail' ? 18 : 20)), where ? panAt(where.x, where.y) : 0);
                 }
                 draw(snapshot); renderGutter(snapshot);
                 if (progress < 1) requestAnimationFrame(step);
@@ -1259,7 +1368,8 @@
         primeSound(); placing = false; striking = true; updateControls();
         sendStrike(shot);
         try { await animateStrike(); } finally { striking = false; updateControls(); }
-        playSound('cue', 0.35 + 0.65 * power); vibrate(power > 0.8 ? 30 : 15);
+        const from = pendingCue || cue();
+        playSound('cue', 0.3 + 0.7 * power, from ? panAt(from.x, from.y) : 0); vibrate(power > 0.8 ? 30 : 15);
         setSpin(0, 0);
         await run('shoot', shot);
     }
@@ -1365,7 +1475,7 @@
     }
     function setMuted(value) {
         prefs.muted = value; savePref('redmusica-pool-muted', value);
-        updateSoundButton();
+        updateSoundButton(); if (value) setRolling(0);
         if (!value) primeSound();
     }
     updateSoundButton();
