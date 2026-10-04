@@ -6,7 +6,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
  const E=await import('../supabase/functions/pool/engine.js'),Rooms=await import('../supabase/functions/pool/rooms.js');
  await new Promise(r=>server.listen(4183,'127.0.0.1',r));
  const engines=process.env.TEST_WEBKIT_ONLY?[['webkit',webkit,devices['iPhone 13']]]:process.env.TEST_CHROMIUM_ONLY?[['chromium',chromium,{viewport:{width:1200,height:900}}],['chromium-mobile',chromium,devices['Pixel 7']]]:[['chromium',chromium,{viewport:{width:1200,height:900}}],['chromium-mobile',chromium,devices['Pixel 7']],['webkit',webkit,devices['iPhone 13']]];
- const names={host:'Kattomon',guest:'Ana'};
+ const names={host:'Kattomon',guest:'Ana',fan:'Mirón'};
  for(const [label,engine,device] of engines){
   const browser=await engine.launch();const ctx=await browser.newContext({...device,serviceWorkers:'block'});
   let room=null,shots=[];const errors=[],stateRequests={host:0,guest:0};
@@ -25,6 +25,8 @@ const out=process.env.POOL_SCREENSHOTS||'';
     if(input.action==='create'){room={host:actor,revision:1,state:Rooms.newRoomState(actor,names[actor])};return send({room:pub()});}
     if(!room||input.code!=='POOL23')return send({error:'No encontramos esa sala. Comprueba el código.'},404);
     const member=room.state.players.some(p=>p.user_id===actor);
+    if(input.action==='watch')return send({room:pub(),spectator:!member});
+    if(input.action==='join'&&!member&&room.state.players.length>=2)return send({room:pub(),spectator:true});
     if(input.action==='join'){if(!member){room.state=Rooms.joinRoom(room.state,actor,names[actor],Date.now());room.state.game=E.newGame('game-'+Date.now(),room.state.players.map(p=>p.user_id),room.host,bytes);room.revision++;}return send({room:pub()});}
     if(!member)return send({error:'No formas parte de esta sala.'},403);
     if(input.action==='state'){stateRequests[actor]++;return send({room:pub()});}
@@ -42,7 +44,7 @@ const out=process.env.POOL_SCREENSHOTS||'';
     window.__poolRealtime={received:0,stateReads:0,subscribed:false};
     const nativeFetch=window.fetch.bind(window);window.fetch=(url,options)=>{if(String(url).includes('/functions/v1/pool')&&options?.body){try{if(JSON.parse(options.body).action==='state')window.__poolRealtime.stateReads++;}catch{}}return nativeFetch(url,options);};
     window.redmusicaClient={auth:{getSession:async()=>({data:{session:{access_token:id,user:{id}}}}),onAuthStateChange:()=>{}},
-     channel:topic=>{const wire=new BroadcastChannel(topic);let listener=null;const channel={topic:'realtime:'+topic,on:(_type,_filter,fn)=>{listener=fn;return channel;},subscribe:fn=>{wire.onmessage=event=>{window.__poolRealtime.received++;listener?.({payload:event.data.payload});};setTimeout(()=>{window.__poolRealtime.subscribed=true;fn('SUBSCRIBED');},0);return channel;},send:async message=>{wire.postMessage(message);return 'ok';},unsubscribe:()=>wire.close()};return channel;},
+     channel:topic=>{const wire=new BroadcastChannel(topic);const listeners={};const channel={topic:'realtime:'+topic,on:(_type,filter,fn)=>{listeners[filter.event]=fn;return channel;},subscribe:fn=>{wire.onmessage=event=>{window.__poolRealtime.received++;const kind=event.data.event;window.__poolRealtime[kind]=(window.__poolRealtime[kind]||0)+1;listeners[kind]?.({payload:event.data.payload});};setTimeout(()=>{window.__poolRealtime.subscribed=true;fn('SUBSCRIBED');},0);return channel;},send:async message=>{wire.postMessage(message);return 'ok';},unsubscribe:()=>wire.close()};return channel;},
      removeChannel:async channel=>{channel.unsubscribe();return 'ok';},
      from:table=>{const q={_id:null,select:()=>q,eq:(c,v)=>{q._id=v;return q;},maybeSingle:async()=>({data:table==='pool_stats'?stats[q._id]||null:null,error:null})};return q;}};
     window.supabase={createClient:()=>window.redmusicaClient};document.getElementById('seccionPool').hidden=false;},user);
@@ -76,16 +78,28 @@ const out=process.env.POOL_SCREENSHOTS||'';
   await host.locator('#poolSilencio').click();assert.equal(await host.locator('#poolSilencio').getAttribute('aria-pressed'),'false');
   if(out)await host.screenshot({path:path.join(out,`pool-antes-${label}.png`),fullPage:false});
 
+  // A third person with the link watches: no seat, no controls, and sees the shooter's cue live.
+  const fan=await open('fan','&pool=POOL23');
+  await fan.waitForFunction(()=>!document.querySelector('#poolMirando').hidden&&document.querySelector('#poolJugadores').innerText.includes('Ana'));
+  assert.match(await fan.locator('#poolEstado').innerText(),/estás mirando/);
+  assert.equal(await fan.locator('#poolControles').isVisible(),false,'spectators have no controls');
+  assert.equal(room.state.players.length,2,'the spectator does not take a seat');
+  await fan.waitForFunction(()=>window.__poolRealtime.subscribed);
+
   // The browser engine reproduces the server trajectories exactly.
   const samples=[{dx:1,dy:0.01,power:1},{dx:0.6,dy:0.8,power:0.7,spin:-1},{dx:-0.9,dy:0.2,power:0.5,spin:0.75},{dx:0.8,dy:-0.6,power:0.55},{dx:-0.3,dy:0.95,power:0.8}];
   const expected=samples.map(s=>E.simulate(room.state.game.balls,s).balls);
-  const inBrowser=await host.evaluate(async({balls,samples})=>{const m=await import('./supabase/functions/pool/engine.js?v=20261001-5');return samples.map(s=>m.simulate(balls,s).balls);},{balls:room.state.game.balls,samples});
+  const inBrowser=await host.evaluate(async({balls,samples})=>{const m=await import('./supabase/functions/pool/engine.js?v=20261003-1');return samples.map(s=>m.simulate(balls,s).balls);},{balls:room.state.game.balls,samples});
   assert.deepEqual(inBrowser,expected,'browser and server simulations match');
 
   // Break with the keyboard: aim a little, full power, Enter.
   await dragAim(host,[400,100],[500,150]);
   assert.notEqual(await host.locator('#poolRueda').getAttribute('aria-valuenow'),'0','dragging anywhere on the table rotates the cue');
   await tap(host,950,250);
+  await fan.waitForFunction(()=>/Kattomon está apuntando/.test(document.querySelector('#poolCanvas').getAttribute('aria-label')),null,{timeout:5000});
+  await guest.waitForFunction(()=>/Kattomon está apuntando/.test(document.querySelector('#poolCanvas').getAttribute('aria-label')),null,{timeout:5000});
+  if(out){await fan.waitForTimeout(400);await fan.screenshot({path:path.join(out,`pool-mirando-${label}.png`),fullPage:false});await host.screenshot({path:path.join(out,`pool-apuntando-${label}.png`),fullPage:false});}
+  const fanAimEvents=await fan.evaluate(()=>window.__poolRealtime.aim||0);assert.ok(fanAimEvents>=1&&fanAimEvents<40,'aim updates are throttled ('+fanAimEvents+')');
   await host.locator('#poolCanvas').focus();await host.keyboard.press('ArrowRight');await host.keyboard.press('ArrowLeft');
   if(await host.locator('#poolFuerza').isVisible())await host.locator('#poolFuerza').fill('100');else await host.locator('#poolPotencia').evaluate(el=>{el.focus();});if(!(await host.locator('#poolFuerza').isVisible()))for(let i=0;i<8;i++)await host.keyboard.press('ArrowUp');assert.equal(await host.locator('#poolFuerzaValor').innerText(),'100%');
   assert.equal(await host.locator('#poolPotencia').getAttribute('aria-valuenow'),'100');
@@ -104,6 +118,11 @@ const out=process.env.POOL_SCREENSHOTS||'';
   await guest.waitForFunction(label=>document.querySelector('#poolCanvas').getAttribute('aria-label').includes(label),settledTable,{timeout:15000});
   assert.ok(stateRequests.guest>guestReadsBefore,'Realtime broadcast triggers an immediate authenticated state read');
   assert.match(await tableLabel(guest),new RegExp(settledTable),'the opponent sees the same table');
+  assert.ok(await guest.evaluate(()=>window.__poolRealtime.strike>=1),'the opponent sees the stroke as it happens');
+  await fan.waitForFunction(label=>document.querySelector('#poolCanvas').getAttribute('aria-label').includes(label),settledTable,{timeout:15000});
+  await fan.getByRole('button',{name:'Salir',exact:true}).click();
+  await fan.waitForFunction(()=>!document.querySelector('#poolEntrada').hidden);
+  assert.equal(room.state.players.length,2,'a spectator leaving changes nothing');await fan.close();
 
   // Ball in hand anywhere: the guest places the cue ball by tapping, then shoots.
   const g=room.state.game;g.turn='guest';g.ballInHand='table';g.balls[0].p=1;g.last=null;g.seq+=1;room.state.turn_started_at=Date.now();

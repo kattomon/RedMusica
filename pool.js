@@ -8,7 +8,7 @@
     const section = $('poolJuegos');
     const config = window.REDMUSICA_CONFIG;
     const db = config && window.supabase ? window.redmusicaClient || window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
-    const ENGINE_URL = './supabase/functions/pool/engine.js?v=20261001-5';
+    const ENGINE_URL = './supabase/functions/pool/engine.js?v=20261003-1';
     const TURN_LIMIT_MS = 5 * 60 * 1000, SHOT_CLOCK_MS = 60 * 1000;
     const RAIL = 34;
     const COLORS = { 1: '#e3b22f', 2: '#2b4f9e', 3: '#c23b30', 4: '#5c3b86', 5: '#dd7430', 6: '#2e7445', 7: '#7c2733', 8: '#1f1c1f' };
@@ -28,6 +28,8 @@
     let striking = false, cueStroke = 0, channel = null, channelCode = '', subscribed = false, broadcastTimer = null, lastBroadcastFetch = 0;
     let sound = null, ringTimer = null, gutterSignature = '', statusTimer = null, drawQueued = 0;
     let calledPocket = null, timeoutSentFor = null, drops = [], spin = 0, side = 0, callPulse = 0, aimDrag = null;
+    // Watching a full table, and the live cue of whoever is shooting (sent over Realtime, cosmetic only).
+    let spectating = false, remote = null, remoteFrame = 0, lastAimSig = '', pendingAim = null, aimTimer = null, lastAimSent = 0;
     // Local games (computer or practice).
     let mode = 'online', local = null, cpuLevel = 'normal', cpuTimer = null, cpuBusy = false, cpuPreview = null;
     // Full-screen game mode.
@@ -51,6 +53,8 @@
     // ---------- server ----------
     async function request(action, extra = {}) {
         if (!online()) return localRequest(action, extra);
+        if (spectating && action === 'leave') return { left: true };
+        if (spectating && action === 'state') action = 'watch';
         if (!db) throw new Error('El juego en línea no está disponible. Recarga la página.');
         const { data: { session } } = await db.auth.getSession();
         if (!session) throw new Error('Inicia sesión para jugar en línea.');
@@ -71,10 +75,14 @@
         try {
             const result = await request(action, extra);
             if (result.left) {
-                if (online()) await broadcastChange(roomCode, action, 'left');
+                if (online() && !spectating) await broadcastChange(roomCode, action, 'left');
                 leaveView(); status(''); return;
             }
-            if (online() || action !== 'shoot') status('');
+            if (action === 'join' || action === 'create') {
+                spectating = !!result.spectator;
+                if (spectating) status('La mesa ya tiene dos jugadores: estás mirando la partida en vivo.');
+            }
+            if ((online() || action !== 'shoot') && !(spectating && action === 'join')) status('');
             if (online() && action !== 'state' && action !== 'create') void broadcastChange(result.room.code, action, result.room.updated_at);
             await show(result.room);
         } catch (error) {
@@ -112,7 +120,92 @@
                 if (Date.now() - lastBroadcastFetch < 500) return;
                 lastBroadcastFetch = Date.now(); refresh(true);
             }, 60);
-        }).subscribe(state => { subscribed = state === 'SUBSCRIBED'; });
+        }).on('broadcast', { event: 'aim' }, ({ payload }) => onRemoteAim(payload, false))
+            .on('broadcast', { event: 'strike' }, ({ payload }) => onRemoteAim(payload, true))
+            .subscribe(state => { subscribed = state === 'SUBSCRIBED'; if (subscribed) { lastAimSig = ''; requestDraw(); } });
+    }
+    function sendLive(event, payload) {
+        if (!subscribed || !channel) return;
+        try { Promise.resolve(channel.send({ type: 'broadcast', event, payload })).catch(() => {}); } catch { /* cosmetic */ }
+    }
+
+    // ---------- live cue: the shooter shares aim, power, spin and the cue ball in hand ----------
+    // A few updates per second at most (only when something changed); the other screens glide between them.
+    const AIM_EVERY_MS = 150;
+    function aimPayload() {
+        const c = pendingCue;
+        return {
+            code: roomCode, sender: user?.id, seq: room.game.seq,
+            a: Math.round(Math.atan2(aim.dy, aim.dx) * 1000) / 1000, p: Number($('poolFuerza').value), s: spin, e: side,
+            cue: c ? { x: Math.round(c.x), y: Math.round(c.y) } : null, hand: placing, call: calledPocket
+        };
+    }
+    function queueAim() {
+        if (!online() || spectating || !subscribed || animating || !room?.game || !myTurn()) return;
+        const payload = aimPayload(), sig = JSON.stringify(payload);
+        if (sig === lastAimSig) return;
+        lastAimSig = sig; pendingAim = payload;
+        if (!aimTimer) aimTimer = setTimeout(flushAim, Math.max(0, AIM_EVERY_MS - (Date.now() - lastAimSent)));
+    }
+    function flushAim() {
+        aimTimer = null;
+        if (!pendingAim || !myTurn() || animating) { pendingAim = null; return; }
+        lastAimSent = Date.now(); sendLive('aim', pendingAim); pendingAim = null;
+    }
+    function sendStrike(shot) {
+        if (!online() || spectating || !subscribed || !room?.game) return;
+        clearTimeout(aimTimer); aimTimer = null; pendingAim = null;
+        const payload = aimPayload();
+        payload.a = Math.round(Math.atan2(shot.dy, shot.dx) * 1000) / 1000; payload.p = Math.round(shot.power * 100);
+        payload.cue = shot.cue ? { x: Math.round(shot.cue.x), y: Math.round(shot.cue.y) } : null; payload.hand = false;
+        sendLive('strike', payload);
+    }
+    const finite = (v, lo, hi) => Number.isFinite(v) && v >= lo && v <= hi;
+    function onRemoteAim(payload, strike) {
+        const game = room?.game;
+        if (!payload || !game || payload.code !== roomCode || payload.sender === me() || payload.sender !== game.turn || payload.seq !== game.seq || animating) return;
+        if (!finite(payload.a, -4, 4) || !finite(payload.p, 0, 100)) return;
+        const cueSpot = payload.cue && finite(payload.cue.x, 0, 1000) && finite(payload.cue.y, 0, 500) ? { x: payload.cue.x, y: payload.cue.y } : null;
+        const target = {
+            a: payload.a, p: payload.p, s: finite(payload.s, -1, 1) ? payload.s : 0, e: finite(payload.e, -1, 1) ? payload.e : 0,
+            cue: cueSpot, hand: payload.hand === true, call: Number.isInteger(payload.call) && payload.call >= 0 && payload.call < 6 ? payload.call : null
+        };
+        const now = performance.now();
+        if (!remote || remote.seq !== payload.seq || remote.sender !== payload.sender) remote = { seq: payload.seq, sender: payload.sender, shown: { a: target.a, p: target.p, x: cueSpot?.x, y: cueSpot?.y } };
+        remote.target = target; remote.at = now;
+        if (strike) { remote.shown = { a: target.a, p: target.p, x: cueSpot?.x, y: cueSpot?.y }; remote.strike = now; }
+        else remote.strike = null;
+        updateControls();
+        if (!remoteFrame) remoteFrame = requestAnimationFrame(remoteStep);
+    }
+    let remoteLast = 0;
+    function remoteStep(now) {
+        remoteFrame = 0;
+        if (!remote || animating) { remoteLast = 0; return; }
+        const dt = remoteLast ? Math.min(100, now - remoteLast) : 16;
+        remoteLast = now;
+        const k = 1 - Math.exp(-dt / 70), t = remote.target, sh = remote.shown;
+        let da = t.a - sh.a;
+        if (da > Math.PI) da -= 2 * Math.PI; else if (da < -Math.PI) da += 2 * Math.PI;
+        sh.a += da * k; sh.p += (t.p - sh.p) * k;
+        if (t.cue) {
+            if (!Number.isFinite(sh.x)) { sh.x = t.cue.x; sh.y = t.cue.y; }
+            sh.x += (t.cue.x - sh.x) * k; sh.y += (t.cue.y - sh.y) * k;
+        } else { sh.x = undefined; sh.y = undefined; }
+        const moving = Math.abs(da) > 0.0005 || Math.abs(t.p - sh.p) > 0.2 || (t.cue && Math.hypot(t.cue.x - sh.x, t.cue.y - sh.y) > 0.3);
+        const striking = remote.strike && now - remote.strike < 1200;
+        draw();
+        if (moving || striking) remoteFrame = requestAnimationFrame(remoteStep); else remoteLast = 0;
+    }
+    // Cue offset for the stroke animation (same curve as your own shot).
+    function strokeAt(elapsed) {
+        const t = Math.min(1, elapsed / 255);
+        return t < 0.55 ? 78 * (t / 0.55) : 78 - (78 + 60) * ((t - 0.55) / 0.45);
+    }
+    function remoteView() {
+        const game = room?.game;
+        if (!remote || animating || !game || game.winner || remote.seq !== game.seq || game.turn !== remote.sender) return null;
+        return remote;
     }
     async function broadcastChange(code, action, revision) {
         if (!subscribed || !channel || !code) return;
@@ -231,9 +324,9 @@
     // clear, simulates the best candidates with the real engine, scores the outcome and then
     // shoots with a little human error that depends on the level.
     const LEVELS = {
-        facil: { candidates: 8, noise: 2.6, powerNoise: 0.12, variants: 1, lookAhead: false, budget: 700 },
-        normal: { candidates: 16, noise: 0.9, powerNoise: 0.06, variants: 2, lookAhead: true, budget: 1100 },
-        dificil: { candidates: 26, noise: 0.25, powerNoise: 0.03, variants: 4, lookAhead: true, budget: 1600 }
+        facil: { candidates: 8, noise: 2.6, powerNoise: 0.12, variants: 1, lookAhead: false, budget: 700, nudges: [0] },
+        normal: { candidates: 12, noise: 0.9, powerNoise: 0.06, variants: 2, lookAhead: true, budget: 1300, nudges: [0, 0.03, -0.03] },
+        dificil: { candidates: 16, noise: 0.25, powerNoise: 0.03, variants: 4, lookAhead: true, budget: 2000, nudges: [0, 0.02, -0.02, 0.045, -0.045] }
     };
     const POCKET_AIMS = [[0, 0], [500, -8], [1000, 0], [0, 500], [500, 508], [1000, 500]];
     const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
@@ -307,7 +400,11 @@
         for (const c of candidates.slice(0, cfg.candidates)) {
             const base = Math.max(0.18, Math.min(0.9, 0.16 + (c.toGhost + c.toPocket * 1.25) / 1500));
             const variants = [[base, 0], [base * 1.3, 0], [base, -0.5], [base * 0.85, 0.5]].slice(0, cfg.variants);
-            for (const [power, spinValue] of variants) tries.push({ dx: c.dx, dy: c.dy, power: Math.min(1, power), spin: spinValue, cue: c.cue, call: c.pocket });
+            // Small angle nudges let better players allow for throw on cut shots.
+            for (const [power, spinValue] of variants) for (const turn of cfg.nudges) {
+                const cs = Math.cos(turn), sn = Math.sin(turn);
+                tries.push({ dx: c.dx * cs - c.dy * sn, dy: c.dx * sn + c.dy * cs, power: Math.min(1, power), spin: spinValue, cue: c.cue, call: c.pocket });
+            }
         }
         // Nothing straight: hit an own ball directly (or anything legal) and hope for the best.
         if (!tries.length) {
@@ -386,15 +483,18 @@
         if (online()) { subscribeRoom(next.code); rememberInvite(); }
         $('poolEntrada').hidden = true; $('poolMesa').hidden = false;
         $('poolCodigoSala').textContent = online() ? next.code : '';
+        $('poolMirando').hidden = !(online() && spectating);
+        $('poolMesa').classList.toggle('pool-espectador', online() && spectating);
         if (entering && wantsGameMode()) enterGameMode();
         await enginePromise;
         const game = next.game;
         if (game && (!shownGame || shownGame !== game.id)) {
             shownGame = game.id; shownSeq = game.seq; balls = game.balls; pendingCue = null; placing = false; placementValid = null;
             orient.clear(); lastSpot.clear(); sprites.clear(); calledPocket = null; drops = [];
-            aim = { dx: 1, dy: 0 };
+            aim = { dx: 1, dy: 0 }; remote = null; lastAimSig = '';
         } else if (game && game.seq !== shownSeq) {
             const last = game.last;
+            remote = null; lastAimSig = '';
             if (last && last.shot && last.seq === game.seq && game.seq === shownSeq + 1 && !reduceMotion.matches && !document.hidden && visible()) await animate(last);
             shownSeq = game.seq; balls = game.balls; pendingCue = null; calledPocket = null;
             if (last) status(describe(last.summary, game));
@@ -424,6 +524,8 @@
         const wasOnline = online();
         room = null; roomCode = ''; shownGame = null; shownSeq = -1; balls = []; pendingCue = null; placing = false; placementValid = null;
         clearTimeout(cpuTimer); cpuTimer = null; cpuPreview = null; local = null; mode = 'online';
+        spectating = false; remote = null; lastAimSig = ''; clearTimeout(aimTimer); aimTimer = null; pendingAim = null;
+        $('poolMirando').hidden = true; $('poolMesa').classList.remove('pool-espectador');
         if (channel && db?.removeChannel) db.removeChannel(channel);
         channel = null; channelCode = ''; subscribed = false;
         clearTimeout(broadcastTimer); broadcastTimer = null;
@@ -517,11 +619,11 @@
             $('poolFinalTitulo').textContent = mode === 'practice' ? (won ? '¡Mesa limpia!' : 'Mesa terminada') : won ? '¡Ganaste!' : 'Perdiste';
         }
         const rematch = $('poolRevancha'), votes = room.rematch || [];
-        rematch.hidden = !finished || (online() && room.players.length < 2);
+        rematch.hidden = !finished || spectating || (online() && room.players.length < 2);
         rematch.disabled = online() && votes.includes(me());
         rematch.textContent = !online() ? (mode === 'practice' ? 'Nueva mesa' : 'Jugar otra vez') : votes.includes(me()) ? 'Esperando respuesta…' : votes.length ? 'Aceptar revancha' : 'Pedir revancha';
         $('poolResultado').textContent = finished && online() && room.players.length < 2 ? 'Tu rival salió. Puedes esperar a que alguien más se una con el código.' : finished ? (game?.reason || '') : '';
-        const claimable = online() && room.status === 'playing' && game && !myTurn() && Number.isFinite(room.turn_started_at) && Date.now() - room.turn_started_at >= TURN_LIMIT_MS;
+        const claimable = online() && !spectating && room.status === 'playing' && game && !myTurn() && Number.isFinite(room.turn_started_at) && Date.now() - room.turn_started_at >= TURN_LIMIT_MS;
         $('poolReclamar').hidden = !claimable;
     }
     async function loadAvatars(players) {
@@ -549,7 +651,7 @@
         turn.classList.toggle('pool-turno-urgente', left <= 10 && left > 0);
         if (myTurn() && left === 10) vibrate(25);
         const recent = timeoutSentFor && timeoutSentFor.seq === room.game.seq && Date.now() - timeoutSentFor.at < 10000;
-        if (!myTurn() && elapsed >= SHOT_CLOCK_MS + 1500 && !recent && !busy && !animating) {
+        if (!myTurn() && !spectating && elapsed >= SHOT_CLOCK_MS + 1500 && !recent && !busy && !animating) {
             // Clocks can differ a little; the server has the final word and a refusal is retried later.
             timeoutSentFor = { seq: room.game.seq, at: Date.now() };
             request('timeout').then(result => { void broadcastChange(result.room.code, 'timeout', result.room.updated_at); return show(result.room); }).catch(() => {});
@@ -570,7 +672,7 @@
     }
     function updateControls() {
         const active = myTurn() && !busy && !animating && !striking && !!E;
-        $('poolControles').hidden = !(room && room.status === 'playing');
+        $('poolControles').hidden = !(room && room.status === 'playing') || spectating;
         for (const id of ['poolTirar', 'poolGirarIzq', 'poolGirarDer', 'poolFuerza']) $(id).disabled = !active;
         for (const id of ['poolRueda', 'poolPotencia', 'poolEfecto']) { $(id).setAttribute('aria-disabled', String(!active)); $(id).tabIndex = active ? 0 : -1; }
         const hand = active && !!room.game.ballInHand;
@@ -586,7 +688,8 @@
     function tableDescription() {
         if (!room?.game) return 'Mesa de pool vacía';
         const onTable = balls.filter(b => !b.p && b.n).map(b => b.n);
-        return `Mesa de pool. Bolas en la mesa: ${onTable.join(', ') || 'ninguna'}. ${myTurn() ? 'Usa las flechas izquierda y derecha para apuntar, arriba y abajo para la fuerza, y Enter para tirar.' : ''}`;
+        const watching = remoteView() ? `${nameOf(remote.sender)} está apuntando.` : '';
+        return `Mesa de pool. Bolas en la mesa: ${onTable.join(', ') || 'ninguna'}. ${myTurn() ? 'Usa las flechas izquierda y derecha para apuntar, arriba y abajo para la fuerza, y Enter para tirar.' : watching}`;
     }
     function status(message) {
         const el = $('poolEstado');
@@ -751,9 +854,18 @@
         const game = room?.game;
         const showAim = myTurn() && !animating && !busy && !placing && E;
         const preview = cpuPreview && E && !animating ? cpuPreview : null;
-        const cueBall = preview?.cue ? { n: 0, x: preview.cue.x, y: preview.cue.y, p: 0 } : pendingCue ? { n: 0, x: pendingCue.x, y: pendingCue.y, p: 0 } : list.find(b => b.n === 0);
-        const shown = list.map(b => b.n === 0 && (pendingCue || preview?.cue) ? cueBall : b);
+        const rival = E && !preview ? remoteView() : null;
+        const rivalCue = rival && Number.isFinite(rival.shown.x) ? { x: rival.shown.x, y: rival.shown.y } : null;
+        const moved = preview?.cue || rivalCue || pendingCue;
+        const cueBall = moved ? { n: 0, x: moved.x, y: moved.y, p: 0 } : list.find(b => b.n === 0);
+        const shown = list.map(b => b.n === 0 && moved ? cueBall : b);
         if (showAim && cueBall && !cueBall.p) drawAim(shown, cueBall);
+        const rivalDir = rival ? { dx: Math.cos(rival.shown.a), dy: Math.sin(rival.shown.a) } : null;
+        if (rival && !rival.target.hand && !rival.strike && cueBall && !cueBall.p) drawAim(shown, cueBall, rivalDir, rival.target.s, 0.55);
+        if (rival && rival.target.call !== null) {
+            const p = E.POCKETS[rival.target.call], [px, py] = toScreen(p.x, p.y);
+            ctx.strokeStyle = '#f2c14e'; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.arc(px, py, (p.r + 6) * s, 0, Math.PI * 2); ctx.stroke();
+        }
         for (const b of shown) if (!b.p) drawShadow(b);
         drawDrops();
         for (const b of shown) if (!b.p) drawBall(b);
@@ -768,6 +880,36 @@
         if (placing && game?.ballInHand === 'kitchen') { ctx.fillStyle = '#ffffff14'; const [kx, ky] = toScreen(0, 0), [kx2, ky2] = toScreen(250, 500); ctx.fillRect(Math.min(kx, kx2), Math.min(ky, ky2), Math.abs(kx2 - kx), Math.abs(ky2 - ky)); }
         if (showAim && cueBall && !cueBall.p) drawCue(cueBall, aim, Number($('poolFuerza').value) / 100, cueStroke);
         else if (preview && cueBall && !cueBall.p) drawCue(cueBall, preview, preview.power, 28 * preview.pull);
+        else if (rival && cueBall && !cueBall.p) {
+            if (rival.target.hand) {
+                const [hx, hy] = toScreen(cueBall.x, cueBall.y);
+                ctx.strokeStyle = '#fffdf9aa'; ctx.lineWidth = 2 * s; ctx.setLineDash([4 * s, 3 * s]);
+                ctx.beginPath(); ctx.arc(hx, hy, (E.TABLE.radius + 6) * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+                ctx.fillStyle = '#fffdf9'; ctx.font = `${Math.max(15, 24 * s)}px system-ui, sans-serif`; ctx.textAlign = 'center';
+                ctx.fillText('✋', hx + 20 * s, hy - 17 * s);
+            } else {
+                const stroke = rival.strike ? strokeAt(performance.now() - rival.strike) : 0;
+                drawCue(cueBall, rivalDir, rival.shown.p / 100, stroke);
+                drawPowerTag(cueBall, rivalDir, rival.shown.p, rival.target);
+            }
+        }
+        if (showAim && cueBall && !cueBall.p) drawPowerTag(cueBall, aim, Number($('poolFuerza').value), { s: spin, e: side });
+        queueAim();
+    }
+    // A small label behind the cue: power and the spin dot, so everyone can read the shot being prepared.
+    function drawPowerTag(cueBall, direction, power, spinInfo) {
+        if (!coarse.matches && myTurn() && direction === aim) return; // the desktop controls already show it
+        const s = view.scale, len = Math.hypot(direction.dx, direction.dy) || 1, ux = direction.dx / len, uy = direction.dy / len;
+        const back = E.TABLE.radius + 16 + power / 100 * 50 + 120;
+        let [x, y] = toScreen(cueBall.x - ux * back, cueBall.y - uy * back);
+        x = Math.max(34 * s, Math.min(view.width - 34 * s, x)); y = Math.max(16 * s, Math.min(view.height - 16 * s, y));
+        const w = 64 * s, h = 22 * s;
+        ctx.fillStyle = 'rgba(16, 24, 20, 0.72)'; roundRect(ctx, x - w / 2, y - h / 2, w, h, h / 2); ctx.fill();
+        ctx.fillStyle = power > 85 ? '#ff9a7a' : '#f6d58c'; ctx.font = `700 ${Math.max(9, 12 * s)}px system-ui, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(Math.round(power) + '%', x - 9 * s, y + 0.5 * s);
+        const r = 7 * s, cx = x + 20 * s;
+        ctx.fillStyle = '#f6f2e9'; ctx.beginPath(); ctx.arc(cx, y, r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#c4302c'; ctx.beginPath(); ctx.arc(cx + (spinInfo.e || 0) * r * 0.6, y - (spinInfo.s || 0) * r * 0.6, 2 * s, 0, Math.PI * 2); ctx.fill();
     }
     function drawEmpty() {
         const [cx, cy] = toScreen(500, 250), s = view.scale;
@@ -868,28 +1010,37 @@
             drawBall(ball, 1 - 0.55 * ease, 1 - ease);
         }
     }
-    function drawAim(list, cueBall) {
-        const s = view.scale, guide = E.aimGuide(list, aim.dx, aim.dy);
+    function drawAim(list, cueBall, direction = aim, spinValue = spin, alpha = 1) {
+        const s = view.scale, guide = E.aimGuide(list, direction.dx, direction.dy);
         if (!guide) return;
+        const R = E.TABLE.radius, line = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(...toScreen(x1, y1)); ctx.lineTo(...toScreen(x2, y2)); ctx.stroke(); };
+        ctx.save(); ctx.globalAlpha = alpha;
         ctx.strokeStyle = '#fffdf9cc'; ctx.lineWidth = Math.max(1.2, 1.6 * s); ctx.setLineDash([6 * s, 5 * s]);
-        ctx.beginPath(); ctx.moveTo(...toScreen(cueBall.x, cueBall.y)); ctx.lineTo(...toScreen(guide.point.x, guide.point.y)); ctx.stroke(); ctx.setLineDash([]);
-        ctx.strokeStyle = '#fffdf999'; ctx.beginPath(); ctx.arc(...toScreen(guide.point.x, guide.point.y), E.TABLE.radius * s, 0, Math.PI * 2); ctx.stroke();
+        line(cueBall.x, cueBall.y, guide.point.x, guide.point.y); ctx.setLineDash([]);
+        ctx.strokeStyle = '#fffdf999'; ctx.beginPath(); ctx.arc(...toScreen(guide.point.x, guide.point.y), R * s, 0, Math.PI * 2); ctx.stroke();
+        const incoming = Math.hypot(direction.dx, direction.dy) || 1, ux = direction.dx / incoming, uy = direction.dy / incoming;
         if (guide.ball) {
             const dx = guide.ball.x - guide.point.x, dy = guide.ball.y - guide.point.y, len = Math.hypot(dx, dy) || 1;
-            ctx.strokeStyle = '#f6d58cbb'; ctx.lineWidth = 2 * s;
-            ctx.beginPath(); ctx.moveTo(...toScreen(guide.ball.x, guide.ball.y)); ctx.lineTo(...toScreen(guide.ball.x + dx / len * 70, guide.ball.y + dy / len * 70)); ctx.stroke();
+            const nx = dx / len, ny = dy / len, along = ux * nx + uy * ny;
+            // Object ball line: longer for fuller hits, which send it further.
+            ctx.strokeStyle = '#f6d58cdd'; ctx.lineWidth = 2 * s;
+            line(guide.ball.x, guide.ball.y, guide.ball.x + nx * (40 + 90 * along), guide.ball.y + ny * (40 + 90 * along));
             // Cue ball path after impact (an estimate for aiming; the real shot is simulated):
             // it leaves along the tangent, bent forward by follow or back by draw.
-            const incoming = Math.hypot(aim.dx, aim.dy) || 1, ux = aim.dx / incoming, uy = aim.dy / incoming;
-            const nx = dx / len, ny = dy / len, along = ux * nx + uy * ny;
-            const bend = along * (0.25 + 0.6 * spin);
+            const bend = along * (0.25 + 0.6 * spinValue);
             const tx = ux - along * nx + nx * bend, ty = uy - along * ny + ny * bend, tangent = Math.hypot(tx, ty);
             if (tangent > 0.06) {
-                ctx.strokeStyle = '#c9efe1cc'; ctx.setLineDash([4 * s, 4 * s]);
-                ctx.beginPath(); ctx.moveTo(...toScreen(guide.point.x, guide.point.y));
-                ctx.lineTo(...toScreen(guide.point.x + tx / tangent * 68, guide.point.y + ty / tangent * 68)); ctx.stroke(); ctx.setLineDash([]);
+                ctx.strokeStyle = '#c9efe1cc'; ctx.lineWidth = Math.max(1.2, 1.6 * s); ctx.setLineDash([4 * s, 4 * s]);
+                line(guide.point.x, guide.point.y, guide.point.x + tx / tangent * 68, guide.point.y + ty / tangent * 68); ctx.setLineDash([]);
             }
+        } else {
+            // Nothing in the way: show the first bounce off the cushion.
+            const vertical = guide.point.x <= R + 0.5 || guide.point.x >= E.TABLE.width - R - 0.5;
+            const rx = vertical ? -ux : ux, ry = vertical ? uy : -uy;
+            ctx.strokeStyle = '#fffdf966'; ctx.setLineDash([3 * s, 6 * s]);
+            line(guide.point.x, guide.point.y, guide.point.x + rx * 110, guide.point.y + ry * 110); ctx.setLineDash([]);
         }
+        ctx.restore();
     }
     function drawCue(cueBall, direction, power, stroke = 0) {
         const s = view.scale, len = Math.hypot(direction.dx, direction.dy) || 1, ux = direction.dx / len, uy = direction.dy / len;
@@ -1106,6 +1257,7 @@
         const len = Math.hypot(aim.dx, aim.dy) || 1, power = Number($('poolFuerza').value) / 100;
         const shot = { dx: aim.dx / len, dy: aim.dy / len, power, ...(spin ? { spin } : {}), ...(side ? { side } : {}), ...(needsCall() ? { call: calledPocket } : {}), ...(pendingCue ? { cue: pendingCue } : {}) };
         primeSound(); placing = false; striking = true; updateControls();
+        sendStrike(shot);
         try { await animateStrike(); } finally { striking = false; updateControls(); }
         playSound('cue', 0.35 + 0.65 * power); vibrate(power > 0.8 ? 30 : 15);
         setSpin(0, 0);
@@ -1290,7 +1442,7 @@
         const button = $('poolSalir');
         const setLabel = label => { button.setAttribute('aria-label', label); button.querySelector('.pool-accion-texto').textContent = label; };
         // Online with a rival seated: ask twice (the local view may lag behind a rematch that already started).
-        const risky = online() ? room && room.players.length === 2 : room && room.status === 'playing' && room.game?.seq > 0;
+        const risky = online() ? !spectating && room && room.players.length === 2 : room && room.status === 'playing' && room.game?.seq > 0;
         if (risky && !confirmLeave) {
             setLabel(!online() ? 'Confirmar: dejarás la mesa' : room.status === 'finished' ? 'Confirmar salida' : 'Confirmar: perderás la partida');
             status(online() && room.status !== 'finished' ? 'Toca otra vez para salir: perderás la partida.' : 'Toca otra vez para salir.');

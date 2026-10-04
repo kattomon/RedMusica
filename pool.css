@@ -304,3 +304,6 @@ body.pool-modo-juego .pool-estado.pool-estado-oculto { opacity: 0; }
 @media (orientation: portrait) and (max-height: 700px) {
     body.pool-modo-juego .pool-canaleta { display: none; }
 }
+/* Watching a full table */
+.pool-barra strong .pool-mirando { letter-spacing: 0; font-weight: 600; opacity: .85; }
+.pool-espectador .pool-ajuste, .pool-espectador .pool-efecto, .pool-espectador .pool-carga { display: none; }

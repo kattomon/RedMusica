@@ -35,7 +35,7 @@ const assert=require('node:assert/strict');
 
  // Scenario helpers: only the listed balls stay on the table.
  const scene=(placed,extra={})=>{const g=E.newGame('s',[A,B],A,bytes);g.breakShot=false;g.ballInHand=null;g.balls=g.balls.map(b=>placed[b.n]?{n:b.n,x:placed[b.n][0],y:placed[b.n][1],p:0}:{...b,p:1});return Object.assign(g,extra);};
- const toCorner={dx:1,dy:-1,power:0.3};// cue (850,150) -> ball (950,50) -> pocket (1000,0)
+ const toCorner={dx:1,dy:-1,power:0.3,spin:-0.5};// cue (850,150) -> ball (950,50) -> pocket (1000,0), stun so the cue ball stays out
 
  // Open table: pocketing a stripe assigns stripes to the shooter, who keeps shooting.
  let g=E.applyShot(scene({0:[850,150],11:[950,50],2:[200,400],8:[500,300]}),A,toCorner);
@@ -113,6 +113,21 @@ const assert=require('node:assert/strict');
  assert.equal(E.applyShot(game,A,{dx:1,dy:0.003,power:1,spin:0.5}).last.shot.spin,0.5,'spin is kept for the replay');
  assert.equal(E.applyShot(game,A,shot).last.shot.spin,undefined,'shots without spin stay compatible');
  assert.equal(E.validPlacement([],8,8,'table'),false,'the cue ball cannot be placed in a pocket mouth');
+
+ // Collisions are resolved at the moment of contact, so fast cut shots go where the line of centres says,
+ // bent only by a few degrees of throw: towards the cue ball's motion, and against the side spin.
+ const objectAngle=(power,side=0)=>{const gx=500-2*R,gy=250,c=Math.PI/6,cx=gx-200*Math.cos(c),cy=gy-200*Math.sin(c);let f=null;
+  E.simulate([{n:0,x:cx,y:cy,p:0},{n:3,x:500,y:250,p:0}],{dx:gx-cx,dy:gy-cy,power,side},s=>{if(!f&&Math.hypot(s[1].x-500,s[1].y-250)>20)f=s[1];});return Math.atan2(f.y-250,f.x-500)*180/Math.PI;};
+ for(const power of [0.15,0.5,1]){const a=objectAngle(power);assert.ok(a>0.5&&a<5,`cut throw at power ${power}: ${a}`);}
+ assert.ok(objectAngle(0.15)>objectAngle(1),'slow cuts throw more than fast ones');
+ const straightThrow=side=>{let f=null;E.simulate([{n:0,x:300,y:250,p:0},{n:3,x:500,y:250,p:0}],{dx:1,dy:0,power:0.3,side},s=>{if(!f&&s[1].x>540)f=s[1];});return f.y-250;};
+ assert.ok(straightThrow(1)<-0.5&&straightThrow(-1)>0.5&&straightThrow(0)===0,'right english throws the object ball left and left english right');
+ // Off the cushion a rolling ball bends forward (its spin into the cushion survives), so its final path is
+ // closer to the rail than right after the bounce.
+ {const path=[];E.simulate([{n:0,x:300,y:400,p:0}],{dx:1,dy:-1,power:0.3,spin:0.6},s=>path.push(s[0]));
+  const hit=path.findIndex((p,i)=>i>0&&p.y>path[i-1].y),a=path[hit+1],b=path[hit+3],c=path[hit+40];
+  const early=Math.atan2(b.y-a.y,b.x-a.x),late=Math.atan2(c.y-path[hit+37].y,c.x-path[hit+37].x);
+  assert.ok(late<early-0.05,`rolling ball bends towards the rail after the bounce (${early} -> ${late})`);}
 
  // Rooms: two players, forfeits, inactivity claims and rematches.
  const Rooms=await import('../supabase/functions/pool/rooms.js');

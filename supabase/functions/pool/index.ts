@@ -7,7 +7,7 @@ const headers = { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-H
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
 const secret = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const db = createClient(Deno.env.get('SUPABASE_URL')!, secret!, { auth: { persistSession: false, autoRefreshToken: false } });
-const actions = ['create', 'join', 'state', 'shoot', 'rematch', 'claim', 'timeout', 'leave'];
+const actions = ['create', 'join', 'state', 'watch', 'shoot', 'rematch', 'claim', 'timeout', 'leave'];
 const safeErrors = /^(Inicia|No se encontró|Tu cuenta|No encontramos|El código|La sala|La partida|La mesa|No formas|Todavía|El tiro|Coloca|Solo puedes|Tu rival|Esperando|Elige)/;
 
 function code() {
@@ -75,8 +75,12 @@ Deno.serve(async req => {
     let room = await findRoom(roomCode);
     const member = room.state.players.some((p: any) => p.user_id === user.id);
 
+    // Anyone with the code may watch; watching never changes the room.
+    if (input.action === 'watch') return reply({ room: publicState(room), spectator: !member });
     if (input.action === 'join') {
       if (member) return reply({ room: publicState(await recordResult(room)) });
+      // A full table opens as a spectator view instead of failing.
+      if (room.state.players.length >= 2) return reply({ room: publicState(room), spectator: true });
       const state = joinRoom(room.state, user.id, profile.username, now);
       state.game = startGame(state, room.host_id);
       room = await saveRoom(room, state);

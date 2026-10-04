@@ -9,6 +9,9 @@
 // (a sphere ends up rolling at 5/7 of a centre-hit speed); once equal it rolls and
 // only rolling resistance slows it. Balls exchange velocity on contact but keep
 // their spin, which is what makes stun, follow and draw shots work.
+// Contacts are wound back to the exact moment of touch, ball-to-ball friction adds a
+// little throw, cushions bounce less when hit hard and keep part of the spin, and
+// pocket jaws are deader than the cushions.
 
 export const TABLE = Object.freeze({ width: 1000, height: 500, radius: 11, headX: 250, footX: 750 });
 
@@ -38,16 +41,27 @@ export const CUSHIONS = Object.freeze([
   [500 - SIDE_GAP, 0, 500 - SIDE_GAP + 6, -18], [500 + SIDE_GAP, 0, 500 + SIDE_GAP - 6, -18],
   [500 - SIDE_GAP, H, 500 - SIDE_GAP + 6, H + 18], [500 + SIDE_GAP, H, 500 + SIDE_GAP - 6, H + 18]
 ].map(s => Object.freeze(s)));
+// Segments from this index on are pocket jaws.
+const FIRST_JAW = 6;
 
 const GRAVITY = 1.073;                 // 9.81 m/s² in units per tick²
 const SLIDE = 0.2 * GRAVITY;           // sliding friction of cloth
-const ROLL = 0.032 * GRAVITY;          // rolling resistance (game-tuned so shots settle in a few seconds)
-const CLOTH_DRAG = 0.0015;             // small speed-proportional loss
-const BALL_RESTITUTION = 0.94, CUSHION_RESTITUTION = 0.8, CUSHION_GRIP = 0.94;
-const MIN_SPEED = 2.5, SPEED_RANGE = 38, MAX_SPIN = 1.5, MAX_TICKS = 2400;
+const ROLL = 0.024 * GRAVITY;          // rolling resistance (game-tuned so shots settle in a few seconds)
+const CLOTH_DRAG = 0.0012;             // small speed-proportional loss
+const BALL_RESTITUTION = 0.95, CUSHION_GRIP = 0.94;
+// Cushions bounce a little less the harder they are hit; pocket jaws are deader and grippier,
+// so a ball that clips one rattles instead of sliding in.
+const CUSHION_BOUNCE = 0.88, CUSHION_SOFTEN = 0.004, CUSHION_MIN = 0.7, JAW_BOUNCE = 0.62, JAW_GRIP = 0.85;
+// The cushion nose sits above the ball's centre: part of the spin towards the cushion survives the
+// rebound, so a rolling ball bends forward off the rail and a drawn ball comes off wider.
+const CUSHION_SPIN_KEEP = 0.3;
+const MIN_SPEED = 2.5, SPEED_RANGE = 48, MAX_SPIN = 1.5, MAX_TICKS = 2400;
 // Side spin (english): stored as the surface speed of the vertical-axis spin; it changes
-// the rebound off cushions and fades with cloth friction.
-const MAX_SIDE = 0.9, SIDE_TO_RAIL = 0.28, SIDE_KEEP_RAIL = 0.45, SIDE_FADE = 0.985;
+// the rebound off cushions, throws object balls a little and fades with cloth friction.
+const MAX_SIDE = 0.9, SIDE_TO_RAIL = 0.28, SIDE_KEEP_RAIL = 0.45, SIDE_FADE = 0.992;
+// Ball-to-ball friction ("throw"): sliding surfaces drag the object ball a few degrees off the
+// line of centres; the effect is stronger on slow shots, as on a real table.
+const THROW_MIN = 0.02, THROW_EXTRA = 0.06, THROW_FADE = 0.15;
 export const POCKET_NAMES = Object.freeze(['esquina superior izquierda', 'centro superior', 'esquina superior derecha', 'esquina inferior izquierda', 'centro inferior', 'esquina inferior derecha']);
 
 export const isSolid = n => n >= 1 && n <= 7;
@@ -71,7 +85,7 @@ export function rack(bytes) {
   const stripe = rest.splice(rest.findIndex(isStripe), 1)[0];
   const flip = (bytes[0] ?? 0) % 2 === 1;
   const slots = [];
-  const gapX = 2 * R * 0.866 + 0.2, gapY = 2 * R + 0.2;
+  const gapX = 2 * R * 0.866 + 0.01, gapY = 2 * R + 0.01;
   for (let row = 0; row < 5; row++) for (let j = 0; j <= row; j++) slots.push({ x: round(TABLE.footX + row * gapX), y: round(H / 2 + (j - row / 2) * gapY) });
   const order = new Array(15);
   order[4] = 8; order[10] = flip ? stripe : solid; order[14] = flip ? solid : stripe;
@@ -115,7 +129,9 @@ export function simulate(inputBalls, shot, onTick, onEvent) {
   const cue = balls.find(b => b.n === 0);
   const len = Math.sqrt(shot.dx * shot.dx + shot.dy * shot.dy);
   // Gentle at the low end for touch shots, strong at the top for breaks (no Math.pow: it is not exactly specified).
-  const speed = MIN_SPEED + SPEED_RANGE * (0.55 * shot.power + 0.45 * shot.power * shot.power);
+  // The top of the range rises faster so a full-power break really opens the rack.
+  const p = shot.power, p2 = p * p;
+  const speed = MIN_SPEED + SPEED_RANGE * (0.5 * p + 0.2 * p2 + 0.3 * p2 * p2);
   const spin = Number.isFinite(shot.spin) ? Math.max(-1, Math.min(1, shot.spin)) : 0;
   cue.vx = shot.dx / len * speed; cue.vy = shot.dy / len * speed;
   cue.sx = cue.vx * spin * MAX_SPIN; cue.sy = cue.vy * spin * MAX_SPIN;
@@ -135,12 +151,12 @@ export function simulate(inputBalls, shot, onTick, onEvent) {
       for (const b of live()) { b.x += b.vx / steps; b.y += b.vy / steps; }
       const moving = live();
       for (let i = 0; i < moving.length; i++) for (let j = i + 1; j < moving.length; j++) {
-        const hit = collideBalls(moving[i], moving[j], events);
+        const hit = collideBalls(moving[i], moving[j], events, 1 / steps);
         if (hit && report) report('ball', moving[i].n === 0 ? moving[j].n : moving[i].n, hit);
       }
       for (const b of live()) {
-        for (const c of CUSHIONS) {
-          const hit = collideCushion(b, c);
+        for (let k = 0; k < CUSHIONS.length; k++) {
+          const hit = collideCushion(b, CUSHIONS[k], k >= FIRST_JAW);
           if (hit) { events.rails++; if (events.firstContact !== null) events.railAfterContact = true; if (report) report('rail', b.n, hit); }
         }
         let pocket = pocketAt(b.x, b.y);
@@ -183,27 +199,60 @@ function friction(b) {
   }
 }
 
-function collideBalls(a, b, events) {
+function collideBalls(a, b, events, dt) {
   let nx = b.x - a.x, ny = b.y - a.y;
   const d2 = nx * nx + ny * ny;
   if (d2 >= 4 * R * R) return 0;
-  let d = Math.sqrt(d2);
+  // The balls overlapped during this substep: wind both back to the moment they touched, so the
+  // line of centres (and so the cut angle) is exact however fast they travel.
+  const rvx = b.vx - a.vx, rvy = b.vy - a.vy, closing = nx * rvx + ny * rvy, rv2 = rvx * rvx + rvy * rvy;
+  let back = 0;
+  if (closing < 0 && rv2 > 1e-12) {
+    const disc = closing * closing - rv2 * (d2 - 4 * R * R);
+    back = (closing + Math.sqrt(disc)) / rv2;
+    if (back > dt) back = dt; else if (back < 0) back = 0;
+    a.x -= a.vx * back; a.y -= a.vy * back; b.x -= b.vx * back; b.y -= b.vy * back;
+    nx = b.x - a.x; ny = b.y - a.y;
+  }
+  let d = Math.sqrt(nx * nx + ny * ny);
   if (d === 0) { nx = 1; ny = 0; } else { nx /= d; ny /= d; }
   if (events.firstContact === null) {
     if (a.n === 0) events.firstContact = b.n; else if (b.n === 0) events.firstContact = a.n;
   }
-  const push = (2 * R - d) / 2;
-  a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
+  if (d < 2 * R) {
+    const push = (2 * R - d) / 2;
+    a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
+  }
   const approach = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-  if (approach <= 0) return 0;
-  // Equal masses, smooth balls: only the velocity along the line of centres changes; spin stays.
+  if (approach <= 0) {
+    a.x += a.vx * back; a.y += a.vy * back; b.x += b.vx * back; b.y += b.vy * back;
+    return 0;
+  }
+  // Equal masses: the velocity along the line of centres is exchanged; rolling spin stays with each ball.
   const impulse = (1 + BALL_RESTITUTION) / 2 * approach;
   a.vx -= impulse * nx; a.vy -= impulse * ny; b.vx += impulse * nx; b.vy += impulse * ny;
+  // Throw: the surfaces slide past each other at the contact point (cut angle and side spin);
+  // friction drags the object ball along, limited by the friction cone or until they stop slipping.
+  // Side spin e gives the point at direction m a surface velocity e * (my, -mx).
+  const relX = a.vx - b.vx, relY = a.vy - b.vy, along = relX * nx + relY * ny;
+  const slipX = relX - along * nx + (a.e + b.e) * ny, slipY = relY - along * ny - (a.e + b.e) * nx;
+  const slip = Math.sqrt(slipX * slipX + slipY * slipY);
+  if (slip > 1e-9) {
+    const mu = THROW_MIN + THROW_EXTRA / (1 + THROW_FADE * slip);
+    const tangent = Math.min(mu * impulse, slip / 7);
+    const tx = slipX / slip, ty = slipY / slip;
+    a.vx -= tx * tangent; a.vy -= ty * tangent; b.vx += tx * tangent; b.vy += ty * tangent;
+    // The same friction spins both balls about the vertical axis (I = 2/5 m R^2).
+    const turn = 2.5 * tangent * (tx * ny - ty * nx);
+    a.e -= turn; b.e -= turn;
+  }
+  // Finish the substep with the new velocities.
+  a.x += a.vx * back; a.y += a.vy * back; b.x += b.vx * back; b.y += b.vy * back;
   return approach;
 }
 
 // Ball against a cushion nose or pocket jaw. Returns the impact speed (0 when there is no contact).
-function collideCushion(b, seg) {
+function collideCushion(b, seg, jaw) {
   const [x1, y1, x2, y2] = seg;
   const ex = x2 - x1, ey = y2 - y1, len2 = ex * ex + ey * ey;
   let t = ((b.x - x1) * ex + (b.y - y1) * ey) / len2;
@@ -219,8 +268,12 @@ function collideCushion(b, seg) {
   const vn = b.vx * nx + b.vy * ny;
   if (vn >= 0) return 0;
   const tx = b.vx - vn * nx, ty = b.vy - vn * ny;
-  b.vx = tx * CUSHION_GRIP - vn * CUSHION_RESTITUTION * nx;
-  b.vy = ty * CUSHION_GRIP - vn * CUSHION_RESTITUTION * ny;
+  let bounce = jaw ? JAW_BOUNCE : CUSHION_BOUNCE + CUSHION_SOFTEN * vn;
+  if (bounce < CUSHION_MIN && !jaw) bounce = CUSHION_MIN;
+  const grip = jaw ? JAW_GRIP : CUSHION_GRIP;
+  const spinIn = b.sx * nx + b.sy * ny;
+  b.vx = tx * grip - vn * bounce * nx;
+  b.vy = ty * grip - vn * bounce * ny;
   if (b.e !== 0) {
     // Side spin grips the cushion: right english (e > 0) pushes the ball to the right of
     // its incoming direction, along the cushion; part of the spin is used up.
@@ -229,8 +282,11 @@ function collideCushion(b, seg) {
     b.vx += ny * kick; b.vy -= nx * kick;
     b.e *= SIDE_KEEP_RAIL;
   }
-  // The cushion grips the ball above its centre: it leaves rolling along the new path.
-  b.sx = b.vx; b.sy = b.vy;
+  // Along the cushion the ball leaves rolling; across it, part of its spin into (or away from) the
+  // cushion survives, and cloth friction then bends the path (a natural roll comes off shorter).
+  const along = b.vx * -ny + b.vy * nx;
+  b.sx = -ny * along + nx * spinIn * CUSHION_SPIN_KEEP;
+  b.sy = nx * along + ny * spinIn * CUSHION_SPIN_KEEP;
   return -vn;
 }
 

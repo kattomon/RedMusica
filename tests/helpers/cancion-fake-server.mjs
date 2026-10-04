@@ -4,10 +4,10 @@ import { stripTypeScriptTypes } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-export async function loadCancionServer(people, { friendships = [], clock } = {}) {
+export async function loadCancionServer(people, { friendships = [], clock, fn = 'cancion' } = {}) {
   const now = () => (clock ? clock() : Date.now());
-  const fnDir = path.resolve('supabase/functions/cancion') + '/';
-  const tables = { profiles: [], song_days: [], song_plays: [], song_stats: [], song_rooms: [], song_room_matches: [], friendships: structuredClone(friendships) };
+  const fnDir = path.resolve('supabase/functions/' + fn) + '/';
+  const tables = { profiles: [], song_days: [], song_plays: [], song_stats: [], song_rooms: [], song_room_matches: [], pool_rooms: [], pool_results: [], friendships: structuredClone(friendships) };
   const tokens = {};
   for (const p of people) { tokens[p.token] = p.id; tables.profiles.push({ id: p.id, username: p.username, suspended: !!p.suspended }); }
   let stamp = 0, rooms = 0;
@@ -53,6 +53,7 @@ export async function loadCancionServer(people, { friendships = [], clock } = {}
     auth: { getUser: async t => tokens[t] ? { data: { user: { id: tokens[t] } }, error: null } : { data: { user: null }, error: { message: 'bad' } } },
     rpc: async (fn, a) => {
       const statsOf = id => { let s = tables.song_stats.find(x => x.user_id === id); if (!s) tables.song_stats.push(s = { user_id: id, days: 0, points: 0, best: 0, solved: 0, streak: 0, best_streak: 0, last_day: null, dist: [0, 0, 0, 0, 0, 0, 0], live_games: 0, live_wins: 0 }); return s; };
+      if (fn === 'record_pool_result') { if (!tables.pool_results.some(r => r.id === a.p_match)) tables.pool_results.push({ id: a.p_match, winner: a.p_winner, loser: a.p_loser }); return { data: true, error: null }; }
       if (fn === 'record_song_room') {
         if (tables.song_room_matches.some(m => m.id === a.p_match)) return { data: false, error: null };
         tables.song_room_matches.push({ id: a.p_match, room_code: a.p_room, players: a.p_players.length });
@@ -80,6 +81,6 @@ export async function loadCancionServer(people, { friendships = [], clock } = {}
   await import(path.join(dir, 'index.mjs') + '?' + Date.now());
   return {
     tables,
-    handle: (token, body) => handler(new Request('http://fake/functions/v1/cancion', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: typeof body === 'string' ? body : JSON.stringify(body) }))
+    handle: (token, body) => handler(new Request('http://fake/functions/v1/' + fn, { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: typeof body === 'string' ? body : JSON.stringify(body) }))
   };
 }
