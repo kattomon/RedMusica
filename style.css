@@ -1147,17 +1147,3 @@ body.sesion-pendiente #chatComunitario { display: none !important; }
 }
 @media (prefers-reduced-motion: reduce) { .aviso-chat { animation: none; } #ventanaChatAmigo.parpadea header { animation: none; background: #3b5998; color: #fff; } }
 body.pool-modo-juego #avisosChat { top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 1150; }
-
-/* "Escuchando ahora" */
-.escuchando-form { display: grid; gap: 6px; margin: 8px 0 10px; padding: 10px; border: 1px solid var(--rm-line); border-radius: var(--rm-radius); background: var(--rm-soft); }
-.escuchando-form label { font-weight: 700; font-size: .9rem; }
-.escuchando-form input { width: 100%; box-sizing: border-box; min-height: 40px; }
-.escuchando-botones { display: flex; gap: 6px; flex-wrap: wrap; }
-.escuchando-botones button { min-height: 38px; }
-.escuchando-form p:empty { display: none; }
-.escuchando-form p { margin: 0; font-size: .82rem; }
-.escuchando-ahora { margin: 0 0 10px; }
-.escuchando-ahora .escuchando-linea { margin: 0 0 6px; overflow-wrap: anywhere; }
-.escuchando-cuando { color: var(--rm-muted); font-size: .85em; }
-.escuchando-reproductor { display: block; width: 100%; max-width: 520px; border: 0; border-radius: 12px; }
-.amigo-dock .escuchando-breve { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; color: var(--rm-plum); }
