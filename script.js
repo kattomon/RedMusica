@@ -15,7 +15,7 @@
         const config = window.REDMUSICA_CONFIG;
         if (config && config.supabaseUrl && config.supabasePublishableKey) {
             await cargarScript("vendor/supabase-2.117.2.js");
-            await cargarScript("cloud.js?v=20261003-3");
+            await cargarScript("cloud.js?v=20261008-1");
             await cargarScript("admin.js?v=20260930-1");
             await cargarScript("blackjack.js?v=20260928-1");
             await cargarScript("pool.js?v=20261004-2").catch(() => {});

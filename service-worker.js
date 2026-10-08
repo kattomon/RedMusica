@@ -1,10 +1,10 @@
 'use strict';
 
-const SHELL_CACHE = 'redmusica-shell-v24';
+const SHELL_CACHE = 'redmusica-shell-v25';
 const SHELL_FILES = [
     './',
     './index.html',
-    './style.css?v=20261001-2',
+    './style.css?v=20261008-1',
     './layout.css?v=20260929-1',
     './sections.css?v=20260929-1',
     './admin-ui.css?v=20260929-1',
@@ -21,12 +21,12 @@ const SHELL_FILES = [
     './radio-panel.js?v=20260929-2',
     './radio.html',
     './radio.js?v=20260929-2',
-    './script.js?v=20261004-2',
+    './script.js?v=20261008-1',
     './pwa.js?v=20260928-1',
     './covers.js?v=20260927-18',
     './search.js?v=20260927-18',
     './vendor/supabase-2.117.2.js',
-    './cloud.js?v=20261003-3',
+    './cloud.js?v=20261008-1',
     './admin.js?v=20260930-1',
     './blackjack.js?v=20260928-1',
     './pool.js?v=20261004-2',

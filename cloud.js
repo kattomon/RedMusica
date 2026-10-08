@@ -4,6 +4,9 @@
     const config = window.REDMUSICA_CONFIG;
     const db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
     window.redmusicaClient = db;
+    // "Escuchando ahora" lasts this long and only accepts these Spotify links (used by the helpers further down).
+    const ESCUCHANDO_MS=4*60*60*1000;
+    const SPOTIFY_ENLACE=/^https:\/\/open\.spotify\.com\/(?:intl-[a-z]{2}(?:-[a-z]{2})?\/)?(track|album|playlist|episode)\/([A-Za-z0-9]{22})$/;
     function normalizarRutaPool() {
         const url = new URL(location.href);
         if (url.searchParams.get('seccion') !== 'juegos' || !url.searchParams.has('pool')) return;
@@ -186,6 +189,7 @@
             <button type="submit">Guardar contraseña</button>
         </form>
         <div id="sesionPerfil" hidden><p id="nombrePerfil"></p>
+            <form id="formularioEscuchando" class="escuchando-form"><label for="escuchandoTexto"><span aria-hidden="true">🎧</span> ¿Qué estás escuchando?</label><input id="escuchandoTexto" maxlength="150" placeholder="Canción — Artista" autocomplete="off"><label class="solo-lectores" for="escuchandoEnlace">Enlace de Spotify (opcional)</label><input id="escuchandoEnlace" inputmode="url" maxlength="300" placeholder="Enlace de Spotify (opcional)" autocomplete="off" spellcheck="false"><div class="escuchando-botones"><button type="submit">Compartir</button><button id="quitarEscuchando" type="button" hidden>Ya no</button></div><p id="estadoEscuchando" role="status"></p></form>
             <details id="editarPerfil"><summary>Editar mi perfil</summary>
             <div id="miFoto"></div>
             <form id="formularioFoto"><label for="archivoFoto">Foto de perfil</label><input id="archivoFoto" type="file" accept="image/jpeg,image/png,image/webp" required>
@@ -329,6 +333,10 @@
         if (perfil && usuario) { nombre.append(rangoPerfil(perfil.role)); document.getElementById('miFoto').append(fotoPerfil(usuario.id, perfil)); }
         document.getElementById('bioPerfil').value = perfil?.bio || '';
         document.getElementById('estadoBreve').value = perfil?.status_text || '';
+        const sonando = escuchandoVigente(perfil);
+        document.getElementById('escuchandoTexto').value = sonando ? perfil.now_playing || '' : '';
+        document.getElementById('escuchandoEnlace').value = sonando ? perfil.now_playing_url || '' : '';
+        document.getElementById('quitarEscuchando').hidden = !sonando;
         document.getElementById('quitarFoto').disabled = !perfil?.avatar_updated_at;
         document.getElementById('crearMeme').hidden = !viendoMemes || !usuario || !perfil;
         document.getElementById('reseñaPelicula').hidden = !viendoPeliculas || !usuario || !perfil || !peliculaSeleccionada;
@@ -589,7 +597,7 @@
         if(usuario)iniciarPresencia();else detenerPresencia();
         try {
             if (usuario) {
-                const datos = resultado(await db.from("profiles").select("username,role,bio,status_text,avatar_updated_at").eq("id", usuario.id).single());
+                const datos = resultado(await db.from("profiles").select("username,role,bio,status_text,avatar_updated_at,now_playing,now_playing_url,now_playing_at").eq("id", usuario.id).single());
                 if (revision !== revisionSesion) return;
                 perfil = datos;
             }
@@ -771,7 +779,7 @@
         const botones = [...document.querySelectorAll('#editarPerfil button')]; botones.forEach(b => b.disabled = true);
         try {
             const cambios = await tarea(id);
-            const filas = resultado(await db.from('profiles').update(cambios).eq('id', id).select('username,role,bio,status_text,avatar_updated_at'));
+            const filas = resultado(await db.from('profiles').update(cambios).eq('id', id).select('username,role,bio,status_text,avatar_updated_at,now_playing,now_playing_url,now_playing_at'));
             if (!filas.length) throw Error('No se pudo guardar el perfil.');
             if (revision !== revisionSesion) return;
             perfil = filas[0]; actualizarAcceso(); await cargarFeed(true);
@@ -914,6 +922,83 @@
     });
     document.getElementById('formularioBio').addEventListener('submit',e=>{e.preventDefault(); const bio=document.getElementById('bioPerfil').value.trim(); editarDatos(async()=>({bio}));});
     document.getElementById('formularioEstadoBreve').addEventListener('submit',e=>{e.preventDefault(); const status=document.getElementById('estadoBreve').value.trim(); editarDatos(async()=>({status_text:status}));});
+    // ---------- "Escuchando ahora" ----------
+    // Text (song - artist) and an optional Spotify link; it disappears on its own after a few hours.
+    function escuchandoVigente(p){return Boolean(p&&p.now_playing_at&&(p.now_playing||p.now_playing_url)&&Date.now()-new Date(p.now_playing_at).getTime()<ESCUCHANDO_MS);}
+    // Accepts a Spotify share link (with or without ?si=...) or a spotify:track:... URI and returns the clean link.
+    function limpiarEnlaceSpotify(texto){
+        const valor=String(texto||'').trim();
+        if(!valor)return null;
+        const uri=valor.match(/^spotify:(track|album|playlist|episode):([A-Za-z0-9]{22})$/);
+        if(uri)return 'https://open.spotify.com/'+uri[1]+'/'+uri[2];
+        let url;try{url=new URL(valor);}catch{return undefined;}
+        if(url.protocol!=='https:'||url.hostname!=='open.spotify.com')return undefined;
+        const limpio='https://open.spotify.com'+url.pathname.replace(/\/+$/,'');
+        return SPOTIFY_ENLACE.test(limpio)?limpio:undefined;
+    }
+    function haceCuanto(fecha){
+        const min=Math.max(0,Math.round((Date.now()-new Date(fecha).getTime())/60000));
+        return min<1?'ahora mismo':min<60?'hace '+min+' min':'hace '+Math.floor(min/60)+' h';
+    }
+    function nodoEscuchando(p,{reproductor=false,breve=false}={}){
+        if(!escuchandoVigente(p))return null;
+        const box=document.createElement(breve?'span':'div');box.className=breve?'escuchando-breve':'escuchando-ahora';
+        const linea=document.createElement(breve?'span':'p');linea.className='escuchando-linea';
+        const icono=document.createElement('span');icono.setAttribute('aria-hidden','true');icono.textContent=breve?'♫ ':'🎧 ';
+        const titulo=document.createElement('strong');titulo.textContent=p.now_playing||'Una canción en Spotify';
+        linea.append(icono);
+        if(!breve)linea.append('Escuchando ahora: ');
+        linea.append(titulo);
+        if(!breve){const cuando=document.createElement('span');cuando.className='escuchando-cuando';cuando.textContent=' · '+haceCuanto(p.now_playing_at);linea.append(cuando);}
+        box.append(linea);
+        const partes=p.now_playing_url?.match(SPOTIFY_ENLACE);
+        if(reproductor&&partes){
+            const frame=document.createElement('iframe');
+            frame.className='escuchando-reproductor';frame.loading='lazy';frame.title='Reproductor de Spotify: '+(p.now_playing||'canción');
+            frame.src='https://open.spotify.com/embed/'+partes[1]+'/'+partes[2]+'?utm_source=generator';
+            frame.height=partes[1]==='track'||partes[1]==='episode'?'80':'152';
+            frame.allow='autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+            frame.referrerPolicy='strict-origin-when-cross-origin';
+            box.append(frame);
+        }
+        return box;
+    }
+    // Spotify's public oEmbed gives the title of a pasted link; if it is unreachable the player still shows it.
+    async function tituloSpotify(enlace){
+        try{
+            const res=await fetch('https://open.spotify.com/oembed?url='+encodeURIComponent(enlace),{signal:AbortSignal.timeout(4000)});
+            if(!res.ok)return '';
+            const data=await res.json();
+            return typeof data.title==='string'?data.title.slice(0,150):'';
+        }catch{return '';}
+    }
+    let guardandoEscuchando=false;
+    async function guardarEscuchando(texto,enlace){
+        const estado=document.getElementById('estadoEscuchando');
+        if(!usuario||!perfil||guardandoEscuchando)return;
+        guardandoEscuchando=true;const botones=[...document.querySelectorAll('#formularioEscuchando button')];botones.forEach(b=>b.disabled=true);
+        estado.textContent='Guardando…';
+        try{
+            const filas=resultado(await db.from('profiles').update({now_playing:texto,now_playing_url:enlace}).eq('id',usuario.id).select('username,role,bio,status_text,avatar_updated_at,now_playing,now_playing_url,now_playing_at'));
+            if(!filas.length)throw Error('No se pudo guardar.');
+            perfil=filas[0];actualizarAcceso();
+            estado.textContent=texto||enlace?'Tus amigos ya ven lo que estás escuchando.':'Listo, ya no se muestra.';
+            if(viendoPerfil&&perfilSolicitado===usuario.id)await cargarFeed(true);
+            cargarAmigosDock();
+        }catch(e){estado.textContent=/check|violates/i.test(e?.message||'')?'Revisa el texto o el enlace de Spotify.':(e?.message||'No se pudo guardar. Inténtalo otra vez.');}
+        finally{guardandoEscuchando=false;botones.forEach(b=>b.disabled=false);}
+    }
+    document.getElementById('formularioEscuchando').addEventListener('submit',async e=>{
+        e.preventDefault();
+        const estado=document.getElementById('estadoEscuchando');
+        let texto=document.getElementById('escuchandoTexto').value.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,150);
+        const enlace=limpiarEnlaceSpotify(document.getElementById('escuchandoEnlace').value);
+        if(enlace===undefined){estado.textContent='Ese enlace no es de Spotify. Copia el enlace con «Compartir → Copiar enlace».';return;}
+        if(!texto&&!enlace){estado.textContent='Escribe la canción o pega un enlace de Spotify.';return;}
+        if(!texto&&enlace){estado.textContent='Buscando la canción…';texto=await tituloSpotify(enlace);}
+        await guardarEscuchando(texto,enlace);
+    });
+    document.getElementById('quitarEscuchando').addEventListener('click',()=>guardarEscuchando('',null));
     document.getElementById('quitarFoto').addEventListener('click',()=>editarDatos(async id=>{resultado(await db.storage.from('avatars').remove([id+'/avatar.jpg'])); return {avatar_updated_at:null};}));
 
 
@@ -1195,7 +1280,7 @@
             const rows=resultado(await db.from('friendships').select('user_a,user_b,status').or('user_a.eq.'+usuario.id+',user_b.eq.'+usuario.id).eq('status','accepted').order('created_at',{ascending:false}).limit(100));
             if(!usuario)return;
             const ids=[...new Set(rows.map(row=>row.user_a===usuario.id?row.user_b:row.user_a))];
-            const people=ids.length?resultado(await db.from('profiles').select('id,username,role,avatar_updated_at').in('id',ids)):[];
+            const people=ids.length?resultado(await db.from('profiles').select('id,username,role,avatar_updated_at,now_playing,now_playing_url,now_playing_at').in('id',ids)):[];
             const byId=new Map(people.map(person=>[person.id,person]));box.replaceChildren();
             rows.forEach(row=>{
                 const id=row.user_a===usuario.id?row.user_b:row.user_a,person=byId.get(id);if(!person)return;
@@ -1203,7 +1288,7 @@
                 item.append(fotoPerfil(id,person));
                 const identity=document.createElement('div');identity.className='amigo-identidad';
                 const nameRow=document.createElement('div');nameRow.className='amigo-nombre';nameRow.append(enlaceUsuario(id,person.username),rangoPerfil(person.role));identity.append(nameRow);
-                const presence=document.createElement('span');presence.className='estado-presencia-amigo';presence.dataset.userId=id;presence.textContent=presenciaEnLinea.has(id)?'En línea':'Desconectado';presence.classList.toggle('en-linea',presenciaEnLinea.has(id));identity.append(presence);item.append(identity);
+                const presence=document.createElement('span');presence.className='estado-presencia-amigo';presence.dataset.userId=id;presence.textContent=presenciaEnLinea.has(id)?'En línea':'Desconectado';presence.classList.toggle('en-linea',presenciaEnLinea.has(id));identity.append(presence);const sonando=nodoEscuchando(person,{breve:true});if(sonando)identity.append(sonando);item.append(identity);
                 nombresChat.set(id,person.username);
                 const button=crearBoton('Chat');button.className='boton-chat-amigo';button.setAttribute('aria-label','Abrir chat con @'+person.username);button.addEventListener('click',()=>abrirChatPrivado({id,username:person.username}));item.append(button);box.append(item);
             });
@@ -1514,13 +1599,14 @@
         const inicio = reiniciar ? 0 : desplazamiento;
         try {
             if (viendoPerfil && reiniciar) {
-                const publico = idPerfilValido ? resultado(await db.from("profiles").select("username,created_at,role,bio,status_text,avatar_updated_at").eq("id", perfilSolicitado).maybeSingle()) : null;
+                const publico = idPerfilValido ? resultado(await db.from("profiles").select("username,created_at,role,bio,status_text,avatar_updated_at,now_playing,now_playing_url,now_playing_at").eq("id", perfilSolicitado).maybeSingle()) : null;
                 if (revision !== revisionFeed) return;
                 if (!publico) {
                     document.getElementById('fotoPerfilPublico').replaceChildren();
                     document.getElementById('rangoPerfilPublico').replaceChildren();
                     document.getElementById('bioPerfilPublico').textContent = '';
                     document.getElementById('estadoBrevePublico').hidden=true;
+                    document.getElementById('escuchandoPublico').hidden=true;document.getElementById('escuchandoPublico').replaceChildren();
                     document.getElementById('albumesPerfil').replaceChildren();
                     objetivoSeguir=null;document.getElementById("seguirPerfil").hidden=true;document.getElementById("conteoSeguidores").textContent="";
                     document.getElementById('presenciaPerfil').dataset.userId='';document.getElementById('amistadPerfil').hidden=true;document.getElementById('rechazarAmistad').hidden=true;
@@ -1538,6 +1624,7 @@
                 document.getElementById('rangoPerfilPublico').replaceChildren(rangoPerfil(publico.role));
                 document.getElementById('bioPerfilPublico').textContent = publico.bio || 'Todavía no hay una presentación.';
                 const statusNode=document.getElementById('estadoBrevePublico');statusNode.textContent=publico.status_text||'';statusNode.hidden=!publico.status_text;
+                const escuchandoNode=document.getElementById('escuchandoPublico'),escuchando=nodoEscuchando(publico,{reproductor:true});escuchandoNode.replaceChildren(...(escuchando?[escuchando]:[]));escuchandoNode.hidden=!escuchando;
                 await cargarFotosPerfil(perfilSolicitado,Boolean(usuario&&usuario.id===perfilSolicitado));
                 await cargarConciertosPerfil(perfilSolicitado,Boolean(usuario&&usuario.id===perfilSolicitado));
                 await cargarIndiceDiarioPerfil(perfilSolicitado);
