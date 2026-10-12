@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdtempSync, copyFileSync, readdirSync } f
 import { stripTypeScriptTypes } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export async function loadNaipesServer(people, { clock } = {}) {
   const fnDir = path.resolve('supabase/functions/naipes') + '/';
@@ -59,7 +60,7 @@ export async function loadNaipesServer(people, { clock } = {}) {
   let src = stripTypeScriptTypes(readFileSync(fnDir + 'index.ts', 'utf8'), { mode: 'strip' });
   src = src.replace(/import \{ createClient \} from 'npm:@supabase\/supabase-js@[^']+';/, 'const createClient = () => globalThis.__naipesFake;');
   writeFileSync(path.join(dir, 'index.mjs'), src);
-  await import(path.join(dir, 'index.mjs') + '?' + Date.now());
+  await import(pathToFileURL(path.join(dir, 'index.mjs')).href + '?' + Date.now());
   return {
     tables,
     handle: (token, body) => handler(new Request('http://fake/functions/v1/naipes', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: typeof body === 'string' ? body : JSON.stringify(body) }))

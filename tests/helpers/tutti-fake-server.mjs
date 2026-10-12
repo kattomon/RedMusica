@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export async function loadTuttiServer(people) {
   const fnDir = path.resolve('supabase/functions/bachillerato') + '/';
@@ -65,8 +66,8 @@ export async function loadTuttiServer(people) {
   globalThis.Deno = { env: { get: k => ({ SUPABASE_URL: 'http://fake', SUPABASE_SERVICE_ROLE_KEY: 'x' })[k] }, serve: h => { handler = h; } };
   let src = stripTypeScriptTypes(readFileSync(fnDir + 'index.ts', 'utf8'), { mode: 'strip' });
   src = src.replace(/import \{ createClient \} from 'npm:@supabase\/supabase-js@[^']+';/, 'const createClient = () => globalThis.__tuttiFake;')
-    .replace("'./logic.js'", JSON.stringify('file://' + fnDir + 'logic.js'));
+    .replace("'./logic.js'", JSON.stringify(pathToFileURL(fnDir + 'logic.js').href));
   const file = path.join(mkdtempSync(path.join(tmpdir(), 'tutti-')), 'fn.mjs'); writeFileSync(file, src);
-  await import(file + '?' + Date.now());
+  await import(pathToFileURL(file).href + '?' + Date.now());
   return { tables, handle: (token, body) => handler(new Request('http://fake/functions/v1/bachillerato', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body })) };
 }

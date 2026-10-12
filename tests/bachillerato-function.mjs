@@ -3,9 +3,10 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 const fnDir = path.resolve('supabase/functions/bachillerato') + '/';
-const L = await import('file://' + fnDir + 'logic.js');
+const L = await import(pathToFileURL(fnDir + 'logic.js').href);
 
 // ---- fake database -------------------------------------------------------
 const tables = { tutti_rooms: [], tutti_players: [], tutti_answers: [], tutti_votes: [], profiles: [], tutti_stats: [], tutti_games: [] };
@@ -70,8 +71,8 @@ const RealDate = Date; globalThis.Date = class extends RealDate { constructor(..
 
 let src = stripTypeScriptTypes(readFileSync(fnDir + 'index.ts', 'utf8'), { mode: 'strip' });
 src = src.replace(/import \{ createClient \} from 'npm:@supabase\/supabase-js@[^']+';/, 'const createClient = () => globalThis.__fakeClient;')
-  .replace("'./logic.js'", JSON.stringify('file://' + fnDir + 'logic.js'));
-const tmp = path.join(mkdtempSync(path.join(tmpdir(), 'tutti-')), 'fn.mjs'); writeFileSync(tmp, src); await import(tmp + '?' + realNow());
+  .replace("'./logic.js'", JSON.stringify(pathToFileURL(fnDir + 'logic.js').href));
+const tmp = path.join(mkdtempSync(path.join(tmpdir(), 'tutti-')), 'fn.mjs'); writeFileSync(tmp, src); await import(pathToFileURL(tmp).href + '?' + realNow());
 
 async function call(token, body) {
   const res = await handler(new Request('http://fake/functions/v1/bachillerato', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }));
