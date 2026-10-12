@@ -266,7 +266,7 @@ const server=http.createServer((req,res)=>{
   // 2012-style chat alerts: unread counter while away, read when you come back to the open chat, "Visto" for the sender.
   assert.equal(await a.locator('#abrirDockAmigos .contador-chat').textContent(),'1','the unread private message is counted');
   const readsBefore=dmReadCalls;await a.evaluate(()=>{window.__testHidden=false;document.dispatchEvent(new Event('visibilitychange'));window.dispatchEvent(new Event('focus'));});
-  await a.waitForFunction(()=>document.querySelector('#abrirDockAmigos .contador-chat').hidden);assert.ok(dmReadCalls>readsBefore,'coming back to the open chat marks it as read');assert.ok(dmMessages[1].read_at,'the message is stored as read');
+  await a.waitForFunction(()=>document.querySelector('#abrirDockAmigos .contador-chat').hidden);for(let i=0;i<60&&dmReadCalls<=readsBefore;i++)await a.waitForTimeout(50);assert.ok(dmReadCalls>readsBefore,'coming back to the open chat marks it as read');assert.ok(dmMessages[1].read_at,'the message is stored as read');
   await b.evaluate(row=>window.__dmReadCallback?.({new:row}),dmMessages[1]);await b.locator('#mensajesPrivados .visto-chat').waitFor();assert.match(await b.locator('#mensajesPrivados .visto-chat').innerText(),/^Visto · /,'the sender sees that the message was read');
   await a.locator('#cerrarChatAmigo').click();
   dmMessages.push({id:'dm-away',sender_id:luis.id,recipient_id:ana.id,body:'¿Juegas pool más tarde?',created_at:new Date().toISOString()});
