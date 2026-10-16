@@ -270,9 +270,12 @@
         return respuesta.data;
     }
     function mensajeErrorAccion(error) {
+        // Storage refuses the upload when the account reached its photo cap (trigger limit_post_images_per_user).
+        if (/Image storage limit reached/i.test(String(error?.message || ''))) return 'Llegaste al máximo de fotos que puede guardar tu cuenta. Borra alguna publicación antigua con foto o publica sin foto.';
         if (error?.code === '42501') return 'Tu cuenta no tiene permiso para completar esta acción. Vuelve a iniciar sesión y prueba otra vez.';
         if (error?.code === '23514' || error?.code === '23502' || error?.code === '22001') return 'Revisa los datos ingresados; alguno no coincide con el catálogo o supera el límite permitido.';
         if (error?.code === '23503') return 'La sesión o el elemento seleccionado ya no está disponible. Actualiza la página e inténtalo de nuevo.';
+        if (error?.code === 'DatabaseError' || error?.error === 'DatabaseError') return 'No se pudo guardar la foto. Inténtalo de nuevo y, si sigue fallando, avísale al administrador.';
         if (error?.name === 'AbortError' || error?.name === 'TimeoutError') return 'La conexión tardó demasiado. Inténtalo de nuevo.';
         if (typeof error?.code === 'string') return 'No se pudo completar la acción. Código de diagnóstico: ' + error.code.slice(0, 12) + '.';
         return 'No se pudo completar la acción. Revisa tu conexión y tu sesión e inténtalo de nuevo.';
