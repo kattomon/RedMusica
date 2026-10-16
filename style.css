@@ -1147,3 +1147,4 @@ body.sesion-pendiente #chatComunitario { display: none !important; }
 }
 @media (prefers-reduced-motion: reduce) { .aviso-chat { animation: none; } #ventanaChatAmigo.parpadea header { animation: none; background: #3b5998; color: #fff; } }
 body.pool-modo-juego #avisosChat { top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 1150; }
+.ayuda-clave { margin: 6px 0 0; font-size: .82rem; color: var(--rm-muted); }

@@ -13,7 +13,7 @@ const server=http.createServer((req,res)=>{
   const browser=await engine.launch();
   const ana={id:'11111111-1111-4111-8111-111111111111',email:'ana@example.test',aud:'authenticated',role:'authenticated'};
   const luis={id:'22222222-2222-4222-8222-222222222222',email:'luis@example.test',aud:'authenticated',role:'authenticated'};
-  let dmReadCalls=0,posts=[],likes=[],comments=[],follows=[],friendships=[],notifications=[],chatMessages=[],dmMessages=[],savedPosts=[],personalLists=[],listItems=[],gameRecommendations=[],gameCatalogAdds=0,failPosts=false;
+  let passwordChanges=[],dmReadCalls=0,posts=[],likes=[],comments=[],follows=[],friendships=[],notifications=[],chatMessages=[],dmMessages=[],savedPosts=[],personalLists=[],listItems=[],gameRecommendations=[],gameCatalogAdds=0,failPosts=false;
   const names={[ana.id]:'Ana',[luis.id]:'Luis'};const pushActions=[];
   const profiles={[ana.id]:{username:'Ana',role:'owner',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'},[luis.id]:{username:'Luis',role:'member',bio:'',avatar_updated_at:null,created_at:'2026-09-26T12:00:00Z'}};let uploads=0,imageUploads=0;const contexts=[];
   function token(user){return Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';}
@@ -71,6 +71,8 @@ const server=http.createServer((req,res)=>{
     else if(url.pathname==='/auth/v1/token'){const user=body.email===ana.email?ana:luis;data={access_token:token(user),refresh_token:'refresh-'+user.id,expires_in:3600,token_type:'bearer',user};}
     else if(url.pathname==='/auth/v1/logout'){status=204;data=null;}
     else if(url.pathname==='/auth/v1/recover'){data={};}
+    else if(url.pathname==='/auth/v1/verify'){if(body.type==='recovery'&&body.token_hash==='luis-recovery-token-123456'){data={access_token:token(luis),refresh_token:'refresh-'+luis.id,expires_in:3600,token_type:'bearer',user:luis};}else{status=403;data={code:403,error_code:'otp_expired',msg:'Email link is invalid or has expired'};}}
+    else if(url.pathname==='/auth/v1/user'&&method==='PUT'){passwordChanges.push({user:current?.id,hasPassword:typeof body.password==='string'&&body.password.length>=8});data=current;}
     else if(url.pathname==='/auth/v1/user'){data=current;}
     else if(url.pathname==='/rest/v1/notifications'){
       const recipient=url.searchParams.get('recipient_id')?.replace(/^eq\./,'');
@@ -172,6 +174,14 @@ const server=http.createServer((req,res)=>{
   const a=await makePage();
   assert.equal(await a.locator('#cuenta').isVisible(),true,'guest account entry is shown on the home page');
   assert.equal(await a.locator('#chatComunitario').isVisible(),false,'community chat is hidden until login');
+  // Forgotten password: the owner's one-time link opens the "new password" form; an old link is refused.
+  const reset=await makePage('#recuperar=luis-recovery-token-123456');
+  await reset.locator('#formularioNuevaClave').waitFor({state:'visible'});assert.equal(new URL(reset.url()).hash,'','the token is removed from the address bar');
+  await reset.getByText(/Enlace válido/).waitFor();await reset.locator('#nuevaClave').fill('nueva-clave-segura-1');await reset.getByRole('button',{name:'Guardar contraseña'}).click();
+  await reset.getByText('Contraseña actualizada.',{exact:true}).waitFor();assert.deepEqual(passwordChanges,[{user:luis.id,hasPassword:true}]);
+  assert.equal(await reset.locator('#formularioNuevaClave').isVisible(),false);await reset.close();
+  const stale=await makePage('#recuperar=token-viejo-que-ya-vencio-000');await stale.getByText(/ya se usó o venció/).waitFor();
+  assert.equal(await stale.locator('#ayudaClaveOlvidada').isVisible(),false,'with e-mail recovery on, the button is shown instead of the hint');await stale.close();
   const visitor=await makePage('?seccion=memes');await visitor.waitForURL('http://127.0.0.1:4174/');assert.equal(await visitor.locator('#memesNav').isVisible(),false,'visitors can only access home');assert.equal(await visitor.locator('#chatComunitario').isVisible(),false);await visitor.goto('http://127.0.0.1:4174/?seccion=musica');await visitor.waitForURL('http://127.0.0.1:4174/');assert.equal(await visitor.locator('#musicaNav').isVisible(),false,'visitors cannot access the music section');await visitor.close();
   await a.locator('#modoAcceso').selectOption('signup');await a.locator('#nombreUsuario').fill('Ana');await a.locator('#correoUsuario').fill(ana.email);await a.locator('#claveUsuario').fill('test-password-123');await a.locator('#botonAcceso').click();await a.waitForFunction(()=>document.querySelector('#estadoPerfil').textContent.includes('Cuenta creada. Inicia sesión'));
   assert.match(await a.locator('.aviso-cuenta').innerText(),/no necesitas confirmar el correo/i);

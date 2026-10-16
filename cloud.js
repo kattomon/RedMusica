@@ -179,6 +179,7 @@
             <input id="claveUsuario" type="password" autocomplete="current-password" required minlength="8" maxlength="128">
             <button id="botonAcceso" type="submit">Entrar</button>
             <button id="recuperarClave" type="button">Olvidé mi contraseña</button>
+            <p id="ayudaClaveOlvidada" class="ayuda-clave" hidden>¿Olvidaste tu contraseña? Escríbele a Kattomon, el administrador de RedMusica, y te mandará un enlace para crear una nueva.</p>
         </form>
         <form id="formularioNuevaClave" hidden>
             <label for="nuevaClave">Nueva contraseña</label>
@@ -203,6 +204,7 @@
         document.getElementById("tituloCuenta").after(aviso);
     }
     document.getElementById("recuperarClave").hidden = config.passwordRecoveryEnabled === false;
+    document.getElementById("ayudaClaveOlvidada").hidden = config.passwordRecoveryEnabled !== false;
     const feed = document.getElementById("feed");
     feed.textContent = "";
     const estadoFeed = document.createElement("p");
@@ -227,7 +229,7 @@
     let revisionBusquedaPeliculas = 0;
     let perfilSeguido = false, objetivoSeguir = null, guardandoSeguir = false;
     let offsetNotificaciones = 0, cargandoNotificaciones = false, revisionNotificaciones = 0, notificacionesAbiertas = false;
-    let recuperando = false;
+    let recuperando = false, claveRecienCambiada = false;
     let revisionSesion = 0;
     let rutaProtegidaPendiente = null, temporizadorRutaPendiente = 0;
     let revisionFeed = 0;
@@ -242,7 +244,9 @@
     function actualizarVisibilidadCuenta(){
         const inicio=!viendoPerfil&&!viendoMemes&&!viendoPeliculas&&!viendoLibros&&!viendoDiario&&!viendoAmigos&&!viendoActividad&&!viendoGuardados&&!viendoListas&&!viendoEventos&&!viendoVideos&&!viendoJuegos&&!(viendoPool||viendoBachillerato||viendoNaipes||viendoCancion)&&!viendoMusica&&!viendoBlackjack;
         const recuperacion=Boolean(usuario&&recuperando&&inicio);
-        cuenta.hidden=!(inicio&&(!usuario||recuperacion));
+        // Right after a password change the box stays on screen (until you move to another section) so the confirmation is seen.
+        if(!inicio||!usuario)claveRecienCambiada=false;
+        cuenta.hidden=!(inicio&&(!usuario||recuperacion||claveRecienCambiada));
         const sesion=document.getElementById('sesionPerfil');
         const miPropioPerfil=Boolean(usuario&&viendoPerfil&&perfilSolicitado===usuario.id);
         const destinoSesion=document.getElementById('perfilCuenta')||document.getElementById('perfilPublico');
@@ -628,6 +632,30 @@
         }, 0);
     });
 
+    // Link from the owner to choose a new password (#recuperar=<token>, made in the admin panel).
+    // The token stays after "#" so it is never sent to the web server; Supabase checks it here and,
+    // if valid, opens a session in recovery mode so the person can type a new password.
+    (function () {
+        const match = location.hash.match(/^#recuperar=([A-Za-z0-9%_-]{20,300})$/);
+        if (!match) return;
+        history.replaceState(history.state, '', location.pathname + location.search);
+        estadoPerfil.textContent = 'Comprobando el enlace para cambiar tu contraseña…';
+        setTimeout(async function () {
+            try {
+                const { data, error } = await db.auth.verifyOtp({ token_hash: decodeURIComponent(match[1]), type: 'recovery' });
+                if (error || !data?.session) throw error || Error('sin sesión');
+                recuperando = true;
+                for (let i = 0; i < 40 && document.getElementById('formularioNuevaClave').hidden; i++) await new Promise(r => setTimeout(r, 100));
+                estadoPerfil.textContent = 'Enlace válido. Escribe tu nueva contraseña y pulsa «Guardar contraseña».';
+                const form = document.getElementById('formularioNuevaClave');
+                form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                document.getElementById('nuevaClave').focus({ preventScroll: true });
+            } catch {
+                estadoPerfil.textContent = 'Ese enlace ya se usó o venció. Pídele uno nuevo al administrador.';
+            }
+        }, 0);
+    })();
+
     // Chat history is stored in Supabase and remains available after reloads.
     const cajaChat = document.getElementById('chatComunitario');
     const listaChat = document.getElementById('mensajesChat');
@@ -747,6 +775,7 @@
             resultado(await db.auth.updateUser({ password: document.getElementById("nuevaClave").value }));
             document.getElementById("nuevaClave").value = "";
             recuperando = false;
+            claveRecienCambiada = true;
             actualizarAcceso();
             estadoPerfil.textContent = "Contraseña actualizada.";
         });

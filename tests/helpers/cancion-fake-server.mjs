@@ -8,9 +8,9 @@ import { pathToFileURL } from 'node:url';
 export async function loadCancionServer(people, { friendships = [], clock, fn = 'cancion' } = {}) {
   const now = () => (clock ? clock() : Date.now());
   const fnDir = path.resolve('supabase/functions/' + fn) + '/';
-  const tables = { profiles: [], song_days: [], song_plays: [], song_stats: [], song_rooms: [], song_room_matches: [], pool_rooms: [], pool_results: [], friendships: structuredClone(friendships) };
+  const tables = { profiles: [], song_days: [], song_plays: [], song_stats: [], song_rooms: [], song_room_matches: [], pool_rooms: [], pool_results: [], admin_audit: [], friendships: structuredClone(friendships) };
   const tokens = {};
-  for (const p of people) { tokens[p.token] = p.id; tables.profiles.push({ id: p.id, username: p.username, suspended: !!p.suspended }); }
+  for (const p of people) { tokens[p.token] = p.id; tables.profiles.push({ id: p.id, username: p.username, suspended: !!p.suspended, role: p.role || 'member' }); }
   let stamp = 0, rooms = 0;
   const keys = { song_days: ['day'], song_plays: ['user_id', 'day'] };
   function query(name) {
@@ -51,7 +51,11 @@ export async function loadCancionServer(people, { friendships = [], clock, fn = 
   }
   const fake = {
     from: query,
-    auth: { getUser: async t => tokens[t] ? { data: { user: { id: tokens[t] } }, error: null } : { data: { user: null }, error: { message: 'bad' } } },
+    auth: { getUser: async t => tokens[t] ? { data: { user: { id: tokens[t] } }, error: null } : { data: { user: null }, error: { message: 'bad' } },
+      admin: {
+        getUserById: async id => { const p = people.find(x => x.id === id); return p ? { data: { user: { id, email: p.username.toLowerCase() + '@example.test' } }, error: null } : { data: { user: null }, error: { message: 'not found' } }; },
+        generateLink: async ({ type, email }) => { (tables.generated_links ||= []).push({ type, email }); return { data: { properties: { hashed_token: 'hashed-' + email.split('@')[0], action_link: 'https://fake/verify' } }, error: null }; }
+      } },
     rpc: async (fn, a) => {
       const statsOf = id => { let s = tables.song_stats.find(x => x.user_id === id); if (!s) tables.song_stats.push(s = { user_id: id, days: 0, points: 0, best: 0, solved: 0, streak: 0, best_streak: 0, last_day: null, dist: [0, 0, 0, 0, 0, 0, 0], live_games: 0, live_wins: 0 }); return s; };
       if (fn === 'record_pool_result') { if (!tables.pool_results.some(r => r.id === a.p_match)) tables.pool_results.push({ id: a.p_match, winner: a.p_winner, loser: a.p_loser }); return { data: true, error: null }; }

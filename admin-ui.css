@@ -121,3 +121,6 @@
   #administracion .fila-controles { flex-wrap: wrap; }
   #administracion .fila-controles input { width: 100%; flex-basis: 100%; }
 }
+#administracion .admin-enlace-clave { flex-basis: 100%; display: grid; gap: 6px; margin-top: 6px; padding: 10px; border: 1px dashed #b28a48; border-radius: 6px; background: #fffdf6; }
+#administracion .admin-enlace-clave input { width: 100%; box-sizing: border-box; min-height: 40px; font-size: .8rem; }
+#administracion .admin-enlace-clave small { line-height: 1.45; }
